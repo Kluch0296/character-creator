@@ -60,7 +60,17 @@ function renderButtons(container, page) {
   optionsDiv.className = 'options';
   page.options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.textContent = opt.label;
+    btn.classList.add('option-btn');
+    if (opt.image) {
+      const img = document.createElement('img');
+      img.src = opt.image;
+      img.alt = '';
+      img.className = 'option-image';
+      btn.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.textContent = opt.label;
+    btn.appendChild(span);
     if (page.id === 'race') {
       btn.classList.add('race-' + opt.value);
     }
@@ -93,7 +103,17 @@ function renderSubOptions(parent, id, suboptions) {
   subDiv.innerHTML = '<p>Выберите подрасу:</p>';
   suboptions.forEach(sub => {
     const btn = document.createElement('button');
-    btn.textContent = sub.label;
+    btn.classList.add('option-btn');
+    if (sub.image) {
+      const img = document.createElement('img');
+      img.src = sub.image;
+      img.alt = '';
+      img.className = 'option-image';
+      btn.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.textContent = sub.label;
+    btn.appendChild(span);
     btn.addEventListener('click', () => {
       character[id + '_sub'] = sub.value;
       subDiv.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
