@@ -17,31 +17,356 @@
             "type": "buttons",
             "options": [
                 {
-                    "label": "👤 Человек",
+                    "label": "Человек",
                     "value": "human",
                     "image": "img/human.png"
                 },
                 {
-                    "label": "🧝 Эльф",
+                    "label": "Эльф",
                     "value": "elf",
                     "image": "img/elf.png",
                     "suboptions": [
                         {
                             "label": "✨ Высокий эльф",
-                            "value": "high_elf",
-                            "image": "img/high_elf.png"
+                            "value": "high_elf"
                         },
                         {
                             "label": "🌲 Лесной эльф",
-                            "value": "wood_elf",
-                            "image": "img/wood_elf.png"
+                            "value": "wood_elf"
                         }
                     ]
                 },
                 {
-                    "label": "🦅 Аракокра",
+                    "label": "Аракокра",
                     "value": "aarakocra",
                     "image": "img/aarakocra.png"
+                },
+                {
+                    "label": "Аасимар",
+                    "value": "aasimar",
+                    "image": "img/aasimar.png",
+                    "suboptions": [
+                        {
+                            "label": "Аасимар-защитник",
+                            "value": "aasimar-guardian"
+                        },
+                        {
+                            "label": "Аасимар-каратель",
+                            "value": "aasimar-punisher"
+                        },
+                        {
+                            "label": "Падший аасимар",
+                            "value": "fallen-aasimar"
+                        }
+                    ]
+                },
+                {
+                    "label": "Автогном",
+                    "value": "autognome",
+                    "image": "img/autognome.png"
+                },
+                {
+                    "label": "Астральный эльф",
+                    "value": "astral-elf",
+                    "image": "img/astral-elf.png"
+                },
+                {
+                    "label": "Багбир",
+                    "value": "bugbear",
+                    "image": "img/bugbear.png"
+                },
+                {
+                    "label": "Ведалкен",
+                    "value": "vedalken",
+                    "image": "img/vedalken.png"
+                },
+                {
+                    "label": "Вердан",
+                    "value": "verdan",
+                    "image": "img/verdan.png"
+                },
+                {
+                    "label": "Гибрид Симиков",
+                    "value": "simic-hybrid",
+                    "image": "img/simic-hybrid.png"
+                },
+                {
+                    "label": "Гит",
+                    "value": "gith",
+                    "image": "img/gith.png",
+                    "suboptions": [
+                        {
+                            "label": "Гитцераи",
+                            "value": "gitzerai",
+                            "image": "img/gitzerai.png"
+                        },
+                        {
+                            "label": "Гитъянки",
+                            "value": "githyanki",
+                            "image": "img/githyanki.png"
+                        }
+                    ]    
+                },
+                {
+                    "label": "Гифф",
+                    "value": "giff",
+                    "image": "img/giff.png"
+                },
+                {
+                    "label": "Гном",
+                    "value": "gnome",
+                    "image": "img/gnome.png",
+                    "suboptions": [
+                        {
+                            "label": "Лесной гном",
+                            "value": "forest-gnome"
+                        },
+                        {
+                            "label": "Скальный гном",
+                            "value": "rock-gnome"
+                        }
+                    ]    
+                },
+                {
+                    "label": "Гоблин",
+                    "value": "goblin",
+                    "image": "img/goblin.png"
+                },
+                {
+                    "label": "Голиаф",
+                    "value": "goliath",
+                    "image": "img/goliath.png"
+                },
+                {
+                    "label": "Грунг",
+                    "value": "grung",
+                    "image": "img/grung.png"
+                },
+                {
+                    "label": "Дварф",
+                    "value": "dwarf",
+                    "image": "img/dwarf.png",
+                    "suboptions": [
+                        {
+                            "label": "Горный дварф",
+                            "value": "mountain-dwarf"
+                        },
+                        {
+                            "label": "Холмовой дварф",
+                            "value": "hill-dwarf"
+                        }
+                    ]   
+                },
+                {
+                    "label": "Дженази",
+                    "value": "genasi",
+                    "image": "img/genasi.png",
+                    "suboptions": [
+                        {
+                            "label": "Дженази воздуха",
+                            "value": "air-genasi"
+                        },
+                        {
+                            "label": "Дженази земли",
+                            "value": "earth-genasi"
+                        },
+                        {
+                            "label": "Дженази огня",
+                            "value": "fire-genasi"
+                        },
+                        {
+                            "label": "Дженази воды",
+                            "value": "water-genasi"
+                        }
+                    ]   
+                },
+                {
+                    "label": "Драконорождённый",
+                    "value": "dragonborn",
+                    "image": "img/dragonborn.png"
+                },
+                {
+                    "label": "Зайцегон",
+                    "value": "harengon",
+                    "image": "img/harengon.png"
+                },
+                {
+                    "label": "Калаштар",
+                    "value": "kalashtar",
+                    "image": "img/kalashtar.png"
+                },
+                {
+                    "label": "Кендер",
+                    "value": "kender",
+                    "image": "img/kender.png"
+                },
+                {
+                    "label": "Кенку",
+                    "value": "kenku",
+                    "image": "img/kenku.png"
+                },
+                {
+                    "label": "Кентавр",
+                    "value": "centaur",
+                    "image": "img/centaur.png"
+                },
+                {
+                    "label": "Орк",
+                    "value": "orc",
+                    "image": "img/orc.png"
+                },
+                {
+                    "label": "Плазмоид",
+                    "value": "plasmoid",
+                    "image": "img/plasmoid.png"
+                },
+                {
+                    "label": "Полуорк",
+                    "value": "half-orc",
+                    "image": "img/half-orc.png"
+                },
+                {
+                    "label": "Полурослик",
+                    "value": "halfling",
+                    "image": "img/halfling.png",
+                    "suboptions": [
+                        {
+                            "label": "Коренастый",
+                            "value": "stocky"
+                        },
+                        {
+                            "label": "Легконогий",
+                            "value": "light-footed"
+                        }
+                    ]
+                },
+                {
+                    "label": "Полуэльф",
+                    "value": "half-elf",
+                    "image": "img/half-elf.png"
+                },
+                {
+                    "label": "Кобольд",
+                    "value": "kobold",
+                    "image": "img/kobold.png"
+                },
+                {
+                    "label": "Кованый",
+                    "value": "warforged",
+                    "image": "img/warforged.png"
+                },
+                {
+                    "label": "Леонин",
+                    "value": "leonin",
+                    "image": "img/leonin.png"
+                },
+                {
+                    "label": "Локата",
+                    "value": "locathah",
+                    "image": "img/locathah.png"
+                },
+                {
+                    "label": "Локсодон",
+                    "value": "loxodon",
+                    "image": "img/loxodon.png"
+                },
+                {
+                    "label": "Людоящер",
+                    "value": "lizardfolk",
+                    "image": "img/lizardfolk.png"
+                },
+                {
+                    "label": "Минотавр",
+                    "value": "minotaur",
+                    "image": "img/minotaur.png"
+                },
+                {
+                    "label": "Сатир",
+                    "value": "satyr",
+                    "image": "img/satyr.png"
+                },
+                {
+                    "label": "Совлин",
+                    "value": "owlin",
+                    "image": "img/owlin.png"
+                },
+                {
+                    "label": "Табакси",
+                    "value": "tabaxi",
+                    "image": "img/tabaxi.png"
+                },
+                {
+                    "label": "Тифлинг",
+                    "value": "tiefling",
+                    "image": "img/tiefling.png"
+                },
+                {
+                    "label": "Тортл",
+                    "value": "tortle",
+                    "image": "img/tortle.png"
+                },
+                {
+                    "label": "Три-крин",
+                    "value": "thri-kreen",
+                    "image": "img/thri-kreen.png"
+                },
+                {
+                    "label": "Тритон",
+                    "value": "triton",
+                    "image": "img/triton.png"
+                },
+                {
+                    "label": "Фирболг",
+                    "value": "firbolg",
+                    "image": "img/firbolg.png"
+                },
+                {
+                    "label": "Фэйри",
+                    "value": "fairy",
+                    "image": "img/fairy.png"
+                },
+                {
+                    "label": "Хадози",
+                    "value": "hadozee",
+                    "image": "img/hadozee.png"
+                },
+                {
+                    "label": "Хобгоблин",
+                    "value": "hobgoblin",
+                    "image": "img/hobgoblin.png"
+                },
+                {
+                    "label": "Чейнджлинг",
+                    "value": "changeling",
+                    "image": "img/changeling.png"
+                },
+                {
+                    "label": "Шифтер",
+                    "value": "shifter",
+                    "image": "img/shifter.png",
+                    "suboptions": [
+                        {
+                            "label": "Зверошкуры",
+                            "value": "beasthide-shifter"
+                        },
+                        {
+                            "label": "Длиннозубы",
+                            "value": "longtooth-shifter"
+                        },
+                        {
+                            "label": "Бытроноги",
+                            "value": "swiftstride-shifter"
+                        },
+                        {
+                            "label": "Дикие охотники",
+                            "value": "wildhunt-shifter"
+                        }
+                    ]
+                },
+                {
+                    "label": "Юань-ти",
+                    "value": "yuan-ti-pureblood",
+                    "image": "img/yuan-ti-pureblood.png"
                 }
             ]
         }
