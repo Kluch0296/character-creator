@@ -30,6 +30,21 @@ button {
   object-fit: cover;
 }
 
+textarea,
+input[type="text"] {
+  width: clamp(50vw, 60vw, 70vw);
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 button:hover {
   background-color: #555;
 }

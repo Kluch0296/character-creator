@@ -369,6 +369,31 @@
                     "image": "img/yuan-ti-pureblood.png"
                 }
             ]
+        },
+        {
+            "id": "name",
+            "title": "📝 Введите имя персонажа",
+            "type": "text"
+        },
+        {
+            "id": "alignment",
+            "title": "⚖️ Выберите мировоззрение",
+            "type": "radio",
+            "options": [
+                { "label": "Доброе", "value": "good" },
+                { "label": "Нейтральное", "value": "neutral" },
+                { "label": "Злое", "value": "evil" }
+            ]
+        },
+        {
+            "id": "skills",
+            "title": "🎯 Выберите навыки",
+            "type": "checkbox",
+            "options": [
+                { "label": "Атлетика", "value": "athletics" },
+                { "label": "Акробатика", "value": "acrobatics" },
+                { "label": "Магия", "value": "arcana" }
+            ]
         }
     ]
 }
