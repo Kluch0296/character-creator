@@ -413,41 +413,86 @@
             ]
         },
         {
-            "id": "alignment",
-            "title": "⚖️ Выберите мировоззрение",
-            "type": "radio",
-            "options": [
-                { "label": "Доброе", "value": "good" },
-                { "label": "Нейтральное", "value": "neutral" },
-                { "label": "Злое", "value": "evil" }
-            ]
-        },
-        {
-            "id": "skills",
-            "title": "🎯 Выберите навыки",
-            "type": "checkbox",
-            "options": [
-                { "label": "Атлетика", "value": "athletics" },
-                { "label": "Акробатика", "value": "acrobatics" },
-                { "label": "Магия", "value": "arcana" }
-            ]
-        },
-        {
-            "id": "extras",
-            "title": "📜 Дополнительная информация",
+            "id": "class",
+            "title": "Класс",
             "elements": [
                 {
-                    "id": "motto",
-                    "type": "text",
-                    "placeholder": "Девиз персонажа"
-                },
-                {
-                    "id": "pet",
+                    "id": "class",
                     "type": "buttons",
-                    "title": "Домашний питомец",
+                    "title": "Выберите класс персонажа",
                     "options": [
-                        { "label": "Кот", "value": "cat" },
-                        { "label": "Собака", "value": "dog" }
+                        {
+                            "type": "buttons",
+                            "label": "Бард",
+                            "value": "bard",
+                            "image": "img/bard.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Варвар",
+                            "value": "barbarian",
+                            "image": "img/barbarian.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Волшебник",
+                            "value": "wizard",
+                            "image": "img/wizard.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Друид",
+                            "value": "druid",
+                            "image": "img/druid.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Жрец",
+                            "value": "cleric",
+                            "image": "img/cleric.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Изобретатель",
+                            "value": "artificer",
+                            "image": "img/artificer.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Колдун",
+                            "value": "warlock",
+                            "image": "img/warlock.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Монах",
+                            "value": "monk",
+                            "image": "img/monk.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Паладин",
+                            "value": "paladin",
+                            "image": "img/paladin.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Плут",
+                            "value": "rogue",
+                            "image": "img/rogue.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Следопыт",
+                            "value": "ranger",
+                            "image": "img/ranger.png"
+                        },
+                        {
+                            "type": "buttons",
+                            "label": "Чародей",
+                            "value": "sorcerer",
+                            "image": "img/sorcerer.png"
+                        }
                     ]
                 }
             ]
