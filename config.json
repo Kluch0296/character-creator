@@ -1,0 +1,24 @@
+{
+  "pages": [
+    {
+      "id": "level",
+      "title": "Выберите уровень персонажа",
+      "type": "buttons",
+      "options": [
+        {"label": "1", "value": 1}
+      ]
+    },
+    {
+      "id": "race",
+      "title": "Выберите расу",
+      "type": "buttons",
+      "options": [
+        {"label": "Человек", "value": "human"},
+        {"label": "Эльф", "value": "elf", "suboptions": [
+          {"label": "Высокий эльф", "value": "high_elf"},
+          {"label": "Лесной эльф", "value": "wood_elf"}
+        ]}
+      ]
+    }
+  ]
+}

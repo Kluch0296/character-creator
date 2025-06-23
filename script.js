@@ -1,0 +1,84 @@
+let config;
+let character = {};
+let currentPageIndex = 0;
+
+function loadConfig() {
+  fetch('config.json')
+    .then(res => res.json())
+    .then(data => {
+      config = data;
+      renderPage();
+    })
+    .catch(err => console.error('Ошибка загрузки конфигурации', err));
+}
+
+document.addEventListener('DOMContentLoaded', loadConfig);
+
+function renderPage() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if (currentPageIndex >= config.pages.length) {
+    showResult(app);
+    return;
+  }
+  const page = config.pages[currentPageIndex];
+  const title = document.createElement('h2');
+  title.textContent = page.title;
+  app.appendChild(title);
+
+  if (page.type === 'buttons') {
+    renderButtons(app, page);
+  }
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Далее';
+  nextBtn.addEventListener('click', () => {
+    if (!character[page.id]) return alert('Сделайте выбор');
+    currentPageIndex++;
+    renderPage();
+  });
+  app.appendChild(nextBtn);
+}
+
+function renderButtons(container, page) {
+  const optionsDiv = document.createElement('div');
+  optionsDiv.className = 'options';
+  page.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => {
+      character[page.id] = opt.value;
+      if (opt.suboptions) {
+        renderSubOptions(optionsDiv, page.id, opt.suboptions);
+      }
+    });
+    optionsDiv.appendChild(btn);
+  });
+  container.appendChild(optionsDiv);
+}
+
+function renderSubOptions(parent, id, suboptions) {
+  let subDiv = document.getElementById('sub-' + id);
+  if (!subDiv) {
+    subDiv = document.createElement('div');
+    subDiv.id = 'sub-' + id;
+    parent.appendChild(subDiv);
+  }
+  subDiv.innerHTML = '<p>Выберите подрасу:</p>';
+  suboptions.forEach(sub => {
+    const btn = document.createElement('button');
+    btn.textContent = sub.label;
+    btn.addEventListener('click', () => {
+      character[id + '_sub'] = sub.value;
+    });
+    subDiv.appendChild(btn);
+  });
+}
+
+function showResult(container) {
+  const title = document.createElement('h2');
+  title.textContent = 'Результат';
+  const pre = document.createElement('pre');
+  pre.textContent = JSON.stringify(character, null, 2);
+  container.appendChild(title);
+  container.appendChild(pre);
+}
