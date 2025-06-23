@@ -1,10 +1,26 @@
 body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  font-family: 'Crimson Text', serif;
+  margin: 0;
+  background: #1a1a1a;
+  color: #eaeaea;
+}
+
+.app-container {
   max-width: 600px;
-  margin: auto;
+  margin: 40px auto;
+  padding: 20px;
   background: linear-gradient(135deg, #222, #333);
-  color: #f0f0f0;
+  border-radius: 12px;
+}
+
+h1, h2, h3 {
+  font-family: 'Cinzel', serif;
+  margin-top: 0;
+  color: #fff;
+}
+
+.options {
+  margin-bottom: 20px;
 }
 
 button {
@@ -15,6 +31,7 @@ button {
   color: #fff;
   border: none;
   border-radius: 8px;
+  font-family: 'Cinzel', serif;
 }
 
 button:hover {
@@ -23,12 +40,4 @@ button:hover {
 
 button.selected {
   background-color: #0066cc;
-}
-
-h2 {
-  color: #fff;
-}
-
-.options {
-  margin-bottom: 20px;
 }
