@@ -64,7 +64,7 @@ function renderButtons(container, page) {
     if (opt.image) {
       const img = document.createElement('img');
       img.src = opt.image;
-      img.alt = '';
+      img.alt = opt.label;
       img.className = 'option-image';
       btn.appendChild(img);
     }
@@ -107,7 +107,7 @@ function renderSubOptions(parent, id, suboptions) {
     if (sub.image) {
       const img = document.createElement('img');
       img.src = sub.image;
-      img.alt = '';
+      img.alt = sub.label;
       img.className = 'option-image';
       btn.appendChild(img);
     }
