@@ -32,3 +32,52 @@ h2 {
 .options {
   margin-bottom: 20px;
 }
+
+.progress-container {
+  background: #555;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 10px;
+  margin-bottom: 5px;
+}
+
+.progress-bar {
+  height: 10px;
+  background: #0066cc;
+  width: 0;
+}
+
+.page-indicator {
+  text-align: right;
+  margin-bottom: 10px;
+  font-size: 0.9em;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.3s;
+}
+
+.result {
+  background-color: #444;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+button.race-human {
+  background-color: #6d4c41;
+}
+
+button.race-elf {
+  background-color: #2e8b57;
+}
+
+button.race-aarakocra {
+  background-color: #5a678f;
+}

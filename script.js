@@ -22,6 +22,18 @@ function renderPage() {
     return;
   }
   const page = config.pages[currentPageIndex];
+  const progressContainer = document.createElement('div');
+  progressContainer.className = 'progress-container';
+  const progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar';
+  progressBar.style.width = (currentPageIndex / config.pages.length) * 100 + '%';
+  progressContainer.appendChild(progressBar);
+  app.appendChild(progressContainer);
+
+  const pageIndicator = document.createElement('div');
+  pageIndicator.className = 'page-indicator';
+  pageIndicator.textContent = `${currentPageIndex + 1} / ${config.pages.length}`;
+  app.appendChild(pageIndicator);
   const title = document.createElement('h2');
   title.textContent = page.title;
   app.appendChild(title);
@@ -32,7 +44,11 @@ function renderPage() {
   const nextBtn = document.createElement('button');
   nextBtn.textContent = 'Далее';
   nextBtn.addEventListener('click', () => {
-    if (!character[page.id]) return alert('Сделайте выбор');
+    if (!character[page.id]) {
+      nextBtn.classList.add('shake');
+      nextBtn.addEventListener('animationend', () => nextBtn.classList.remove('shake'), { once: true });
+      return;
+    }
     currentPageIndex++;
     renderPage();
   });
@@ -45,6 +61,9 @@ function renderButtons(container, page) {
   page.options.forEach(opt => {
     const btn = document.createElement('button');
     btn.textContent = opt.label;
+    if (page.id === 'race') {
+      btn.classList.add('race-' + opt.value);
+    }
     btn.addEventListener('click', () => {
       character[page.id] = opt.value;
       // highlight selected option
@@ -87,8 +106,22 @@ function renderSubOptions(parent, id, suboptions) {
 function showResult(container) {
   const title = document.createElement('h2');
   title.textContent = 'Результат';
+
+  const resultBlock = document.createElement('div');
+  resultBlock.className = 'result';
   const pre = document.createElement('pre');
   pre.textContent = JSON.stringify(character, null, 2);
+  resultBlock.appendChild(pre);
+
+  const restartBtn = document.createElement('button');
+  restartBtn.textContent = 'Начать заново';
+  restartBtn.addEventListener('click', () => {
+    character = {};
+    currentPageIndex = 0;
+    renderPage();
+  });
+
   container.appendChild(title);
-  container.appendChild(pre);
+  container.appendChild(resultBlock);
+  container.appendChild(restartBtn);
 }
