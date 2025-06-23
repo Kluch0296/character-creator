@@ -21,6 +21,10 @@ button:hover {
   background-color: #555;
 }
 
+button.selected {
+  background-color: #0066cc;
+}
+
 h2 {
   color: #fff;
 }

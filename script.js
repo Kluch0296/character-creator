@@ -47,8 +47,16 @@ function renderButtons(container, page) {
     btn.textContent = opt.label;
     btn.addEventListener('click', () => {
       character[page.id] = opt.value;
+      // highlight selected option
+      optionsDiv.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
       if (opt.suboptions) {
+        delete character[page.id + '_sub'];
         renderSubOptions(optionsDiv, page.id, opt.suboptions);
+      } else {
+        const subDiv = document.getElementById('sub-' + page.id);
+        if (subDiv) subDiv.remove();
+        delete character[page.id + '_sub'];
       }
     });
     optionsDiv.appendChild(btn);
@@ -69,6 +77,8 @@ function renderSubOptions(parent, id, suboptions) {
     btn.textContent = sub.label;
     btn.addEventListener('click', () => {
       character[id + '_sub'] = sub.value;
+      subDiv.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
     });
     subDiv.appendChild(btn);
   });
