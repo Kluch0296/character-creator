@@ -66,6 +66,11 @@ h2 {
   margin: 0 auto 20px;
 }
 
+.text-wrapper {
+  width: clamp(50vw, 60vw, 70vw);
+  margin: 0 auto 20px;
+}
+
 .progress-container {
   background: #555;
   border-radius: 8px;

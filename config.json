@@ -373,7 +373,8 @@
         {
             "id": "name",
             "title": "📝 Введите имя персонажа",
-            "type": "text"
+            "type": "text",
+            "placeholder": "Имя"
         },
         {
             "id": "alignment",

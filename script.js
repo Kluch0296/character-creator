@@ -138,13 +138,17 @@ function renderSubOptions(parent, id, suboptions) {
 }
 
 function renderTextInput(container, page) {
-  const input = document.createElement('textarea');
-  input.rows = page.rows || 3;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'text-wrapper';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = page.placeholder || '';
   if (character[page.id]) input.value = character[page.id];
   input.addEventListener('input', () => {
     character[page.id] = input.value;
   });
-  container.appendChild(input);
+  wrapper.appendChild(input);
+  container.appendChild(wrapper);
 }
 
 function renderRadio(container, page) {
