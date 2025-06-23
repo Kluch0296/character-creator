@@ -395,6 +395,26 @@
                 { "label": "Акробатика", "value": "acrobatics" },
                 { "label": "Магия", "value": "arcana" }
             ]
+        },
+        {
+            "id": "extras",
+            "title": "📜 Дополнительная информация",
+            "elements": [
+                {
+                    "id": "motto",
+                    "type": "text",
+                    "placeholder": "Девиз персонажа"
+                },
+                {
+                    "id": "pet",
+                    "type": "buttons",
+                    "title": "Домашний питомец",
+                    "options": [
+                        { "label": "Кот", "value": "cat" },
+                        { "label": "Собака", "value": "dog" }
+                    ]
+                }
+            ]
         }
     ]
 }

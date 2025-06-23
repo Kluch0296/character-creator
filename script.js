@@ -38,26 +38,37 @@ function renderPage() {
   title.textContent = page.title;
   app.appendChild(title);
 
-  if (page.type === 'buttons') {
-    renderButtons(app, page);
-  } else if (page.type === 'text') {
-    renderTextInput(app, page);
-  } else if (page.type === 'radio') {
-    renderRadio(app, page);
-  } else if (page.type === 'checkbox') {
-    renderCheckboxes(app, page);
-  }
+  const elements = page.elements || [page];
+  elements.forEach(elem => {
+    if (page.elements && elem.title) {
+      const subTitle = document.createElement('h3');
+      subTitle.textContent = elem.title;
+      app.appendChild(subTitle);
+    }
+
+    if (elem.type === 'buttons') {
+      renderButtons(app, elem);
+    } else if (elem.type === 'text') {
+      renderTextInput(app, elem);
+    } else if (elem.type === 'radio') {
+      renderRadio(app, elem);
+    } else if (elem.type === 'checkbox') {
+      renderCheckboxes(app, elem);
+    }
+  });
   const nextBtn = document.createElement('button');
   nextBtn.textContent = 'Далее';
   nextBtn.addEventListener('click', () => {
     let invalid = false;
-    if (page.type === 'checkbox') {
-      invalid = !character[page.id] || character[page.id].length === 0;
-    } else if (page.type === 'text') {
-      invalid = !character[page.id] || character[page.id].trim() === '';
-    } else {
-      invalid = !character[page.id];
-    }
+    elements.forEach(elem => {
+      if (elem.type === 'checkbox') {
+        if (!character[elem.id] || character[elem.id].length === 0) invalid = true;
+      } else if (elem.type === 'text') {
+        if (!character[elem.id] || character[elem.id].trim() === '') invalid = true;
+      } else {
+        if (!character[elem.id]) invalid = true;
+      }
+    });
     if (invalid) {
       nextBtn.classList.add('shake');
       nextBtn.addEventListener('animationend', () => nextBtn.classList.remove('shake'), { once: true });
@@ -69,10 +80,10 @@ function renderPage() {
   app.appendChild(nextBtn);
 }
 
-function renderButtons(container, page) {
+function renderButtons(container, elem) {
   const optionsDiv = document.createElement('div');
   optionsDiv.className = 'options';
-  page.options.forEach(opt => {
+  elem.options.forEach(opt => {
     const btn = document.createElement('button');
     btn.classList.add('option-btn');
     if (opt.image) {
@@ -85,21 +96,21 @@ function renderButtons(container, page) {
     const span = document.createElement('span');
     span.textContent = opt.label;
     btn.appendChild(span);
-    if (page.id === 'race') {
+    if (elem.id === 'race') {
       btn.classList.add('race-' + opt.value);
     }
     btn.addEventListener('click', () => {
-      character[page.id] = opt.value;
+      character[elem.id] = opt.value;
       // highlight selected option
       optionsDiv.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       if (opt.suboptions) {
-        delete character[page.id + '_sub'];
-        renderSubOptions(optionsDiv, page.id, opt.suboptions);
+        delete character[elem.id + '_sub'];
+        renderSubOptions(optionsDiv, elem.id, opt.suboptions);
       } else {
-        const subDiv = document.getElementById('sub-' + page.id);
+        const subDiv = document.getElementById('sub-' + elem.id);
         if (subDiv) subDiv.remove();
-        delete character[page.id + '_sub'];
+        delete character[elem.id + '_sub'];
       }
     });
     optionsDiv.appendChild(btn);
@@ -137,33 +148,33 @@ function renderSubOptions(parent, id, suboptions) {
   });
 }
 
-function renderTextInput(container, page) {
+function renderTextInput(container, elem) {
   const wrapper = document.createElement('div');
   wrapper.className = 'text-wrapper';
   const input = document.createElement('input');
   input.type = 'text';
-  input.placeholder = page.placeholder || '';
-  if (character[page.id]) input.value = character[page.id];
+  input.placeholder = elem.placeholder || '';
+  if (character[elem.id]) input.value = character[elem.id];
   input.addEventListener('input', () => {
-    character[page.id] = input.value;
+    character[elem.id] = input.value;
   });
   wrapper.appendChild(input);
   container.appendChild(wrapper);
 }
 
-function renderRadio(container, page) {
+function renderRadio(container, elem) {
   const optionsDiv = document.createElement('div');
   optionsDiv.className = 'options';
-  page.options.forEach(opt => {
+  elem.options.forEach(opt => {
     const label = document.createElement('label');
     label.className = 'input-group';
     const input = document.createElement('input');
     input.type = 'radio';
-    input.name = page.id;
+    input.name = elem.id;
     input.value = opt.value;
-    if (character[page.id] === opt.value) input.checked = true;
+    if (character[elem.id] === opt.value) input.checked = true;
     input.addEventListener('change', () => {
-      character[page.id] = opt.value;
+      character[elem.id] = opt.value;
     });
     label.appendChild(input);
     if (opt.image) {
@@ -181,26 +192,26 @@ function renderRadio(container, page) {
   container.appendChild(optionsDiv);
 }
 
-function renderCheckboxes(container, page) {
+function renderCheckboxes(container, elem) {
   const optionsDiv = document.createElement('div');
   optionsDiv.className = 'options';
-  if (!Array.isArray(character[page.id])) {
-    character[page.id] = [];
+  if (!Array.isArray(character[elem.id])) {
+    character[elem.id] = [];
   }
-  page.options.forEach(opt => {
+  elem.options.forEach(opt => {
     const label = document.createElement('label');
     label.className = 'input-group';
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.value = opt.value;
-    input.checked = character[page.id].includes(opt.value);
+    input.checked = character[elem.id].includes(opt.value);
     input.addEventListener('change', () => {
       if (input.checked) {
-        if (!character[page.id].includes(opt.value)) {
-          character[page.id].push(opt.value);
+        if (!character[elem.id].includes(opt.value)) {
+          character[elem.id].push(opt.value);
         }
       } else {
-        character[page.id] = character[page.id].filter(v => v !== opt.value);
+        character[elem.id] = character[elem.id].filter(v => v !== opt.value);
       }
     });
     label.appendChild(input);
