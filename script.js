@@ -40,11 +40,25 @@ function renderPage() {
 
   if (page.type === 'buttons') {
     renderButtons(app, page);
+  } else if (page.type === 'text') {
+    renderTextInput(app, page);
+  } else if (page.type === 'radio') {
+    renderRadio(app, page);
+  } else if (page.type === 'checkbox') {
+    renderCheckboxes(app, page);
   }
   const nextBtn = document.createElement('button');
   nextBtn.textContent = 'Далее';
   nextBtn.addEventListener('click', () => {
-    if (!character[page.id]) {
+    let invalid = false;
+    if (page.type === 'checkbox') {
+      invalid = !character[page.id] || character[page.id].length === 0;
+    } else if (page.type === 'text') {
+      invalid = !character[page.id] || character[page.id].trim() === '';
+    } else {
+      invalid = !character[page.id];
+    }
+    if (invalid) {
       nextBtn.classList.add('shake');
       nextBtn.addEventListener('animationend', () => nextBtn.classList.remove('shake'), { once: true });
       return;
@@ -121,6 +135,84 @@ function renderSubOptions(parent, id, suboptions) {
     });
     subDiv.appendChild(btn);
   });
+}
+
+function renderTextInput(container, page) {
+  const input = document.createElement('textarea');
+  input.rows = page.rows || 3;
+  if (character[page.id]) input.value = character[page.id];
+  input.addEventListener('input', () => {
+    character[page.id] = input.value;
+  });
+  container.appendChild(input);
+}
+
+function renderRadio(container, page) {
+  const optionsDiv = document.createElement('div');
+  optionsDiv.className = 'options';
+  page.options.forEach(opt => {
+    const label = document.createElement('label');
+    label.className = 'input-group';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = page.id;
+    input.value = opt.value;
+    if (character[page.id] === opt.value) input.checked = true;
+    input.addEventListener('change', () => {
+      character[page.id] = opt.value;
+    });
+    label.appendChild(input);
+    if (opt.image) {
+      const img = document.createElement('img');
+      img.src = opt.image;
+      img.alt = opt.label;
+      img.className = 'option-image';
+      label.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.textContent = opt.label;
+    label.appendChild(span);
+    optionsDiv.appendChild(label);
+  });
+  container.appendChild(optionsDiv);
+}
+
+function renderCheckboxes(container, page) {
+  const optionsDiv = document.createElement('div');
+  optionsDiv.className = 'options';
+  if (!Array.isArray(character[page.id])) {
+    character[page.id] = [];
+  }
+  page.options.forEach(opt => {
+    const label = document.createElement('label');
+    label.className = 'input-group';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = opt.value;
+    input.checked = character[page.id].includes(opt.value);
+    input.addEventListener('change', () => {
+      if (input.checked) {
+        if (!character[page.id].includes(opt.value)) {
+          character[page.id].push(opt.value);
+        }
+      } else {
+        character[page.id] = character[page.id].filter(v => v !== opt.value);
+      }
+    });
+    label.appendChild(input);
+    if (opt.image) {
+      const img = document.createElement('img');
+      img.src = opt.image;
+      img.alt = opt.label;
+      img.className = 'option-image';
+      label.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.textContent = opt.label;
+    label.appendChild(span);
+    optionsDiv.appendChild(label);
+  });
+  container.appendChild(optionsDiv);
 }
 
 function showResult(container) {
