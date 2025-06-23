@@ -18,25 +18,30 @@
             "options": [
                 {
                     "label": "👤 Человек",
-                    "value": "human"
+                    "value": "human",
+                    "image": "img/human.png"
                 },
                 {
                     "label": "🧝 Эльф",
                     "value": "elf",
+                    "image": "img/elf.png",
                     "suboptions": [
                         {
                             "label": "✨ Высокий эльф",
-                            "value": "high_elf"
+                            "value": "high_elf",
+                            "image": "img/high_elf.png"
                         },
                         {
                             "label": "🌲 Лесной эльф",
-                            "value": "wood_elf"
+                            "value": "wood_elf",
+                            "image": "img/wood_elf.png"
                         }
                     ]
                 },
                 {
                     "label": "🦅 Аракокра",
-                    "value": "aarakocra"
+                    "value": "aarakocra",
+                    "image": "img/aarakocra.png"
                 }
             ]
         }
