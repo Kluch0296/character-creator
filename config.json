@@ -371,10 +371,46 @@
             ]
         },
         {
-            "id": "name",
-            "title": "📝 Введите имя персонажа",
-            "type": "text",
-            "placeholder": "Имя"
+            "id": "general",
+            "title": "📝 Общее",
+            "elements": [
+                {
+                    "id": "name",
+                    "type": "text",
+                    "placeholder": "Введите имя персонажа"
+                },
+                {
+                    "id": "gender",
+                    "type": "radio",
+                    "title": "Пол персонажа",
+                    "options": [
+                        {
+                            "label": "Мужчина", "value": "male"
+                        },
+                        {
+                            "label": "Женщина", "value": "female"
+                        },
+                        {
+                            "label": "Другое", "value": "other"
+                        }
+                    ]
+                },
+                {
+                    "id": "age",
+                    "type": "text",
+                    "placeholder": "Введите возраст персонажа"
+                },
+                {
+                    "id": "height",
+                    "type": "text",
+                    "placeholder": "Введите рост персонажа"
+                },
+                {
+                    "id": "weight",
+                    "type": "text",
+                    "placeholder": "Введите вес персонажа"
+                }
+            ]
         },
         {
             "id": "alignment",
