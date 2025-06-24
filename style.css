@@ -1,127 +1,315 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 0;
   margin: 0;
-  background: linear-gradient(135deg, #222, #333);
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
   color: #f0f0f0;
+  min-height: 100vh;
 }
 
-button {
-  margin: 8px;
-  padding: 15px 25px;
-  cursor: pointer;
-  background-color: #444;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 1em;
-}
-
-.option-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.option-image {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-textarea,
-input[type="text"] {
-  width: clamp(50vw, 60vw, 70vw);
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  margin-bottom: 20px;
-}
-
-.input-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-button:hover {
-  background-color: #555;
-}
-
-button.selected {
-  background-color: #0066cc;
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 h2 {
   color: #fff;
+  text-align: center;
+  font-size: 2.2em;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
-.options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  justify-content: center;
-  gap: 10px;
-  width: clamp(50vw, 60vw, 70vw);
-  margin: 0 auto 20px;
+h3 {
+  color: #e0e0e0;
+  font-size: 1.4em;
+  margin: 25px 0 15px 0;
+  text-align: center;
 }
 
-.text-wrapper {
-  width: clamp(50vw, 60vw, 70vw);
-  margin: 0 auto 20px;
-}
-
+/* Прогресс бар */
 .progress-container {
-  background: #555;
-  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
   overflow: hidden;
-  height: 10px;
-  margin-bottom: 5px;
+  height: 8px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(10px);
 }
 
 .progress-bar {
-  height: 10px;
-  background: #0066cc;
+  height: 8px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
   width: 0;
+  transition: width 0.3s ease;
 }
 
 .page-indicator {
-  text-align: right;
-  margin-bottom: 10px;
-  font-size: 0.9em;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1em;
+  color: #b0b0b0;
+  font-weight: 500;
 }
 
+/* Кнопки */
+button {
+  margin: 10px;
+  padding: 18px 30px;
+  cursor: pointer;
+  background: linear-gradient(145deg, #2d3748, #4a5568);
+  color: #fff;
+  border: 2px solid transparent;
+  border-radius: 15px;
+  font-size: 1em;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.5s;
+}
+
+button:hover::before {
+  left: 100%;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.2);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button.selected {
+  background: linear-gradient(145deg, #667eea, #764ba2);
+  border-color: #a78bfa;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* Кнопки опций */
+.option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 15px;
+  text-align: left;
+  min-height: 70px;
+  padding: 15px 20px;
+}
+
+.option-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.1);
+  transition: all 0.3s ease;
+}
+
+.option-btn:hover .option-image {
+  border-color: rgba(255,255,255,0.3);
+  transform: scale(1.05);
+}
+
+/* Поля ввода */
+textarea,
+input[type="text"] {
+  width: 100%;
+  max-width: 600px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 1em;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+input[type="text"]::placeholder {
+  color: rgba(255,255,255,0.6);
+}
+
+/* Группы инпутов */
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 20px;
+  margin: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.input-group:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.input-group input[type="radio"],
+.input-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+/* Сетка опций */
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 15px;
+  max-width: 1000px;
+  margin: 0 auto 30px;
+  padding: 0 10px;
+}
+
+/* Обёртка для текстовых полей */
+.text-wrapper {
+  max-width: 600px;
+  margin: 0 auto 30px;
+  padding: 0 10px;
+}
+
+/* Подопции */
+div[id^="sub-"] {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+div[id^="sub-"] p {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+/* Анимация тряски */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
 }
 
 .shake {
-  animation: shake 0.3s;
+  animation: shake 0.4s ease-in-out;
 }
 
+/* Результат */
 .result {
-  background-color: #444;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 10px;
+  background: rgba(0,0,0,0.3);
+  padding: 25px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
 }
 
-button.race-human {
-  background-color: #6d4c41;
+.result pre {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  line-height: 1.6;
+  color: #a0a0a0;
+  overflow-x: auto;
 }
 
-button.race-elf {
-  background-color: #2e8b57;
+/* Цветовые акценты для рас */
+button.race-human { background: linear-gradient(145deg, #8d6e63, #5d4037); }
+button.race-elf { background: linear-gradient(145deg, #66bb6a, #388e3c); }
+button.race-aarakocra { background: linear-gradient(145deg, #42a5f5, #1976d2); }
+button.race-dwarf { background: linear-gradient(145deg, #8d6e63, #5d4037); }
+button.race-dragonborn { background: linear-gradient(145deg, #ef5350, #c62828); }
+button.race-gnome { background: linear-gradient(145deg, #ab47bc, #7b1fa2); }
+button.race-halfling { background: linear-gradient(145deg, #ffca28, #f57f17); }
+button.race-half-elf { background: linear-gradient(145deg, #26a69a, #00695c); }
+button.race-half-orc { background: linear-gradient(145deg, #8d6e63, #5d4037); }
+button.race-tiefling { background: linear-gradient(145deg, #e91e63, #ad1457); }
+
+/* Кнопка "Далее" */
+button:last-child {
+  display: block;
+  margin: 30px auto;
+  padding: 20px 40px;
+  font-size: 1.1em;
+  background: linear-gradient(145deg, #667eea, #764ba2);
+  border-radius: 25px;
+  min-width: 200px;
 }
 
-button.race-aarakocra {
-  background-color: #5a678f;
-}
-
-@media (max-width: 600px) {
+/* Responsive дизайн */
+@media (max-width: 768px) {
+  #app {
+    padding: 15px;
+  }
+  
   .options {
-    width: 90vw;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0;
+  }
+  
+  .option-btn {
+    min-height: 60px;
+    padding: 12px 15px;
+  }
+  
+  .option-image {
+    width: 40px;
+    height: 40px;
+  }
+  
+  h2 {
+    font-size: 1.8em;
+  }
+  
+  button {
+    margin: 8px 0;
+    padding: 15px 25px;
+  }
+}
+
+@media (max-width: 480px) {
+  .option-btn {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+    min-height: auto;
+    padding: 15px;
+  }
+  
+  h2 {
+    font-size: 1.5em;
   }
 }

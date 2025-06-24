@@ -96,9 +96,14 @@ function renderButtons(container, elem) {
     const span = document.createElement('span');
     span.textContent = opt.label;
     btn.appendChild(span);
+    
+    // Добавляем классы для стилизации
     if (elem.id === 'race') {
       btn.classList.add('race-' + opt.value);
+    } else if (elem.id === 'class') {
+      btn.classList.add('class-btn');
     }
+    
     btn.addEventListener('click', () => {
       character[elem.id] = opt.value;
       // highlight selected option
