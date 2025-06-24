@@ -1,6 +1,7 @@
 let config;
 let character = {};
 let currentPageIndex = 0;
+let activeAdditionalFieldIds = [];
 
 function loadConfig() {
   fetch('config.json')
@@ -210,25 +211,32 @@ function updateRaceDetails(panel, raceOption) {
     
     const subraceOptions = document.createElement('div');
     subraceOptions.className = 'subrace-options';
+
+    const subraceDetails = document.createElement('div');
+    subraceDetails.className = 'subrace-details';
     
     raceOption.suboptions.forEach(sub => {
       const subBtn = document.createElement('button');
       subBtn.className = 'subrace-btn';
       subBtn.textContent = sub.label;
-      
+
       subBtn.addEventListener('click', () => {
         character.race_sub = sub.value;
         subraceOptions.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
         subBtn.classList.add('selected');
-        
+
+        // Описание и ссылка подрасы
+        updateSubraceDetails(subraceDetails, sub);
+
         // Обновляем дополнительные поля для подрасы
         updateAdditionalFields(panel, sub);
       });
-      
+
       subraceOptions.appendChild(subBtn);
     });
-    
+
     subraceSection.appendChild(subraceOptions);
+    subraceSection.appendChild(subraceDetails);
     panel.appendChild(subraceSection);
   }
   
@@ -244,9 +252,13 @@ function updateAdditionalFields(panel, option) {
   if (existingFields) {
     existingFields.remove();
   }
-  
+
+  // Очищаем предыдущие значения
+  activeAdditionalFieldIds.forEach(id => delete character[id]);
+  activeAdditionalFieldIds = [];
+
   if (!option.additionalFields) return;
-  
+
   const fieldsContainer = document.createElement('div');
   fieldsContainer.className = 'additional-fields';
   
@@ -258,6 +270,8 @@ function updateAdditionalFields(panel, option) {
     fieldTitle.textContent = field.title;
     fieldDiv.appendChild(fieldTitle);
     
+    activeAdditionalFieldIds.push(field.id);
+
     if (field.type === 'radio') {
       field.options.forEach(opt => {
         const label = document.createElement('label');
@@ -322,6 +336,26 @@ function updateAdditionalFields(panel, option) {
   fieldsContainer.appendChild(infoSection);
   
   panel.appendChild(fieldsContainer);
+}
+
+function updateSubraceDetails(container, subrace) {
+  container.innerHTML = '';
+
+  if (subrace.description) {
+    const desc = document.createElement('p');
+    desc.className = 'race-description';
+    desc.textContent = subrace.description;
+    container.appendChild(desc);
+  }
+
+  if (subrace.link) {
+    const link = document.createElement('a');
+    link.href = subrace.link;
+    link.target = '_blank';
+    link.className = 'race-link';
+    link.textContent = '📖 Подробнее на dnd.su';
+    container.appendChild(link);
+  }
 }
 
 function clearAdditionalFields(prefix) {
