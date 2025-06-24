@@ -69,6 +69,11 @@ function renderPage() {
       } else {
         if (!character[elem.id]) invalid = true;
       }
+      
+      // Проверяем дополнительные поля
+      activeAdditionalFieldIds.forEach(fieldId => {
+        if (!character[fieldId]) invalid = true;
+      });
     });
     if (invalid) {
       nextBtn.classList.add('shake');
@@ -200,6 +205,11 @@ function updateRaceDetails(panel, raceOption) {
     panel.appendChild(link);
   }
   
+  // Дополнительные поля для основной расы (добавляем ДО подрас)
+  if (raceOption.additionalFields) {
+    updateAdditionalFields(panel, raceOption);
+  }
+  
   // Подрасы
   if (raceOption.suboptions) {
     const subraceSection = document.createElement('div');
@@ -229,7 +239,9 @@ function updateRaceDetails(panel, raceOption) {
         updateSubraceDetails(subraceDetails, sub);
 
         // Обновляем дополнительные поля для подрасы
-        updateAdditionalFields(panel, sub);
+        if (sub.additionalFields) {
+          updateAdditionalFields(subraceSection, sub, 'subrace');
+        }
       });
 
       subraceOptions.appendChild(subBtn);
@@ -239,23 +251,20 @@ function updateRaceDetails(panel, raceOption) {
     subraceSection.appendChild(subraceDetails);
     panel.appendChild(subraceSection);
   }
-  
-  // Дополнительные поля для основной расы
-  if (raceOption.additionalFields) {
-    updateAdditionalFields(panel, raceOption);
-  }
 }
 
-function updateAdditionalFields(panel, option) {
-  // Удаляем предыдущие дополнительные поля
+function updateAdditionalFields(panel, option, prefix = 'race') {
+  // Удаляем предыдущие дополнительные поля этого типа
   const existingFields = panel.querySelector('.additional-fields');
   if (existingFields) {
     existingFields.remove();
   }
 
   // Очищаем предыдущие значения
-  activeAdditionalFieldIds.forEach(id => delete character[id]);
-  activeAdditionalFieldIds = [];
+  if (prefix === 'race') {
+    activeAdditionalFieldIds.forEach(id => delete character[id]);
+    activeAdditionalFieldIds = [];
+  }
 
   if (!option.additionalFields) return;
 
@@ -321,19 +330,18 @@ function updateAdditionalFields(panel, option) {
         
         fieldDiv.appendChild(label);
       });
+    } else if (field.type === 'text') {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = field.placeholder || '';
+      input.addEventListener('input', () => {
+        character[field.id] = input.value;
+      });
+      fieldDiv.appendChild(input);
     }
     
     fieldsContainer.appendChild(fieldDiv);
   });
-  
-  // Добавляем информационное поле
-  const infoSection = document.createElement('div');
-  infoSection.className = 'info-section';
-  infoSection.innerHTML = `
-    <h5>💡 Совет</h5>
-    <p>Выбор расы влияет на базовые характеристики и доступные способности. Изучите описание на dnd.su для принятия обоснованного решения.</p>
-  `;
-  fieldsContainer.appendChild(infoSection);
   
   panel.appendChild(fieldsContainer);
 }
@@ -364,6 +372,7 @@ function clearAdditionalFields(prefix) {
       delete character[key];
     }
   });
+  activeAdditionalFieldIds = [];
 }
 
 function renderTextInput(container, elem) {
@@ -463,6 +472,7 @@ function showResult(container) {
   restartBtn.addEventListener('click', () => {
     character = {};
     currentPageIndex = 0;
+    activeAdditionalFieldIds = [];
     renderPage();
   });
 
