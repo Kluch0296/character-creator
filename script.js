@@ -260,11 +260,9 @@ function updateAdditionalFields(panel, option, prefix = 'race') {
     existingFields.remove();
   }
 
-  // Очищаем предыдущие значения
-  if (prefix === 'race') {
-    activeAdditionalFieldIds.forEach(id => delete character[id]);
-    activeAdditionalFieldIds = [];
-  }
+  // для любого префикса
+  activeAdditionalFieldIds.forEach(id => delete character[id]);
+  activeAdditionalFieldIds = [];
 
   if (!option.additionalFields) return;
 
