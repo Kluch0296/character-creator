@@ -19,19 +19,55 @@
                 {
                     "label": "Человек",
                     "value": "human",
-                    "image": "img/human.png"
+                    "image": "img/human.png",
+                    "description": "Получает +1 ко всем характеристикам или +1 к одной, но выбирает черту и владение одним навыком",
+                    "link": "https://dnd.su/race/81-human/",
+                    "additionalFields": [
+                        {
+                            "id": "human_feature",
+                            "type": "radio",
+                            "title": "Выберите особенность:",
+                            "options": [
+                                {"label": "Увеличение характеристик: Значение всех ваших характеристик увеличивается на 1.", "value": "human_stats"},
+                                {"label": "+1 к одной характеристике, владение одним навыком, черта на выбор: https://dnd.su/feats/", "value": "human_alt"}
+                            ]
+                        },
+                        {
+                            "id": "human_language",
+                            "type": "radio",
+                            "link": "https://dnd.su/articles/mechanics/209-languages/",
+                            "title": "Вы знаете Общий язык и ещё один язык на выбор. Выберите его:",
+                            "options": [
+                                {"label": "Великаний", "value": "human_lang_giant"},
+                                {"label": "Гномий", "value": "human_lang_gnome"},
+                                {"label": "Гоблинский", "value": "human_lang_goblin"},
+                                {"label": "Дварфский", "value": "human_lang_dwarf"},
+                                {"label": "Орочий", "value": "human_lang_orc"},
+                                {"label": "Полуросликов", "value": "human_lang_halfling"},
+                                {"label": "Эльфийский", "value": "human_lang_elf"},
+                                {"label": "Бездны", "value": "human_lang_abyss"},
+                                {"label": "Глубинная Речь", "value": "human_lang_ds"},
+                                {"label": "Драконий", "value": "human_lang_dragon"},
+                                {"label": "Инфернальный", "value": "human_lang_inferno"},
+                                {"label": "Небесный", "value": "human_lang_sky"},
+                                {"label": "Первичный", "value": "human_lang_primary"},
+                                {"label": "Подземный", "value": "human_lang_underground"},
+                                {"label": "Сильван", "value": "human_lang_sylvan"}
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Эльф",
                     "value": "elf",
                     "image": "img/elf.png",
-                    "description": "Грациозная раса с природной склонностью к магии",
-                    "link": "https://dnd.su/race/2-elf/",
+                    "description": "Грациозная раса с природной склонностью к магии. Получают +2 к Ловкости",
+                    "link": "https://dnd.su/race/79-elf/",
                     "suboptions": [
                         {
                             "label": "✨ Высокий эльф",
                             "value": "high_elf",
-                            "description": "Изучают дополнительные заклинания и владеют оружием",
+                            "description": "Изучают дополнительные заклинания и владеют оружием. Получают +1 к Интеллекту",
                             "additionalFields": [
                                 {
                                     "id": "high_elf_cantrip",
@@ -42,6 +78,28 @@
                                         {"label": "Волшебная рука", "value": "mage_hand"},
                                         {"label": "Свет", "value": "light"},
                                         {"label": "Огонь", "value": "fire_bolt"}
+                                    ]
+                                },
+                                {
+                                    "id": "high_elf_language",
+                                    "type": "radio",
+                                    "link": "https://dnd.su/articles/mechanics/209-languages/",
+                                    "title": "Вы знаете Общий, Эльфийский и ещё один язык на выбор:",
+                                    "options": [
+                                        {"label": "Великаний", "value": "high_elf_lang_giant"},
+                                        {"label": "Гномий", "value": "high_elf_lang_gnome"},
+                                        {"label": "Гоблинский", "value": "high_elf_lang_goblin"},
+                                        {"label": "Дварфский", "value": "high_elf_lang_dwarf"},
+                                        {"label": "Орочий", "value": "high_elf_lang_orc"},
+                                        {"label": "Полуросликов", "value": "high_elf_lang_halfling"},
+                                        {"label": "Бездны", "value": "high_elf_lang_abyss"},
+                                        {"label": "Глубинная Речь", "value": "high_elf_lang_ds"},
+                                        {"label": "Драконий", "value": "high_elf_lang_dragon"},
+                                        {"label": "Инфернальный", "value": "high_elf_lang_inferno"},
+                                        {"label": "Небесный", "value": "high_elf_lang_sky"},
+                                        {"label": "Первичный", "value": "high_elf_lang_primary"},
+                                        {"label": "Подземный", "value": "high_elf_lang_underground"},
+                                        {"label": "Сильван", "value": "high_elf_lang_sylvan"}
                                     ]
                                 }
                             ]
