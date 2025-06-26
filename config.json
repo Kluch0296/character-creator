@@ -71,14 +71,19 @@
                             "additionalFields": [
                                 {
                                     "id": "high_elf_cantrip",
-                                    "type": "radio",
-                                    "title": "Выберите заговор волшебника:",
-                                    "options": [
-                                        {"label": "Малая иллюзия", "value": "minor_illusion"},
-                                        {"label": "Волшебная рука", "value": "mage_hand"},
-                                        {"label": "Свет", "value": "light"},
-                                        {"label": "Огонь", "value": "fire_bolt"}
-                                    ]
+                                    "type": "popup",
+                                    "buttonLabel": "Выбрать заговор",
+                                    "additionalField": {
+                                        "id": "high_elf_cantrip",
+                                        "type": "radio",
+                                        "title": "Выберите заговор волшебника:",
+                                        "options": [
+                                            {"label": "Малая иллюзия", "value": "minor_illusion"},
+                                            {"label": "Волшебная рука", "value": "mage_hand"},
+                                            {"label": "Свет", "value": "light"},
+                                            {"label": "Огонь", "value": "fire_bolt"}
+                                        ]
+                                    }
                                 },
                                 {
                                     "id": "high_elf_language",

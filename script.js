@@ -22,6 +22,9 @@ function renderPage() {
     showResult(app);
     return;
   }
+  const sideMenu = document.createElement('div');
+  sideMenu.id = 'side-menu';
+  app.appendChild(sideMenu);
   const page = config.pages[currentPageIndex];
   const progressContainer = document.createElement('div');
   progressContainer.className = 'progress-container';
@@ -260,6 +263,8 @@ function updateAdditionalFields(panel, option, prefix = 'race') {
     existingFields.remove();
   }
 
+  clearSideMenu();
+
   // для любого префикса
   activeAdditionalFieldIds.forEach(id => delete character[id]);
   activeAdditionalFieldIds = [];
@@ -270,77 +275,16 @@ function updateAdditionalFields(panel, option, prefix = 'race') {
   fieldsContainer.className = 'additional-fields';
   
   option.additionalFields.forEach(field => {
-    const fieldDiv = document.createElement('div');
-    fieldDiv.className = 'additional-field';
-    
-    const fieldTitle = document.createElement('h5');
-    fieldTitle.textContent = field.title;
-    fieldDiv.appendChild(fieldTitle);
-    
-    activeAdditionalFieldIds.push(field.id);
-
-    if (field.type === 'radio') {
-      field.options.forEach(opt => {
-        const label = document.createElement('label');
-        label.className = 'input-group';
-        
-        const input = document.createElement('input');
-        input.type = 'radio';
-        input.name = field.id;
-        input.value = opt.value;
-        input.addEventListener('change', () => {
-          character[field.id] = opt.value;
-        });
-        
-        label.appendChild(input);
-        
-        const span = document.createElement('span');
-        span.textContent = opt.label;
-        label.appendChild(span);
-        
-        fieldDiv.appendChild(label);
-      });
-    } else if (field.type === 'checkbox') {
-      if (!character[field.id]) character[field.id] = [];
-      
-      field.options.forEach(opt => {
-        const label = document.createElement('label');
-        label.className = 'input-group';
-        
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.value = opt.value;
-        input.addEventListener('change', () => {
-          if (input.checked) {
-            if (!character[field.id].includes(opt.value)) {
-              character[field.id].push(opt.value);
-            }
-          } else {
-            character[field.id] = character[field.id].filter(v => v !== opt.value);
-          }
-        });
-        
-        label.appendChild(input);
-        
-        const span = document.createElement('span');
-        span.textContent = opt.label;
-        label.appendChild(span);
-        
-        fieldDiv.appendChild(label);
-      });
-    } else if (field.type === 'text') {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = field.placeholder || '';
-      input.addEventListener('input', () => {
-        character[field.id] = input.value;
-      });
-      fieldDiv.appendChild(input);
+    if (field.type === 'popup') {
+      activeAdditionalFieldIds.push(field.additionalField.id);
+      createPopupButton(field);
+    } else {
+      activeAdditionalFieldIds.push(field.id);
+      const fieldDiv = createFieldContent(field);
+      fieldsContainer.appendChild(fieldDiv);
     }
-    
-    fieldsContainer.appendChild(fieldDiv);
   });
-  
+
   panel.appendChild(fieldsContainer);
 }
 
@@ -371,6 +315,142 @@ function clearAdditionalFields(prefix) {
     }
   });
   activeAdditionalFieldIds = [];
+}
+
+function clearSideMenu() {
+  const side = document.getElementById('side-menu');
+  if (side) side.innerHTML = '';
+}
+
+function createFieldContent(field) {
+  const fieldDiv = document.createElement('div');
+  fieldDiv.className = 'additional-field';
+
+  const fieldTitle = document.createElement('h5');
+  fieldTitle.textContent = field.title;
+  fieldDiv.appendChild(fieldTitle);
+
+  if (field.type === 'radio') {
+    field.options.forEach(opt => {
+      const label = document.createElement('label');
+      label.className = 'input-group';
+
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = field.id;
+      input.value = opt.value;
+      if (character[field.id] === opt.value) input.checked = true;
+      input.addEventListener('change', () => {
+        character[field.id] = opt.value;
+      });
+
+      label.appendChild(input);
+
+      const span = document.createElement('span');
+      span.textContent = opt.label;
+      label.appendChild(span);
+
+      fieldDiv.appendChild(label);
+    });
+  } else if (field.type === 'checkbox') {
+    if (!character[field.id]) character[field.id] = [];
+    field.options.forEach(opt => {
+      const label = document.createElement('label');
+      label.className = 'input-group';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = opt.value;
+      input.checked = character[field.id].includes(opt.value);
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          if (!character[field.id].includes(opt.value)) {
+            character[field.id].push(opt.value);
+          }
+        } else {
+          character[field.id] = character[field.id].filter(v => v !== opt.value);
+        }
+      });
+
+      label.appendChild(input);
+
+      const span = document.createElement('span');
+      span.textContent = opt.label;
+      label.appendChild(span);
+
+      fieldDiv.appendChild(label);
+    });
+  } else if (field.type === 'text') {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = field.placeholder || '';
+    if (character[field.id]) input.value = character[field.id];
+    input.addEventListener('input', () => {
+      character[field.id] = input.value;
+    });
+    fieldDiv.appendChild(input);
+  }
+
+  return fieldDiv;
+}
+
+function openPopup(field, onClose) {
+  const app = document.getElementById('app');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const content = document.createElement('div');
+  content.className = 'modal-content';
+  overlay.appendChild(content);
+
+  const inner = field.additionalField;
+  const fieldDiv = createFieldContent(inner);
+  content.appendChild(fieldDiv);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Готово';
+  closeBtn.addEventListener('click', () => {
+    app.removeChild(overlay);
+    if (onClose) onClose();
+  });
+  content.appendChild(closeBtn);
+
+  app.appendChild(overlay);
+}
+
+function createPopupButton(field) {
+  const sideMenu = document.getElementById('side-menu');
+  if (!sideMenu) return;
+
+  const container = document.createElement('div');
+  container.className = 'side-btn-container';
+
+  const btn = document.createElement('button');
+  btn.className = 'option-btn';
+  btn.textContent = field.buttonLabel || field.label;
+  container.appendChild(btn);
+
+  const result = document.createElement('div');
+  result.className = 'side-btn-result';
+  container.appendChild(result);
+
+  const updateResult = () => {
+    const val = character[field.additionalField.id];
+    if (!val) {
+      result.textContent = '';
+    } else if (field.additionalField.options) {
+      const opt = field.additionalField.options.find(o => o.value === val);
+      result.textContent = opt ? opt.label : val;
+    } else {
+      result.textContent = val;
+    }
+  };
+
+  updateResult();
+
+  btn.addEventListener('click', () => openPopup(field, updateResult));
+
+  sideMenu.appendChild(container);
 }
 
 function renderTextInput(container, elem) {
