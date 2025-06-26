@@ -529,17 +529,27 @@ button:last-child {
 /* Боковое меню для всплывающих кнопок */
 #side-menu {
   position: fixed;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 180px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 2px solid rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  overflow-y: auto;
   z-index: 1000;
 }
 
 .side-btn-container {
   margin-bottom: 10px;
   text-align: center;
+}
+
+.side-btn-container button {
+  width: 100%;
 }
 
 .side-btn-result {

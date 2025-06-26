@@ -399,6 +399,13 @@ function openPopup(field, onClose) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
 
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      app.removeChild(overlay);
+      if (onClose) onClose();
+    }
+  });
+
   const content = document.createElement('div');
   content.className = 'modal-content';
   overlay.appendChild(content);
