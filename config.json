@@ -33,25 +33,33 @@
                             ]
                         },
                         {
-                            "id": "human_language",
-                            "type": "radio",
-                            "title": "Вы знаете Общий язык и ещё один язык на выбор. Выберите его:",
-                            "options": [
-                                {"label": "Великаний", "value": "human_lang_giant"},
-                                {"label": "Гномий", "value": "human_lang_gnome"},
-                                {"label": "Гоблинский", "value": "human_lang_goblin"},
-                                {"label": "Дварфский", "value": "human_lang_dwarf"},
-                                {"label": "Орочий", "value": "human_lang_orc"},
-                                {"label": "Полуросликов", "value": "human_lang_halfling"},
-                                {"label": "Эльфийский", "value": "human_lang_elf"},
-                                {"label": "Бездны", "value": "human_lang_abyss"},
-                                {"label": "Глубинная Речь", "value": "human_lang_ds"},
-                                {"label": "Драконий", "value": "human_lang_dragon"},
-                                {"label": "Инфернальный", "value": "human_lang_inferno"},
-                                {"label": "Небесный", "value": "human_lang_sky"},
-                                {"label": "Первичный", "value": "human_lang_primary"},
-                                {"label": "Подземный", "value": "human_lang_underground"},
-                                {"label": "Сильван", "value": "human_lang_sylvan"}
+                            "id": "human_language_popup",
+                            "type": "popup",
+                            "label": "Выбрать язык",
+                            "title": "Вы знаете Общий язык и ещё один язык на выбор:",
+                            "additionalFields": [
+                                {
+                                    "id": "human_language",
+                                    "type": "radio",
+                                    "title": "Выберите язык:",
+                                    "options": [
+                                        {"label": "Великаний", "value": "human_lang_giant"},
+                                        {"label": "Гномий", "value": "human_lang_gnome"},
+                                        {"label": "Гоблинский", "value": "human_lang_goblin"},
+                                        {"label": "Дварфский", "value": "human_lang_dwarf"},
+                                        {"label": "Орочий", "value": "human_lang_orc"},
+                                        {"label": "Полуросликов", "value": "human_lang_halfling"},
+                                        {"label": "Эльфийский", "value": "human_lang_elf"},
+                                        {"label": "Бездны", "value": "human_lang_abyss"},
+                                        {"label": "Глубинная Речь", "value": "human_lang_ds"},
+                                        {"label": "Драконий", "value": "human_lang_dragon"},
+                                        {"label": "Инфернальный", "value": "human_lang_inferno"},
+                                        {"label": "Небесный", "value": "human_lang_sky"},
+                                        {"label": "Первичный", "value": "human_lang_primary"},
+                                        {"label": "Подземный", "value": "human_lang_underground"},
+                                        {"label": "Сильван", "value": "human_lang_sylvan"}
+                                    ]
+                                }
                             ]
                         }
                     ]
