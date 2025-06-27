@@ -174,31 +174,59 @@
                     "label": "Аасимар",
                     "value": "aasimar",
                     "image": "img/aasimar.png",
-                    "description": "Получают +2 к Харизме, видят в темноте, имеют споротивление к урону излучением и некротической энергией, могут лечить прикосновением, знают заговор Свет",
+                    "description": "Носители небесного света, рождённые от людей с благословением богов. +2 к Харизме, темновидение, сопротивление излучению и некротической энергии, лечение прикосновением и заговор Свет",
+                    "link": "https://dnd.su/race/161-aasimar/",
                     "suboptions": [
                         {
                             "label": "Аасимар-защитник",
-                            "value": "aasimar-guardian"
+                            "value": "aasimar-guardian",
+                            "description": "+1 к Мудрости, умение \"Сияющая душа\" даёт полёт и дополнительный урон излучением"
                         },
                         {
                             "label": "Аасимар-каратель",
-                            "value": "aasimar-punisher"
+                            "value": "aasimar-punisher",
+                            "description": "+1 к Телосложению, способность \"Испускание сияния\" озаряет светом и ранит врагов"
                         },
                         {
                             "label": "Падший аасимар",
-                            "value": "fallen-aasimar"
+                            "value": "fallen-aasimar",
+                            "description": "+1 к Силе, \"Саван смерти\" пугает окружающих и усиливает некротический урон"
                         }
                     ]
                 },
                 {
                     "label": "Автогном",
                     "value": "autognome",
-                    "image": "img/autognome.png"
+                    "image": "img/autognome.png",
+                    "description": "Механические создания гномов с усиленным каркасом и механической природой. Могут добавить 1к4 к броску и лечиться заклинанием Починка",
+                    "link": "https://dnd.su/multiverse/race/214-autognome/"
                 },
                 {
                     "label": "Астральный эльф",
                     "value": "astral-elf",
-                    "image": "img/astral-elf.png"
+                    "image": "img/astral-elf.png",
+                    "description": "Эльфы Астрального плана умеют телепортироваться бонусным действием, имеют тёмное зрение и выбирают заговор Астрального пламени",
+                    "link": "https://dnd.su/multiverse/race/213-astral-elf/",
+                    "additionalFields": [
+                        {
+                            "id": "astral_elf_astral_fire_popup",
+                            "type": "popup",
+                            "label": "Выбрать заговор",
+                            "title": "Вы знаете один из следующих заговоров:",
+                            "additionalFields": [
+                                {
+                                    "id": "astral_elf_astral_fire",
+                                    "type": "radio",
+                                    "title": "Выберите заговор:",
+                                    "options": [
+                                        {"label": "Пляшущие огоньки", "value": "dancing-lights"},
+                                        {"label": "Свет", "value": "light"},
+                                        {"label": "Священное пламя", "value": "sacred-flame"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Багбир",
