@@ -73,6 +73,7 @@
                                     "id": "high_elf_cantrip_popup",
                                     "type": "popup",
                                     "label": "Выбрать заговор",
+                                    "title": "Заговор волшебника",
                                     "additionalFields": [
                                         {
                                             "id": "high_elf_cantrip",
