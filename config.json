@@ -29,13 +29,12 @@
                             "title": "Выберите особенность:",
                             "options": [
                                 {"label": "Увеличение характеристик: Значение всех ваших характеристик увеличивается на 1.", "value": "human_stats"},
-                                {"label": "+1 к одной характеристике, владение одним навыком, черта на выбор: https://dnd.su/feats/", "value": "human_alt"}
+                                {"label": "+1 к одной характеристике, владение одним навыком, черта на выбор:", "value": "human_alt"}
                             ]
                         },
                         {
                             "id": "human_language",
                             "type": "radio",
-                            "link": "https://dnd.su/articles/mechanics/209-languages/",
                             "title": "Вы знаете Общий язык и ещё один язык на выбор. Выберите его:",
                             "options": [
                                 {"label": "Великаний", "value": "human_lang_giant"},
@@ -73,41 +72,74 @@
                                     "id": "high_elf_cantrip_popup",
                                     "type": "popup",
                                     "label": "Выбрать заговор",
-                                    "title": "Заговор волшебника",
+                                    "title": "Вам известен один заговор волшебника на выбор:",
                                     "additionalFields": [
                                         {
                                             "id": "high_elf_cantrip",
                                             "type": "radio",
                                             "title": "Выберите заговор волшебника:",
                                             "options": [
-                                                {"label": "Малая иллюзия", "value": "minor_illusion"},
-                                                {"label": "Волшебная рука", "value": "mage_hand"},
+                                                {"label": "Брызги кислоты", "value": "acid-splash"},
+                                                {"label": "Власть над огнём", "value": "control-flames"},
+                                                {"label": "Волшебная рука", "value": "mage-hand"},
+                                                {"label": "Вспышка мечей", "value": "sword-burst"},
+                                                {"label": "Громовой клинок", "value": "booming-blade"},
+                                                {"label": "Дружба", "value": "friends"},
+                                                {"label": "Защита от оружия", "value": "sword-burst"},
+                                                {"label": "Клинок зелёного пламени", "value": "green-flame-blade"},
+                                                {"label": "Лассо молнии", "value": "lightning-lure"},
+                                                {"label": "Леденящее прикосновение", "value": "chill-touch"},
+                                                {"label": "Лепка земли", "value": "mold-earth"},
+                                                {"label": "Луч холода", "value": "ray-of-frost"},
+                                                {"label": "Малая иллюзия", "value": "minor-illusion"},
+                                                {"label": "Меткий удар", "value": "true-strike"},
+                                                {"label": "Нашествие", "value": "infestation"},
+                                                {"label": "Обморожение", "value": "frostbite"},
+                                                {"label": "Огненный снаряд", "value": "fire-bolt"},
+                                                {"label": "Пляшущие огоньки", "value": "dancing-lights"},
+                                                {"label": "Погребальный звон", "value": "toll-the-dead"},
+                                                {"label": "Починка", "value": "mending"},
+                                                {"label": "Раскат грома", "value": "thunderclap"},
+                                                {"label": "Расщепление разума", "value": "mind-sliver"},
                                                 {"label": "Свет", "value": "light"},
-                                                {"label": "Огонь", "value": "fire_bolt"}
+                                                {"label": "Сообщение", "value": "message"},
+                                                {"label": "Сотворение костра", "value": "create-bonfire"},
+                                                {"label": "Фокусы", "value": "prestidigitation"},
+                                                {"label": "Формование воды", "value": "shape-water"},
+                                                {"label": "Шквал", "value": "gust"},
+                                                {"label": "Электрошок", "value": "shocking-grasp"},
+                                                {"label": "Ядовитые брызги", "value": "poison-spray"}
                                             ]
                                         }
                                     ]
                                 },
                                 {
-                                    "id": "high_elf_language",
-                                    "type": "radio",
-                                    "link": "https://dnd.su/articles/mechanics/209-languages/",
+                                    "id": "high_elf_language_popup",
+                                    "type": "popup",
+                                    "label": "Выбрать язык",
                                     "title": "Вы знаете Общий, Эльфийский и ещё один язык на выбор:",
-                                    "options": [
-                                        {"label": "Великаний", "value": "high_elf_lang_giant"},
-                                        {"label": "Гномий", "value": "high_elf_lang_gnome"},
-                                        {"label": "Гоблинский", "value": "high_elf_lang_goblin"},
-                                        {"label": "Дварфский", "value": "high_elf_lang_dwarf"},
-                                        {"label": "Орочий", "value": "high_elf_lang_orc"},
-                                        {"label": "Полуросликов", "value": "high_elf_lang_halfling"},
-                                        {"label": "Бездны", "value": "high_elf_lang_abyss"},
-                                        {"label": "Глубинная Речь", "value": "high_elf_lang_ds"},
-                                        {"label": "Драконий", "value": "high_elf_lang_dragon"},
-                                        {"label": "Инфернальный", "value": "high_elf_lang_inferno"},
-                                        {"label": "Небесный", "value": "high_elf_lang_sky"},
-                                        {"label": "Первичный", "value": "high_elf_lang_primary"},
-                                        {"label": "Подземный", "value": "high_elf_lang_underground"},
-                                        {"label": "Сильван", "value": "high_elf_lang_sylvan"}
+                                    "additionalFields": [
+                                        {
+                                            "id": "high_elf_language",
+                                            "type": "radio",
+                                            "title": "Выберите язык:",
+                                            "options": [
+                                                {"label": "Великаний", "value": "high_elf_lang_giant"},
+                                                {"label": "Гномий", "value": "high_elf_lang_gnome"},
+                                                {"label": "Гоблинский", "value": "high_elf_lang_goblin"},
+                                                {"label": "Дварфский", "value": "high_elf_lang_dwarf"},
+                                                {"label": "Орочий", "value": "high_elf_lang_orc"},
+                                                {"label": "Полуросликов", "value": "high_elf_lang_halfling"},
+                                                {"label": "Бездны", "value": "high_elf_lang_abyss"},
+                                                {"label": "Глубинная Речь", "value": "high_elf_lang_ds"},
+                                                {"label": "Драконий", "value": "high_elf_lang_dragon"},
+                                                {"label": "Инфернальный", "value": "high_elf_lang_inferno"},
+                                                {"label": "Небесный", "value": "high_elf_lang_sky"},
+                                                {"label": "Первичный", "value": "high_elf_lang_primary"},
+                                                {"label": "Подземный", "value": "high_elf_lang_underground"},
+                                                {"label": "Сильван", "value": "high_elf_lang_sylvan"}
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
