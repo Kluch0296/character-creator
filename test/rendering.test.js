@@ -159,3 +159,23 @@ test('pages render according to config', async () => {
     }
   }
 });
+
+test('popup additional field title rendered', async () => {
+  const config = JSON.parse(fs.readFileSync(path.join(__dirname, '../config.json')));
+  const dom = createDOM();
+  const ctx = loadScript(dom, config);
+  await flush();
+
+  const racePage = config.pages.find(p => p.id === 'race');
+  const elf = racePage.options.find(o => o.value === 'elf');
+  const highElf = elf.suboptions.find(s => s.value === 'high_elf');
+
+  const container = dom.document.createElement('div');
+  ctx.updateAdditionalFields(container, highElf, 'subrace');
+
+  const wrappers = container.querySelectorAll('.additional-field');
+  assert.ok(wrappers.length > 0, 'wrapper exists');
+  const titleEl = wrappers[0].children[0];
+  assert.ok(titleEl && titleEl.tagName === 'H5', 'popup title exists');
+  assert.strictEqual(titleEl.textContent, highElf.additionalFields[0].title);
+});

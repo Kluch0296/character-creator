@@ -279,6 +279,12 @@ function updateAdditionalFields(panel, option, prefix = 'race') {
       const btnWrapper = document.createElement('div');
       btnWrapper.className = 'additional-field';
 
+      if (field.title) {
+        const h5 = document.createElement('h5');
+        h5.textContent = field.title;
+        btnWrapper.appendChild(h5);
+      }
+
       const btn = document.createElement('button');
       btn.className = 'popup-open-btn';
       btn.textContent = field.label || 'Открыть';
