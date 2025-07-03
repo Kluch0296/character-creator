@@ -231,7 +231,9 @@
                 {
                     "label": "Багбир",
                     "value": "bugbear",
-                    "image": "img/bugbear.png"
+                    "image": "img/bugbear.png",
+                    "description": "Сильные и скрытные гоблиноиды с длинными руками. +2 к Силе, +1 к Ловкости, владение Скрытностью и 2к6 урона при внезапной атаке",
+                    "link": "https://dnd.su/race/167-bugbear/"
                 },
                 {
                     "label": "Ведалкен",
