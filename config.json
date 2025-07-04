@@ -238,12 +238,100 @@
                 {
                     "label": "Ведалкен",
                     "value": "vedalken",
-                    "image": "img/vedalken.png"
+                    "image": "img/vedalken.png",
+                    "description": "Интеллект +2, Мудрость +1, спасброски Инт/Муд/Хар с преимуществом, час дышат под водой, выбирают навык и дополнительный язык",
+                    "link": "https://dnd.su/race/162-vedalken/",
+                    "additionalFields": [
+                        {
+                            "id": "vedalken_skill_popup",
+                            "type": "popup",
+                            "label": "Выбрать навык",
+                            "title": "Выберите навык для владения:",
+                            "additionalFields": [
+                                {
+                                    "id": "vedalken_skill",
+                                    "type": "radio",
+                                    "title": "Выберите навык:",
+                                    "options": [
+                                        {"label": "Выступление", "value": "vedalken_skill_performance"},
+                                        {"label": "История", "value": "vedalken_skill_history"},
+                                        {"label": "Ловкость рук", "value": "vedalken_skill_sleight"},
+                                        {"label": "Магия", "value": "vedalken_skill_arcana"},
+                                        {"label": "Медицина", "value": "vedalken_skill_medicine"},
+                                        {"label": "Расследование", "value": "vedalken_skill_investigation"}
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "id": "vedalken_language_popup",
+                            "type": "popup",
+                            "label": "Выбрать язык",
+                            "title": "Вы знаете Общий, Ведалкенский и ещё один язык на выбор:",
+                            "additionalFields": [
+                                {
+                                    "id": "vedalken_language",
+                                    "type": "radio",
+                                    "title": "Выберите язык:",
+                                    "options": [
+                                        {"label": "Великаний", "value": "vedalken_lang_giant"},
+                                        {"label": "Гномий", "value": "vedalken_lang_gnome"},
+                                        {"label": "Гоблинский", "value": "vedalken_lang_goblin"},
+                                        {"label": "Дварфский", "value": "vedalken_lang_dwarf"},
+                                        {"label": "Орочий", "value": "vedalken_lang_orc"},
+                                        {"label": "Полуросликов", "value": "vedalken_lang_halfling"},
+                                        {"label": "Эльфийский", "value": "vedalken_lang_elf"},
+                                        {"label": "Бездны", "value": "vedalken_lang_abyss"},
+                                        {"label": "Глубинная Речь", "value": "vedalken_lang_ds"},
+                                        {"label": "Драконий", "value": "vedalken_lang_dragon"},
+                                        {"label": "Инфернальный", "value": "vedalken_lang_inferno"},
+                                        {"label": "Небесный", "value": "vedalken_lang_sky"},
+                                        {"label": "Первичный", "value": "vedalken_lang_primary"},
+                                        {"label": "Подземный", "value": "vedalken_lang_underground"},
+                                        {"label": "Сильван", "value": "vedalken_lang_sylvan"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Вердан",
                     "value": "verdan",
-                    "image": "img/verdan.png"
+                    "image": "img/verdan.png",
+                    "description": "Харизма +2, Телосложение +1, чёрная исцеляющая кровь, ограниченная телепатия, спасброски Мудрости и Харизмы с преимуществом, владеют Убеждением и знают дополнительный язык",
+                    "link": "https://dnd.su/race/163-verdan/",
+                    "additionalFields": [
+                        {
+                            "id": "verdan_language_popup",
+                            "type": "popup",
+                            "label": "Выбрать язык",
+                            "title": "Вы знаете Общий, Гоблинский и ещё один язык на выбор:",
+                            "additionalFields": [
+                                {
+                                    "id": "verdan_language",
+                                    "type": "radio",
+                                    "title": "Выберите язык:",
+                                    "options": [
+                                        {"label": "Великаний", "value": "verdan_lang_giant"},
+                                        {"label": "Гномий", "value": "verdan_lang_gnome"},
+                                        {"label": "Дварфский", "value": "verdan_lang_dwarf"},
+                                        {"label": "Орочий", "value": "verdan_lang_orc"},
+                                        {"label": "Полуросликов", "value": "verdan_lang_halfling"},
+                                        {"label": "Эльфийский", "value": "verdan_lang_elf"},
+                                        {"label": "Бездны", "value": "verdan_lang_abyss"},
+                                        {"label": "Глубинная Речь", "value": "verdan_lang_ds"},
+                                        {"label": "Драконий", "value": "verdan_lang_dragon"},
+                                        {"label": "Инфернальный", "value": "verdan_lang_inferno"},
+                                        {"label": "Небесный", "value": "verdan_lang_sky"},
+                                        {"label": "Первичный", "value": "verdan_lang_primary"},
+                                        {"label": "Подземный", "value": "verdan_lang_underground"},
+                                        {"label": "Сильван", "value": "verdan_lang_sylvan"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Гибрид Симиков",
