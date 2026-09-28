@@ -1,7 +1,14 @@
 {
   "name": "character-creator",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Мастер персонажа первого уровня D&D 5e 2014 с проверкой зависимостей и экспортом Long Story Short",
   "scripts": {
-    "test": "node --test"
+    "start": "node dev-server.js",
+    "test": "node --test",
+    "check": "node --check script.js && node --check rules.js && node --check creation-options.js && node --check lss-export.js && node --check wizard-steps.js && node --check dev-server.js && node --test"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

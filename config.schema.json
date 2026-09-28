@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/dnd-character-creator/config.schema.json",
+  "title": "Конфигурация мастера персонажа",
+  "type": "object",
+  "required": ["meta", "flow", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["title", "edition", "level", "description", "reference"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "edition": { "type": "string", "minLength": 1 },
+        "level": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "description": { "type": "string", "minLength": 1 },
+        "reference": { "$ref": "#/$defs/dndUrl" }
+      }
+    },
+    "flow": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    }
+  },
+  "$defs": {
+    "dndUrl": {
+      "type": "string",
+      "pattern": "^https://([A-Za-z0-9-]+\\.)?dnd\\.su/"
+    },
+    "imagePath": {
+      "type": "string",
+      "pattern": "^img/[A-Za-z0-9._-]+$"
+    },
+    "baseNode": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["buttons", "text", "textarea", "radio", "checkbox", "popup", "abilities", "mechanics", "proficiencies"]
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "required": { "type": "boolean" },
+        "maxlength": { "type": "integer", "minimum": 1 },
+        "minSelections": { "type": "integer", "minimum": 0 },
+        "maxSelections": { "type": "integer", "minimum": 1 },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "integer" }
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/option" }
+        },
+        "elements": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "additionalFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/field" }
+        }
+      }
+    },
+    "page": {
+      "allOf": [
+        { "$ref": "#/$defs/baseNode" },
+        {
+          "type": "object",
+          "required": ["id", "title"],
+          "anyOf": [
+            { "required": ["type"] },
+            { "required": ["elements"] }
+          ]
+        }
+      ]
+    },
+    "field": {
+      "allOf": [
+        { "$ref": "#/$defs/baseNode" },
+        {
+          "type": "object",
+          "required": ["id", "type"]
+        }
+      ]
+    },
+    "option": {
+      "type": "object",
+      "required": ["label", "value"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "value": { "type": ["string", "number", "boolean"] },
+        "image": { "$ref": "#/$defs/imagePath" },
+        "description": { "type": "string" },
+        "source": { "type": "string" },
+        "link": { "$ref": "#/$defs/dndUrl" },
+        "additionalFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "suboptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/option" }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

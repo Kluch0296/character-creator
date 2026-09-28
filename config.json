@@ -1,5 +1,25 @@
 {
+    "meta": {
+        "title": "Мастер персонажа",
+        "edition": "D&D 5e 2014",
+        "level": 1,
+        "description": "Создайте персонажа первого уровня: происхождение, характеристики, снаряжение, магия и итоговые владения с экспортом в Long Story Short.",
+        "reference": "https://5e14.dnd.su/"
+    },
+    "flow": ["class", "race", "background", "abilities", "mechanics", "general", "proficiencies"],
     "pages": [
+        {
+            "id": "mechanics",
+            "title": "Умения, снаряжение и магия",
+            "description": "Выборы первого уровня: подклассы, черты и классовые заклинания из PHB 2014; изобретатель — TCE. После них мастер посчитает все доступные владения.",
+            "type": "mechanics"
+        },
+        {
+            "id": "proficiencies",
+            "title": "Выберите итоговые владения",
+            "description": "Раса, класс, предыстория и черта уже выбраны. Полученные владения учтены; завершите оставшиеся выборы с учётом ограничений каждого источника.",
+            "type": "proficiencies"
+        },
         {
             "id": "level",
             "title": "⚔️ Выберите уровень персонажа",
@@ -13,14 +33,15 @@
         },
         {
             "id": "race",
-            "title": "🛡️ Выберите расу",
+            "title": "Выберите расу",
+            "description": "Каталог использует legacy-варианты D&D 5e 2014 и официальные дополнения. Уточните разрешённые книги у Мастера.",
             "type": "buttons",
             "options": [
                 {
                     "label": "Человек",
                     "value": "human",
                     "image": "img/human.png",
-                    "description": "Получает +1 ко всем характеристикам или +1 к одной, но выбирает черту и владение одним навыком",
+                    "description": "Универсальная раса. Обычный человек получает +1 ко всем характеристикам; вариантный — +1 к двум разным характеристикам, один навык и одну черту.",
                     "link": "https://dnd.su/race/81-human/",
                     "additionalFields": [
                         {
@@ -29,7 +50,7 @@
                             "title": "Выберите особенность:",
                             "options": [
                                 {"label": "Увеличение характеристик: Значение всех ваших характеристик увеличивается на 1.", "value": "human_stats"},
-                                {"label": "+1 к одной характеристике, владение одним навыком, черта на выбор:", "value": "human_alt"}
+                                {"label": "Вариантный человек: +1 к двум разным характеристикам, один навык и одна черта", "value": "human_alt"}
                             ]
                         },
                         {
@@ -72,7 +93,7 @@
                     "link": "https://dnd.su/race/79-elf/",
                     "suboptions": [
                         {
-                            "label": "✨ Высокий эльф",
+                            "label": "✨ Высший эльф",
                             "value": "high_elf",
                             "description": "Изучают дополнительные заклинания и владеют оружием. Получают +1 к Интеллекту",
                             "additionalFields": [
@@ -93,7 +114,7 @@
                                                 {"label": "Вспышка мечей", "value": "sword-burst"},
                                                 {"label": "Громовой клинок", "value": "booming-blade"},
                                                 {"label": "Дружба", "value": "friends"},
-                                                {"label": "Защита от оружия", "value": "sword-burst"},
+                                                {"label": "Защита от оружия", "value": "blade-ward"},
                                                 {"label": "Клинок зелёного пламени", "value": "green-flame-blade"},
                                                 {"label": "Лассо молнии", "value": "lightning-lure"},
                                                 {"label": "Леденящее прикосновение", "value": "chill-touch"},
@@ -168,7 +189,8 @@
                     "label": "Аракокра",
                     "value": "aarakocra",
                     "image": "img/aarakocra.png",
-                    "description": "Получают +2 к Ловкости и +1 к Мудрости, могут атаковать когтями и летают"
+                    "description": "Птицелюди с крыльями. +2 Ловкость, +1 Мудрость, полёт 50 футов, атака когтями",
+                    "link": "https://dnd.su/race/92-aarakocra/"
                 },
                 {
                     "label": "Аасимар",
@@ -336,301 +358,722 @@
                 {
                     "label": "Гибрид Симиков",
                     "value": "simic-hybrid",
-                    "image": "img/simic-hybrid.png"
+                    "image": "img/simic-hybrid.png",
+                    "description": "Магически улучшенные существа. +2 к Телосложению, +1 к другой характеристике, темновидение; одна животная модификация на 1-м уровне, вторая — на 5-м.",
+                    "link": "https://dnd.su/race/164-simic-hybrid/",
+                    "additionalFields": [
+                        {
+                            "id": "simic-hybrid_language_popup",
+                            "type": "popup",
+                            "label": "Выбрать язык",
+                            "title": "Вы знаете Общий и Эльфийский или Ведалкенский по вашему выбору:",
+                            "additionalFields": [
+                                {
+                                    "id": "simic-hybrid_language",
+                                    "type": "radio",
+                                    "title": "Выберите язык:",
+                                    "options": [
+                                        {"label": "Эльфийский", "value": "simic-hybrid_lang_elf"},
+                                        {"label": "Ведалкенский", "value": "simic-hybrid_lang_vedalken"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Гит",
                     "value": "gith",
                     "image": "img/gith.png",
+                    "description": "Древняя раса псиоников (Mordenkainen's Tome of Foes). +1 к Интеллекту; остальные бонусы, защита и владения зависят от подрасы.",
+                    "link": "https://dnd.su/race/165-gith/",
                     "suboptions": [
                         {
                             "label": "Гитцераи",
                             "value": "gitzerai",
-                            "image": "img/gitzerai.png"
+                            "image": "img/gitzerai.png",
+                            "description": "+2 к Мудрости, псионическая защита, ментальная дисциплина"
                         },
                         {
                             "label": "Гитъянки",
                             "value": "githyanki",
-                            "image": "img/githyanki.png"
+                            "image": "img/githyanki.png",
+                            "description": "+2 к Силе, владение доспехами и оружием, псионические способности"
                         }
-                    ]    
+                    ]
                 },
                 {
                     "label": "Гифф",
                     "value": "giff",
-                    "image": "img/giff.png"
+                    "image": "img/giff.png",
+                    "description": "Гиппопотамоподобные наёмники. Скорость плавания, мощное телосложение, Астральная искра и мастерство огнестрельного оружия.",
+                    "link": "https://dnd.su/multiverse/race/215-giff/"
                 },
                 {
                     "label": "Гном",
                     "value": "gnome",
                     "image": "img/gnome.png",
+                    "description": "Изобретательные малыши. +2 к Интеллекту, темновидение, гномья хитрость",
+                    "link": "https://dnd.su/race/83-gnome/",
                     "suboptions": [
                         {
                             "label": "Лесной гном",
-                            "value": "forest-gnome"
+                            "value": "forest-gnome",
+                            "description": "+1 к Ловкости, природная иллюзия (заговор Малая иллюзия), общение с мелкими зверями"
                         },
                         {
                             "label": "Скальный гном",
-                            "value": "rock-gnome"
+                            "value": "rock-gnome",
+                            "description": "+1 к Телосложению, знание изобретателя, владение инструментами ремонтника"
                         }
-                    ]    
+                    ]
                 },
                 {
                     "label": "Гоблин",
                     "value": "goblin",
-                    "image": "img/goblin.png"
+                    "image": "img/goblin.png",
+                    "description": "Хитрые и проворные. +2 к Ловкости, +1 к Телосложению, темновидение, ярость гоблина, проворство",
+                    "link": "https://dnd.su/race/166-goblin/"
                 },
                 {
                     "label": "Голиаф",
                     "value": "goliath",
-                    "image": "img/goliath.png"
+                    "image": "img/goliath.png",
+                    "description": "Горные гиганты. +2 к Силе, +1 к Телосложению, природная атлетика, каменная стойкость, мощное телосложение",
+                    "link": "https://dnd.su/race/103-goliath/"
                 },
                 {
                     "label": "Грунг",
                     "value": "grung",
-                    "image": "img/grung.png"
+                    "image": "img/grung.png",
+                    "description": "Ядовитые лягушколюди. +2 к Ловкости, +1 к Телосложению, ядовитая кожа, прыжки, амфибия",
+                    "link": "https://dnd.su/race/169-grung/"
                 },
                 {
                     "label": "Дварф",
                     "value": "dwarf",
                     "image": "img/dwarf.png",
+                    "description": "Крепкие мастера. +2 к Телосложению, темновидение, дварфская устойчивость, владение инструментами",
+                    "link": "https://dnd.su/race/78-dwarf/",
                     "suboptions": [
                         {
                             "label": "Горный дварф",
-                            "value": "mountain-dwarf"
+                            "value": "mountain-dwarf",
+                            "description": "+2 к Силе, владение лёгкими и средними доспехами"
                         },
                         {
                             "label": "Холмовой дварф",
-                            "value": "hill-dwarf"
+                            "value": "hill-dwarf",
+                            "description": "+1 к Мудрости, дварфская живучесть (+1 хит на уровень)"
                         }
-                    ]   
+                    ]
                 },
                 {
                     "label": "Дженази",
                     "value": "genasi",
                     "image": "img/genasi.png",
+                    "description": "Потомки элементалей (Elemental Evil Player's Companion). +2 к Телосложению; стихийные способности и остальные бонусы зависят от подрасы. Темновидение есть только у огненных дженази.",
+                    "link": "https://dnd.su/race/102-genasi/",
                     "suboptions": [
                         {
                             "label": "Дженази воздуха",
-                            "value": "air-genasi"
+                            "value": "air-genasi",
+                            "description": "+1 к Ловкости, задержка дыхания, заклинание Левитация"
                         },
                         {
                             "label": "Дженази земли",
-                            "value": "earth-genasi"
+                            "value": "earth-genasi",
+                            "description": "+1 к Силе, игнорирование труднопроходимой местности из земли и камня, заклинание Бесследное передвижение"
                         },
                         {
                             "label": "Дженази огня",
-                            "value": "fire-genasi"
+                            "value": "fire-genasi",
+                            "description": "+1 к Интеллекту, сопротивление огню, заговор Сотворение пламени, заклинание Огненные ладони"
                         },
                         {
                             "label": "Дженази воды",
-                            "value": "water-genasi"
+                            "value": "water-genasi",
+                            "description": "+1 к Мудрости, амфибия, плавание, сопротивление кислоте, заговор Формование воды и заклинание Сотворение или уничтожение воды"
                         }
-                    ]   
+                    ]
                 },
                 {
                     "label": "Драконорождённый",
                     "value": "dragonborn",
-                    "image": "img/dragonborn.png"
+                    "image": "img/dragonborn.png",
+                    "description": "Драконья кровь. +2 к Силе, +1 к Харизме, оружие дыхания, сопротивление урону",
+                    "link": "https://dnd.su/race/82-dragonborn/"
                 },
                 {
                     "label": "Зайцегон",
                     "value": "harengon",
-                    "image": "img/harengon.png"
+                    "image": "img/harengon.png",
+                    "description": "Кроличий народ Страны Фей. Бонус к инициативе, прыжок зайца, кроличьи рефлексы, владение Восприятием",
+                    "link": "https://dnd.su/race/207-harengon/"
                 },
                 {
                     "label": "Калаштар",
                     "value": "kalashtar",
-                    "image": "img/kalashtar.png"
+                    "image": "img/kalashtar.png",
+                    "description": "Симбиоз людей и духов. +2 к Мудрости, +1 к Харизме, двойной разум, ментальная дисциплина, телепатия",
+                    "link": "https://dnd.su/race/171-kalashtar/"
                 },
                 {
                     "label": "Кендер",
                     "value": "kender",
-                    "image": "img/kender.png"
+                    "image": "img/kender.png",
+                    "description": "Бесстрашные путешественники. Бесстрашие, любопытство кендеров и насмешка помогают им выживать в самых невероятных историях.",
+                    "link": "https://dnd.su/race/285-kender/"
                 },
                 {
                     "label": "Кенку",
                     "value": "kenku",
-                    "image": "img/kenku.png"
+                    "image": "img/kenku.png",
+                    "description": "Птицелюди-имитаторы. +2 к Ловкости, +1 к Мудрости, мастер подделок, тренировка кенку, мимикрия",
+                    "link": "https://dnd.su/race/172-kenku/",
+                    "additionalFields": [
+                        {
+                            "id": "kenku_skill_popup",
+                            "type": "popup",
+                            "label": "Выбрать навыки",
+                            "title": "Выберите два навыка из списка:",
+                            "additionalFields": [
+                                {
+                                    "id": "kenku_skill_1",
+                                    "type": "radio",
+                                    "title": "Первый навык:",
+                                    "options": [
+                                        {"label": "Акробатика", "value": "kenku_skill_1_acrobatics"},
+                                        {"label": "Обман", "value": "kenku_skill_1_deception"},
+                                        {"label": "Скрытность", "value": "kenku_skill_1_stealth"},
+                                        {"label": "Ловкость рук", "value": "kenku_skill_1_sleight"}
+                                    ]
+                                },
+                                {
+                                    "id": "kenku_skill_2",
+                                    "type": "radio",
+                                    "title": "Второй навык:",
+                                    "options": [
+                                        {"label": "Акробатика", "value": "kenku_skill_2_acrobatics"},
+                                        {"label": "Обман", "value": "kenku_skill_2_deception"},
+                                        {"label": "Скрытность", "value": "kenku_skill_2_stealth"},
+                                        {"label": "Ловкость рук", "value": "kenku_skill_2_sleight"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Кентавр",
                     "value": "centaur",
-                    "image": "img/centaur.png"
+                    "image": "img/centaur.png",
+                    "description": "Полулюди-полукони. +2 к Силе, +1 к Мудрости, скорость 40 футов, атака копытами, конское телосложение",
+                    "link": "https://dnd.su/race/173-centaur/"
                 },
                 {
                     "label": "Орк",
                     "value": "orc",
-                    "image": "img/orc.png"
+                    "image": "img/orc.png",
+                    "description": "Свирепые воины. +2 к Силе, +1 к Телосложению, темновидение, агрессивность, мощное телосложение и два навыка из Первобытной интуиции (VGM с исправлениями 2020).",
+                    "link": "https://dnd.su/race/187-orc/"
                 },
                 {
                     "label": "Плазмоид",
                     "value": "plasmoid",
-                    "image": "img/plasmoid.png"
+                    "image": "img/plasmoid.png",
+                    "description": "Аморфные слизеподобные существа. Изменение формы, протискивание, псевдоподы, темновидение",
+                    "link": "https://dnd.su/multiverse/race/217-plasmoid/"
                 },
                 {
                     "label": "Полуорк",
                     "value": "half-orc",
-                    "image": "img/half-orc.png"
+                    "image": "img/half-orc.png",
+                    "description": "Сила орков и гибкость людей. +2 к Силе, +1 к Телосложению, темновидение, непоколебимая стойкость, дикие атаки, владение Запугиванием",
+                    "link": "https://dnd.su/race/85-half-orc/"
                 },
                 {
                     "label": "Полурослик",
                     "value": "halfling",
                     "image": "img/halfling.png",
+                    "description": "Удачливые малыши. +2 к Ловкости, везучесть, храбрость, проворство полуросликов",
+                    "link": "https://dnd.su/race/80-halfling/",
                     "suboptions": [
                         {
                             "label": "Коренастый",
-                            "value": "stocky"
+                            "value": "stocky",
+                            "description": "+1 к Телосложению, устойчивость коренастых"
                         },
                         {
                             "label": "Легконогий",
-                            "value": "light-footed"
+                            "value": "light-footed",
+                            "description": "+1 к Харизме, естественная скрытность"
                         }
                     ]
                 },
                 {
                     "label": "Полуэльф",
                     "value": "half-elf",
-                    "image": "img/half-elf.png"
+                    "image": "img/half-elf.png",
+                    "description": "Универсальность двух миров. +2 к Харизме, +1 к двум характеристикам, темновидение, наследие фей, владение двумя навыками",
+                    "link": "https://dnd.su/race/84-half-elf/",
+                    "additionalFields": [
+                        {
+                            "id": "half_elf_skill_popup",
+                            "type": "popup",
+                            "label": "Выбрать навыки",
+                            "title": "Выберите два навыка на выбор:",
+                            "additionalFields": [
+                                {
+                                    "id": "half_elf_skill_1",
+                                    "type": "radio",
+                                    "title": "Первый навык:",
+                                    "options": [
+                                        {"label": "Акробатика", "value": "half_elf_skill_1_acrobatics"},
+                                        {"label": "Анализ", "value": "half_elf_skill_1_investigation"},
+                                        {"label": "Атлетика", "value": "half_elf_skill_1_athletics"},
+                                        {"label": "Восприятие", "value": "half_elf_skill_1_perception"},
+                                        {"label": "Выживание", "value": "half_elf_skill_1_survival"},
+                                        {"label": "Выступление", "value": "half_elf_skill_1_performance"},
+                                        {"label": "Запугивание", "value": "half_elf_skill_1_intimidation"},
+                                        {"label": "История", "value": "half_elf_skill_1_history"},
+                                        {"label": "Ловкость рук", "value": "half_elf_skill_1_sleight"},
+                                        {"label": "Магия", "value": "half_elf_skill_1_arcana"},
+                                        {"label": "Медицина", "value": "half_elf_skill_1_medicine"},
+                                        {"label": "Обман", "value": "half_elf_skill_1_deception"},
+                                        {"label": "Обращение с животными", "value": "half_elf_skill_1_animal"},
+                                        {"label": "Природа", "value": "half_elf_skill_1_nature"},
+                                        {"label": "Проницательность", "value": "half_elf_skill_1_insight"},
+                                        {"label": "Религия", "value": "half_elf_skill_1_religion"},
+                                        {"label": "Скрытность", "value": "half_elf_skill_1_stealth"},
+                                        {"label": "Убеждение", "value": "half_elf_skill_1_persuasion"}
+                                    ]
+                                },
+                                {
+                                    "id": "half_elf_skill_2",
+                                    "type": "radio",
+                                    "title": "Второй навык:",
+                                    "options": [
+                                        {"label": "Акробатика", "value": "half_elf_skill_2_acrobatics"},
+                                        {"label": "Анализ", "value": "half_elf_skill_2_investigation"},
+                                        {"label": "Атлетика", "value": "half_elf_skill_2_athletics"},
+                                        {"label": "Восприятие", "value": "half_elf_skill_2_perception"},
+                                        {"label": "Выживание", "value": "half_elf_skill_2_survival"},
+                                        {"label": "Выступление", "value": "half_elf_skill_2_performance"},
+                                        {"label": "Запугивание", "value": "half_elf_skill_2_intimidation"},
+                                        {"label": "История", "value": "half_elf_skill_2_history"},
+                                        {"label": "Ловкость рук", "value": "half_elf_skill_2_sleight"},
+                                        {"label": "Магия", "value": "half_elf_skill_2_arcana"},
+                                        {"label": "Медицина", "value": "half_elf_skill_2_medicine"},
+                                        {"label": "Обман", "value": "half_elf_skill_2_deception"},
+                                        {"label": "Обращение с животными", "value": "half_elf_skill_2_animal"},
+                                        {"label": "Природа", "value": "half_elf_skill_2_nature"},
+                                        {"label": "Проницательность", "value": "half_elf_skill_2_insight"},
+                                        {"label": "Религия", "value": "half_elf_skill_2_religion"},
+                                        {"label": "Скрытность", "value": "half_elf_skill_2_stealth"},
+                                        {"label": "Убеждение", "value": "half_elf_skill_2_persuasion"}
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "id": "half_elf_language_popup",
+                            "type": "popup",
+                            "label": "Выбрать язык",
+                            "title": "Вы знаете Общий, Эльфийский и ещё один язык на выбор:",
+                            "additionalFields": [
+                                {
+                                    "id": "half_elf_language",
+                                    "type": "radio",
+                                    "title": "Выберите язык:",
+                                    "options": [
+                                        {"label": "Великаний", "value": "half_elf_lang_giant"},
+                                        {"label": "Гномий", "value": "half_elf_lang_gnome"},
+                                        {"label": "Гоблинский", "value": "half_elf_lang_goblin"},
+                                        {"label": "Дварфский", "value": "half_elf_lang_dwarf"},
+                                        {"label": "Орочий", "value": "half_elf_lang_orc"},
+                                        {"label": "Полуросликов", "value": "half_elf_lang_halfling"},
+                                        {"label": "Бездны", "value": "half_elf_lang_abyss"},
+                                        {"label": "Глубинная Речь", "value": "half_elf_lang_ds"},
+                                        {"label": "Драконий", "value": "half_elf_lang_dragon"},
+                                        {"label": "Инфернальный", "value": "half_elf_lang_inferno"},
+                                        {"label": "Небесный", "value": "half_elf_lang_sky"},
+                                        {"label": "Первичный", "value": "half_elf_lang_primary"},
+                                        {"label": "Подземный", "value": "half_elf_lang_underground"},
+                                        {"label": "Сильван", "value": "half_elf_lang_sylvan"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Кобольд",
                     "value": "kobold",
-                    "image": "img/kobold.png"
+                    "image": "img/kobold.png",
+                    "description": "Драконьи слуги из Volo's Guide to Monsters. +2 к Ловкости, темновидение, тактика стаи, солнечная чувствительность и пресмыкательство.",
+                    "link": "https://dnd.su/race/175-kobold/"
                 },
                 {
                     "label": "Кованый",
                     "value": "warforged",
-                    "image": "img/warforged.png"
+                    "image": "img/warforged.png",
+                    "description": "Живые конструкты. +2 к Телосложению, +1 к любой характеристике, встроенная защита, не нужно есть/пить/дышать, часовой отдых",
+                    "link": "https://dnd.su/race/174-warforged/"
                 },
                 {
                     "label": "Леонин",
                     "value": "leonin",
-                    "image": "img/leonin.png"
+                    "image": "img/leonin.png",
+                    "description": "Львиный народ. +2 к Телосложению, +1 к Силе, темновидение, когти, устрашающий рык",
+                    "link": "https://dnd.su/race/176-leonin/"
                 },
                 {
                     "label": "Локата",
                     "value": "locathah",
-                    "image": "img/locathah.png"
+                    "image": "img/locathah.png",
+                    "description": "Рыболюди. +2 к Силе, +1 к Ловкости, природная броня, владение Атлетикой и Восприятием, плавание, ограниченная амфибия",
+                    "link": "https://dnd.su/race/178-locathah/"
                 },
                 {
                     "label": "Локсодон",
                     "value": "loxodon",
-                    "image": "img/loxodon.png"
+                    "image": "img/loxodon.png",
+                    "description": "Слоноподобные гиганты. +2 к Телосложению, +1 к Мудрости, природная броня, хобот, память локсодона, мощное телосложение",
+                    "link": "https://dnd.su/race/177-loxodon/"
                 },
                 {
                     "label": "Людоящер",
                     "value": "lizardfolk",
-                    "image": "img/lizardfolk.png"
+                    "image": "img/lizardfolk.png",
+                    "description": "Рептилоиды. +2 к Телосложению, +1 к Мудрости, укус, задержка дыхания, природная броня, голодные челюсти и два навыка из знаний охотника.",
+                    "link": "https://dnd.su/race/179-lizardfolk/",
+                    "additionalFields": [
+                        {
+                            "id": "lizardfolk_skill_popup",
+                            "type": "popup",
+                            "label": "Выбрать навыки",
+                            "title": "Выберите два разных навыка из списка:",
+                            "additionalFields": [
+                                {
+                                    "id": "lizardfolk_skill_1",
+                                    "type": "radio",
+                                    "title": "Первый навык:",
+                                    "options": [
+                                        {"label": "Выживание", "value": "lizardfolk_skill_1_survival"},
+                                        {"label": "Восприятие", "value": "lizardfolk_skill_1_perception"},
+                                        {"label": "Скрытность", "value": "lizardfolk_skill_1_stealth"},
+                                        {"label": "Природа", "value": "lizardfolk_skill_1_nature"},
+                                        {"label": "Обращение с животными", "value": "lizardfolk_skill_1_animal"}
+                                    ]
+                                },
+                                {
+                                    "id": "lizardfolk_skill_2",
+                                    "type": "radio",
+                                    "title": "Второй навык:",
+                                    "options": [
+                                        {"label": "Выживание", "value": "lizardfolk_skill_2_survival"},
+                                        {"label": "Восприятие", "value": "lizardfolk_skill_2_perception"},
+                                        {"label": "Скрытность", "value": "lizardfolk_skill_2_stealth"},
+                                        {"label": "Природа", "value": "lizardfolk_skill_2_nature"},
+                                        {"label": "Обращение с животными", "value": "lizardfolk_skill_2_animal"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Минотавр",
                     "value": "minotaur",
-                    "image": "img/minotaur.png"
+                    "image": "img/minotaur.png",
+                    "description": "Бычьи воины (Guildmasters' Guide to Ravnica). +2 к Силе, +1 к Телосложению, рога, атака рывком, толчок рогами и владение Запугиванием или Убеждением.",
+                    "link": "https://dnd.su/race/181-minotaur/"
                 },
                 {
                     "label": "Сатир",
                     "value": "satyr",
-                    "image": "img/satyr.png"
+                    "image": "img/satyr.png",
+                    "description": "Фейские козлоноги. +2 к Харизме, +1 к Ловкости, копыта, магическое сопротивление, прыжки, владение Выступлением и Убеждением",
+                    "link": "https://dnd.su/race/182-satyr/"
                 },
                 {
                     "label": "Совлин",
                     "value": "owlin",
-                    "image": "img/owlin.png"
+                    "image": "img/owlin.png",
+                    "description": "Совиный народ. Темновидение, полёт, бесшумные перья, владение Скрытностью",
+                    "link": "https://dnd.su/race/206-owlin/"
                 },
                 {
                     "label": "Табакси",
                     "value": "tabaxi",
-                    "image": "img/tabaxi.png"
+                    "image": "img/tabaxi.png",
+                    "description": "Кошачий народ. +2 к Ловкости, +1 к Харизме, темновидение, кошачья ловкость, кошачьи когти, владение Восприятием и Скрытностью",
+                    "link": "https://dnd.su/race/183-tabaxi/"
                 },
                 {
                     "label": "Тифлинг",
                     "value": "tiefling",
-                    "image": "img/tiefling.png"
+                    "image": "img/tiefling.png",
+                    "description": "Инфернальное наследие. +2 к Харизме, +1 к Интеллекту, темновидение, сопротивление огню, инфернальное наследие (заговор Чудотворство)",
+                    "link": "https://dnd.su/race/86-tiefling/"
                 },
                 {
                     "label": "Тортл",
                     "value": "tortle",
-                    "image": "img/tortle.png"
+                    "image": "img/tortle.png",
+                    "description": "Черепахолюди. +2 к Силе, +1 к Мудрости, когти, задержка дыхания, природная броня (КД 17), панцирная защита, владение Выживанием",
+                    "link": "https://dnd.su/race/184-tortle/"
                 },
                 {
                     "label": "Три-крин",
                     "value": "thri-kreen",
-                    "image": "img/thri-kreen.png"
+                    "image": "img/thri-kreen.png",
+                    "description": "Инсектоиды с четырьмя руками. Темновидение, хитиновая броня, вторичные руки, телепатия три-кринов и бессонное восстановление.",
+                    "link": "https://dnd.su/multiverse/race/218-thri-kreen/"
                 },
                 {
                     "label": "Тритон",
                     "value": "triton",
-                    "image": "img/triton.png"
+                    "image": "img/triton.png",
+                    "description": "Морские стражи. +1 к Силе, Телосложению и Харизме, темновидение, амфибия, эмиссары моря, стражи глубин",
+                    "link": "https://dnd.su/race/188-triton/"
                 },
                 {
                     "label": "Фирболг",
                     "value": "firbolg",
-                    "image": "img/firbolg.png"
+                    "image": "img/firbolg.png",
+                    "description": "Лесные великаны. +2 к Мудрости, +1 к Силе, магия фирболгов (Обнаружение магии, Маскировка), скрытый шаг, мощное телосложение, речь зверей и листвы",
+                    "link": "https://dnd.su/race/185-firbolg/"
                 },
                 {
                     "label": "Фэйри",
                     "value": "fairy",
-                    "image": "img/fairy.png"
+                    "image": "img/fairy.png",
+                    "description": "Крылатые феи. Полёт, фейская магия (заговор Друидизм, заклинания Огоньки феи и Увеличение/Уменьшение)",
+                    "link": "https://dnd.su/race/204-fairy/"
                 },
                 {
                     "label": "Хадози",
                     "value": "hadozee",
-                    "image": "img/hadozee.png"
+                    "image": "img/hadozee.png",
+                    "description": "Обезьяноподобные планеристы. Скорость лазания, планирование, цепкие конечности и вёрткость хадози.",
+                    "link": "https://dnd.su/multiverse/race/216-hadozee/"
                 },
                 {
                     "label": "Хобгоблин",
                     "value": "hobgoblin",
-                    "image": "img/hobgoblin.png"
+                    "image": "img/hobgoblin.png",
+                    "description": "Дисциплинированные воины. +2 к Телосложению, +1 к Интеллекту, темновидение, боевая подготовка, спасительная грация",
+                    "link": "https://dnd.su/race/168-hobgoblin/"
                 },
                 {
                     "label": "Чейнджлинг",
                     "value": "changeling",
-                    "image": "img/changeling.png"
+                    "image": "img/changeling.png",
+                    "description": "Оборотни. +2 к Харизме, +1 к любой характеристике, изменение облика, инстинкты чейнджлинга (владение двумя навыками)",
+                    "link": "https://dnd.su/race/170-changeling/",
+                    "additionalFields": [
+                        {
+                            "id": "changeling_skill_popup",
+                            "type": "popup",
+                            "label": "Выбрать навыки",
+                            "title": "Выберите два навыка из списка:",
+                            "additionalFields": [
+                                {
+                                    "id": "changeling_skill_1",
+                                    "type": "radio",
+                                    "title": "Первый навык:",
+                                    "options": [
+                                        {"label": "Обман", "value": "changeling_skill_1_deception"},
+                                        {"label": "Запугивание", "value": "changeling_skill_1_intimidation"},
+                                        {"label": "Проницательность", "value": "changeling_skill_1_insight"},
+                                        {"label": "Убеждение", "value": "changeling_skill_1_persuasion"}
+                                    ]
+                                },
+                                {
+                                    "id": "changeling_skill_2",
+                                    "type": "radio",
+                                    "title": "Второй навык:",
+                                    "options": [
+                                        {"label": "Обман", "value": "changeling_skill_2_deception"},
+                                        {"label": "Запугивание", "value": "changeling_skill_2_intimidation"},
+                                        {"label": "Проницательность", "value": "changeling_skill_2_insight"},
+                                        {"label": "Убеждение", "value": "changeling_skill_2_persuasion"}
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "label": "Шифтер",
                     "value": "shifter",
                     "image": "img/shifter.png",
+                    "description": "Ликантропическое наследие (Eberron: Rising from the Last War). Бонусы характеристик и навык определяются подрасой; темновидение и трансформация.",
+                    "link": "https://dnd.su/race/186-shifter/",
                     "suboptions": [
                         {
                             "label": "Зверошкуры",
-                            "value": "beasthide-shifter"
+                            "value": "beasthide-shifter",
+                            "description": "+2 к Телосложению, +1 к Силе, Атлетика; +1к6 временных хитов и +1 к КД при трансформации"
                         },
                         {
                             "label": "Длиннозубы",
-                            "value": "longtooth-shifter"
+                            "value": "longtooth-shifter",
+                            "description": "+2 к Силе, +1 к Ловкости, Запугивание; атака клыками бонусным действием при трансформации"
                         },
                         {
                             "label": "Быстроноги",
-                            "value": "swiftstride-shifter"
+                            "value": "swiftstride-shifter",
+                            "description": "+2 к Ловкости, +1 к Харизме, Акробатика; +5 футов к скорости постоянно и ещё +5 при трансформации"
                         },
                         {
                             "label": "Дикие охотники",
-                            "value": "wildhunt-shifter"
+                            "value": "wildhunt-shifter",
+                            "description": "+2 к Мудрости, +1 к Ловкости, Выживание; преимущество на проверки Мудрости при трансформации"
                         }
                     ]
                 },
                 {
                     "label": "Юань-ти",
                     "value": "yuan-ti-pureblood",
-                    "image": "img/yuan-ti-pureblood.png"
+                    "image": "img/yuan-ti-pureblood.png",
+                    "description": "Змеиная кровь. +2 к Харизме, +1 к Интеллекту, темновидение, магическое сопротивление, иммунитет к яду, врождённое колдовство",
+                    "link": "https://dnd.su/race/189-yuan-ti-pureblood/"
                 }
             ]
         },
         {
+            "id": "background",
+            "title": "Выберите предысторию",
+            "description": "Предыстория описывает жизнь героя до приключений и даёт навыки, владения и стартовое снаряжение.",
+            "type": "buttons",
+            "options": [
+                {
+                    "label": "Артист",
+                    "value": "entertainer",
+                    "source": "PH14",
+                    "description": "Навыки: Акробатика и Выступление.",
+                    "link": "https://5e14.dnd.su/backgrounds/757-entertainer/"
+                },
+                {
+                    "label": "Беспризорник",
+                    "value": "urchin",
+                    "source": "PH14",
+                    "description": "Навыки: Ловкость рук и Скрытность.",
+                    "link": "https://5e14.dnd.su/backgrounds/758-urchin/"
+                },
+                {
+                    "label": "Благородный",
+                    "value": "noble",
+                    "source": "PH14",
+                    "description": "Навыки: История и Убеждение.",
+                    "link": "https://5e14.dnd.su/backgrounds/759-noble/"
+                },
+                {
+                    "label": "Гильдейский ремесленник",
+                    "value": "guild-artisan",
+                    "source": "PH14",
+                    "description": "Навыки: Проницательность и Убеждение.",
+                    "link": "https://5e14.dnd.su/backgrounds/760-guild-artisan/"
+                },
+                {
+                    "label": "Моряк",
+                    "value": "sailor",
+                    "source": "PH14",
+                    "description": "Навыки: Атлетика и Восприятие.",
+                    "link": "https://5e14.dnd.su/backgrounds/761-sailor/"
+                },
+                {
+                    "label": "Мудрец",
+                    "value": "sage",
+                    "source": "PH14",
+                    "description": "Навыки: Магия и История.",
+                    "link": "https://5e14.dnd.su/backgrounds/762-sage/"
+                },
+                {
+                    "label": "Народный герой",
+                    "value": "folk-hero",
+                    "source": "PH14",
+                    "description": "Навыки: Обращение с животными и Выживание.",
+                    "link": "https://5e14.dnd.su/backgrounds/763-folk-hero/"
+                },
+                {
+                    "label": "Отшельник",
+                    "value": "hermit",
+                    "source": "PH14",
+                    "description": "Навыки: Медицина и Религия.",
+                    "link": "https://5e14.dnd.su/backgrounds/764-hermit/"
+                },
+                {
+                    "label": "Пират",
+                    "value": "pirate",
+                    "source": "PH14",
+                    "description": "Разновидность моряка. Навыки: Атлетика и Восприятие.",
+                    "link": "https://5e14.dnd.su/backgrounds/770-pirate/"
+                },
+                {
+                    "label": "Преступник",
+                    "value": "criminal",
+                    "source": "PH14",
+                    "description": "Навыки: Обман и Скрытность.",
+                    "link": "https://5e14.dnd.su/backgrounds/765-criminal/"
+                },
+                {
+                    "label": "Прислужник",
+                    "value": "acolyte",
+                    "source": "PH14",
+                    "description": "Навыки: Проницательность и Религия.",
+                    "link": "https://5e14.dnd.su/backgrounds/766-acolyte/"
+                },
+                {
+                    "label": "Солдат",
+                    "value": "soldier",
+                    "source": "PH14",
+                    "description": "Навыки: Атлетика и Запугивание.",
+                    "link": "https://5e14.dnd.su/backgrounds/767-soldier/"
+                },
+                {
+                    "label": "Чужеземец",
+                    "value": "outlander",
+                    "source": "PH14",
+                    "description": "Навыки: Атлетика и Выживание.",
+                    "link": "https://5e14.dnd.su/backgrounds/768-outlander/"
+                },
+                {
+                    "label": "Шарлатан",
+                    "value": "charlatan",
+                    "source": "PH14",
+                    "description": "Навыки: Обман и Ловкость рук.",
+                    "link": "https://5e14.dnd.su/backgrounds/769-charlatan/"
+                }
+            ]
+        },
+        {
+            "id": "abilities",
+            "title": "Распределите характеристики",
+            "description": "Выберите способ определения базовых значений и распределите их. Бонусы расы и черты прибавляются отдельно.",
+            "type": "abilities",
+            "values": [15, 14, 13, 12, 10, 8]
+        },
+        {
             "id": "general",
-            "title": "📝 Общее",
+            "title": "Добавьте детали образа",
+            "description": "Имя обязательно, остальные детали можно оставить на потом и обсудить с Мастером.",
             "elements": [
                 {
                     "id": "name",
                     "type": "text",
-                    "placeholder": "Введите имя персонажа"
+                    "title": "Имя персонажа",
+                    "placeholder": "Например, Мирэль",
+                    "maxlength": 80
                 },
                 {
                     "id": "gender",
                     "type": "radio",
                     "title": "Пол персонажа",
+                    "required": false,
                     "options": [
                         {
                             "label": "Мужчина", "value": "male"
@@ -644,102 +1087,169 @@
                     ]
                 },
                 {
+                    "id": "alignment", "type": "radio", "title": "Мировоззрение", "required": false,
+                    "options": [
+                        {"value":"lawful-good","label":"Законно-доброе"},
+                        {"value":"neutral-good","label":"Нейтрально-доброе"},
+                        {"value":"chaotic-good","label":"Хаотично-доброе"},
+                        {"value":"lawful-neutral","label":"Законно-нейтральное"},
+                        {"value":"neutral","label":"Нейтральное"},
+                        {"value":"chaotic-neutral","label":"Хаотично-нейтральное"},
+                        {"value":"lawful-evil","label":"Законно-злое"},
+                        {"value":"neutral-evil","label":"Нейтрально-злое"},
+                        {"value":"chaotic-evil","label":"Хаотично-злое"}
+                    ]
+                },
+                {"id":"personality","type":"textarea","title":"Черты характера","placeholder":"Две привычки или особенности поведения","maxlength":2000,"required":false},
+                {"id":"ideals","type":"textarea","title":"Идеалы","placeholder":"Во что верит герой?","maxlength":2000,"required":false},
+                {"id":"bonds","type":"textarea","title":"Привязанности","placeholder":"Что или кого он хочет защитить?","maxlength":2000,"required":false},
+                {"id":"flaws","type":"textarea","title":"Слабости","placeholder":"Что может заставить его ошибиться?","maxlength":2000,"required":false},
+                {
                     "id": "age",
                     "type": "text",
-                    "placeholder": "Введите возраст персонажа"
+                    "title": "Возраст",
+                    "placeholder": "Например, 27 лет",
+                    "required": false,
+                    "maxlength": 40
                 },
                 {
                     "id": "height",
                     "type": "text",
-                    "placeholder": "Введите рост персонажа"
+                    "title": "Рост",
+                    "placeholder": "Например, 178 см",
+                    "required": false,
+                    "maxlength": 40
                 },
                 {
                     "id": "weight",
                     "type": "text",
-                    "placeholder": "Введите вес персонажа"
+                    "title": "Вес",
+                    "placeholder": "Например, 72 кг",
+                    "required": false,
+                    "maxlength": 40
+                },
+                {
+                    "id": "concept",
+                    "type": "textarea",
+                    "title": "Характер, цель или заметка",
+                    "placeholder": "Коротко опишите, что движет героем",
+                    "required": false,
+                    "maxlength": 500
                 }
             ]
         },
         {
             "id": "class",
-            "title": "Класс",
+            "title": "Выберите класс",
+            "description": "Класс определяет главные способности героя, его роль в группе и большую часть решений на следующих этапах.",
             "elements": [
                 {
                     "id": "class",
                     "type": "buttons",
-                    "title": "Выберите класс персонажа",
                     "options": [
                         {
-                            "type": "buttons",
                             "label": "Бард",
                             "value": "bard",
-                            "image": "img/bard.png"
+                            "image": "img/bard.png",
+                            "source": "PH14",
+                            "description": "Магия, поддержка и широкий набор навыков.",
+                            "link": "https://5e14.dnd.su/class/88-bard/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Варвар",
                             "value": "barbarian",
-                            "image": "img/barbarian.png"
+                            "image": "img/barbarian.png",
+                            "source": "PH14",
+                            "description": "Стойкий боец ближнего боя, полагающийся на ярость.",
+                            "link": "https://5e14.dnd.su/class/87-barbarian/"
                         },
                         {
-                            "type": "buttons",
+                            "label": "Воин",
+                            "value": "fighter",
+                            "image": "img/fighter.png",
+                            "source": "PH14",
+                            "description": "Универсальный мастер оружия, доспехов и боевых приёмов.",
+                            "link": "https://5e14.dnd.su/class/91-fighter/"
+                        },
+                        {
                             "label": "Волшебник",
                             "value": "wizard",
-                            "image": "img/wizard.png"
+                            "image": "img/wizard.png",
+                            "source": "PH14",
+                            "description": "Подготавливает обширный набор заклинаний из своей книги.",
+                            "link": "https://5e14.dnd.su/class/105-wizard/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Друид",
                             "value": "druid",
-                            "image": "img/druid.png"
+                            "image": "img/druid.png",
+                            "source": "PH14",
+                            "description": "Магия природы, лечение и превращения в зверей.",
+                            "link": "https://5e14.dnd.su/class/90-druid/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Жрец",
                             "value": "cleric",
-                            "image": "img/cleric.png"
+                            "image": "img/cleric.png",
+                            "source": "PH14",
+                            "description": "Божественная магия, поддержка союзников и защита.",
+                            "link": "https://5e14.dnd.su/class/89-cleric/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Изобретатель",
                             "value": "artificer",
-                            "image": "img/artificer.png"
+                            "image": "img/artificer.png",
+                            "source": "TCE",
+                            "description": "Магический изобретатель, создающий и усиливающий предметы.",
+                            "link": "https://5e14.dnd.su/class/137-artificer/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Колдун",
                             "value": "warlock",
-                            "image": "img/warlock.png"
+                            "image": "img/warlock.png",
+                            "source": "PH14",
+                            "description": "Магия покровителя и настраиваемые мистические воззвания.",
+                            "link": "https://5e14.dnd.su/class/104-warlock/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Монах",
                             "value": "monk",
-                            "image": "img/monk.png"
+                            "image": "img/monk.png",
+                            "source": "PH14",
+                            "description": "Подвижный боец, превращающий внутреннюю энергию в оружие.",
+                            "link": "https://5e14.dnd.su/class/93-monk/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Паладин",
                             "value": "paladin",
-                            "image": "img/paladin.png"
+                            "image": "img/paladin.png",
+                            "source": "PH14",
+                            "description": "Бронированный воин, связанный священной клятвой.",
+                            "link": "https://5e14.dnd.su/class/94-paladin/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Плут",
                             "value": "rogue",
-                            "image": "img/rogue.png"
+                            "image": "img/rogue.png",
+                            "source": "PH14",
+                            "description": "Скрытность, экспертиза в навыках и точечный урон.",
+                            "link": "https://5e14.dnd.su/class/99-rogue/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Следопыт",
                             "value": "ranger",
-                            "image": "img/ranger.png"
+                            "image": "img/ranger.png",
+                            "source": "PH14",
+                            "description": "Охотник и проводник, сочетающий оружие с магией природы.",
+                            "link": "https://5e14.dnd.su/class/97-ranger/"
                         },
                         {
-                            "type": "buttons",
                             "label": "Чародей",
                             "value": "sorcerer",
-                            "image": "img/sorcerer.png"
+                            "image": "img/sorcerer.png",
+                            "source": "PH14",
+                            "description": "Врождённая магия и гибкая метамагия.",
+                            "link": "https://5e14.dnd.su/class/101-sorcerer/"
                         }
                     ]
                 }
