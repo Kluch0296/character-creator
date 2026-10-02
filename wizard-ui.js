@@ -250,7 +250,7 @@ function raceBonusChips(rule, guide) {
       tone: guide && guide.primary.includes(id) ? 'key' : 'base'
     }));
     if (profile.choiceSlots) chips.push({ text: describeSlots(profile.choiceSlots), tone: 'muted' });
-    if (profile.plans) chips.push({ text: '+2 и +1 на выбор', tone: 'muted' });
+    if (profile.plans) chips.push({ text: `${profile.plans.map(plan => plan.choiceSlots.map(signedValue).join('/')).join(' или ')} на выбор`, tone: 'muted' });
   }
   if (Object.values(rule && rule.subraces || {}).some(sub => sub.abilities && Object.keys(sub.abilities).length)) {
     chips.push({ text: '+ подраса', tone: 'muted' });
@@ -260,10 +260,19 @@ function raceBonusChips(rule, guide) {
 
 function raceDarkvision(rule) {
   if (!rule) return 0;
-  return rule.darkvision || Math.max(0, ...Object.values(rule.subraces || {}).map(sub => sub.darkvision || 0));
+  if (rule.darkvision) return rule.darkvision;
+  const subraces = Object.values(rule.subraces || {});
+  return subraces.length && subraces.every(sub => sub.darkvision) ? Math.min(...subraces.map(sub => sub.darkvision)) : 0;
 }
 
-function raceTraitParts(rule) {
+const VARIABLE_SIZE_RACES = ['harengon', 'owlin', 'hadozee', 'plasmoid', 'thri-kreen'];
+
+function raceSize(raceId, rule) {
+  if (!VARIABLE_SIZE_RACES.includes(raceId)) return rule.size === 'small' ? 'small' : 'medium';
+  return character.race === raceId && ['small', 'medium'].includes(character.creation_size) ? character.creation_size : 'choice';
+}
+
+function raceTraitParts(rule, raceId) {
   if (!rule) return [];
   const parts = [`${rule.speed || 30} фт`];
   const darkvision = raceDarkvision(rule);
@@ -271,11 +280,13 @@ function raceTraitParts(rule) {
   if (rule.fly) parts.push(`полёт ${rule.fly}`);
   if (rule.swim) parts.push(`плавание ${rule.swim}`);
   if (rule.climb) parts.push(`лазание ${rule.climb}`);
-  if (rule.size === 'small') parts.push('маленький');
+  const size = raceSize(raceId, rule);
+  if (size === 'small') parts.push('маленький');
+  if (size === 'choice') parts.push('маленький или средний');
   return parts;
 }
 
-function raceTraitItems(rule, subRule) {
+function raceTraitItems(rule, subRule, raceId) {
   const pick = key => (subRule && subRule[key]) || rule[key];
   const items = [];
   const movement = [`${pick('speed') || 30} фт`];
@@ -284,7 +295,7 @@ function raceTraitItems(rule, subRule) {
   if (pick('climb')) movement.push(`лазание ${pick('climb')} фт`);
   items.push(['Скорость', movement.join(', ')]);
   if (pick('darkvision')) items.push(['Тёмное зрение', `${pick('darkvision')} фт`]);
-  items.push(['Размер', rule.size === 'small' ? 'Маленький' : 'Средний']);
+  items.push(['Размер', { small: 'Маленький', medium: 'Средний', choice: 'Маленький или средний, на выбор' }[raceSize(raceId, rule)]]);
   const languages = [...(rule.languages || []), ...(subRule && subRule.languages || [])];
   if (languages.length) items.push(['Языки', [...new Set(languages)].map(id => proficiencyLabel('language', id)).join(', ')]);
   const grants = [...(rule.grants || []), ...(subRule && subRule.grants || [])];
@@ -818,7 +829,7 @@ function createRaceCard(entry, guide) {
   raceBonusChips(rule, guide).forEach(chip => chips.appendChild(createElement('span', `bonus-chip bonus-chip--${chip.tone}`, chip.text)));
   if (fit && fit.recommended) chips.appendChild(createElement('span', 'fit-chip', `★ для ${guide.genitive}`));
   body.appendChild(chips);
-  const traits = raceTraitParts(rule);
+  const traits = raceTraitParts(rule, option.value);
   if (traits.length) body.appendChild(createElement('span', 'race-card__traits', traits.join(' · ')));
   button.appendChild(body);
   return button;
@@ -924,7 +935,7 @@ function updateRaceDetails(panel, raceOption) {
   if (profile && (profile.choiceSlots || profile.plans)) bonusRow.appendChild(createElement('span', 'bonus-chip bonus-chip--muted', 'остальное — на шаге характеристик'));
   if (bonusRow.children.length) traits.appendChild(bonusRow);
   const list = createElement('ul', 'trait-list');
-  raceTraitItems(rule, subRule).forEach(([term, text]) => {
+  raceTraitItems(rule, subRule, raceOption.value).forEach(([term, text]) => {
     const item = createElement('li');
     if (term) item.appendChild(createElement('strong', '', `${term}: `));
     item.appendChild(createElement('span', '', text));

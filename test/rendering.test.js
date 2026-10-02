@@ -355,6 +355,51 @@ test('shrinking prepared spell count prunes hidden entries and permits all visib
   assert.ok(dom.document.getElementById('field-creation_prepared'));
 });
 
+test('sole wizard preparation can be removed and stale spell filters reset', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  fillWizard(context, {class:'wizard',race:'dwarf',race_sub:'mountain-dwarf',background:'sage',
+    abilities:{strength:10,dexterity:14,constitution:13,intelligence:8,wisdom:12,charisma:10}});
+  const setup = JSON.parse(vm.runInContext(`
+    pickerState.set('creation_spellbook', {kind:'missing-kind', query:''});
+    currentPageIndex = config.pages.findIndex(p => p.id === 'mechanics'); renderPage();
+    JSON.stringify({count: CreationOptions.getChoices(character, getCreationContext()).find(c => c.id === 'creation_prepared').count,
+      prepared: character.creation_prepared, kind: pickerState.get('creation_spellbook').kind});
+  `, context));
+  assert.equal(setup.count, 1);
+  assert.equal(setup.kind, 'all');
+  dom.root.querySelector(`[data-focus-key="prep:${setup.prepared}"]`).click();
+  assert.equal(vm.runInContext('character.creation_prepared', context), '');
+  dom.root.querySelector(`[data-focus-key="prep:${setup.prepared}"]`).click();
+  assert.equal(vm.runInContext('character.creation_prepared', context), setup.prepared);
+});
+
+test('option and race summaries describe armor, darkvision, size and bonus plans accurately', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const result = JSON.parse(vm.runInContext(`
+    const R = CharacterRules.RACES;
+    const parts = id => raceTraitParts(R[id], id).join(' · ');
+    const before = parts('harengon');
+    character = { level: 1, race: 'harengon', creation_size: 'small' };
+    JSON.stringify({
+      leather: describeOption({value:'leather'}), scale: describeOption({value:'scale-mail'}),
+      genasi: parts('genasi'), elf: parts('elf'), before, after: parts('harengon'),
+      size: raceTraitItems(R.harengon, null, 'harengon').find(item => item[0] === 'Размер')[1],
+      plans: raceBonusChips(R.harengon).map(chip => chip.text).join(' | ')
+    });
+  `, context));
+  assert.match(result.leather, /^КД 11 \+ ЛОВ/);
+  assert.ok(!result.leather.includes('Infinity'));
+  assert.ok(result.scale.includes('макс. 2'));
+  assert.ok(!result.genasi.includes('тёмное зрение'));
+  assert.ok(result.elf.includes('тёмное зрение 60'));
+  assert.ok(result.before.includes('маленький или средний'));
+  assert.ok(result.after.endsWith('маленький'));
+  assert.equal(result.size, 'Маленький');
+  assert.ok(result.plans.includes('+2/+1 или +1/+1/+1'));
+});
+
 test('loads release flow and renders all 13 classes including fighter', async () => {
   const config = readConfig();
   const dom = createDOM();

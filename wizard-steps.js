@@ -97,7 +97,7 @@ function describeOption(option) {
   }
   const armor = CreationOptions.ARMOR[option.value];
   if (armor && armor.base) {
-    const dex = armor.dex === null ? ' + ЛОВ' : armor.dex ? ` + ЛОВ (макс. ${armor.dex})` : '';
+    const dex = armor.dex === null || armor.dex === Infinity ? ' + ЛОВ' : armor.dex ? ` + ЛОВ (макс. ${armor.dex})` : '';
     return [`КД ${armor.base}${dex}`, ARMOR_TYPES[armor.type], armor.strength ? `Сила ${armor.strength}` : '', armor.stealthDisadvantage ? 'помеха Скрытности' : ''].filter(Boolean).join(' · ');
   }
   return '';
@@ -243,8 +243,13 @@ function renderSpellbookGroup(bookChoice, bookState, preparedChoice, preparedSta
     });
     const prepButton = card.querySelector('.spell-card__prep');
     if (prepButton) prepButton.addEventListener('click', () => {
-      const prepState = { ...preparedState, selected: preparedState.selected.filter(value => bookState.selected.includes(value)) };
-      if (!toggleChoiceValue(preparedChoice, prepState, option.value)) return;
+      if (prepared) {
+        const current = character[preparedChoice.id];
+        character[preparedChoice.id] = Array.isArray(current) ? current.filter(value => value !== option.value) : '';
+      } else {
+        const prepState = { ...preparedState, selected: preparedState.selected.filter(value => bookState.selected.includes(value)) };
+        if (!toggleChoiceValue(preparedChoice, prepState, option.value)) return;
+      }
       afterChoiceChange(preparedChoice.id, `prep:${option.value}`);
     });
     return { card, option };
@@ -343,6 +348,7 @@ function renderPickerFilters(choice, cards, spell) {
   let chips = null;
   if (spell) {
     const kinds = Object.entries(SpellInfo.KINDS).map(([id, label]) => ({ id, label, count: cards.filter(({ option }) => SpellInfo.get(option.value)?.kind === id).length })).filter(kind => kind.count);
+    if (kinds.length < 2 || !kinds.some(kind => kind.id === state.kind)) state.kind = 'all';
     if (kinds.length > 1) {
       chips = createElement('div', 'filter-chips');
       chips.setAttribute('role', 'group');
@@ -378,6 +384,8 @@ function renderPickerFilters(choice, cards, spell) {
     label.appendChild(icon);
     label.appendChild(input);
     bar.appendChild(label);
+  } else {
+    state.query = '';
   }
   return { bar, chips };
 }
