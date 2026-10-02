@@ -561,7 +561,8 @@ function renderCharacterSheet(aside, steps) {
   summary.appendChild(hero);
 
   const vitals = createElement('dl', 'sheet-vitals');
-  const speed = stats && (typeof stats.speed === 'number' ? stats.speed : stats.speed && stats.speed.walk);
+  const walkSpeed = result => (typeof result.speed === 'number' ? result.speed : result.speed && result.speed.walk);
+  const speed = stats && !dependsOnMissingAbility(walkSpeed) ? walkSpeed(stats) : null;
   const vitalValues = [
     ['Хиты', classOption && hasAbilityValue('constitution') && stats && Number.isFinite(stats.hp) ? stats.hp : '—'],
     ['КД', race && stats && Number.isFinite(stats.ac) && !dependsOnMissingAbility(result => result.ac) ? stats.ac : '—'],

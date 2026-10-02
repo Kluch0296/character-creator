@@ -409,6 +409,14 @@ test('live sheet shows ability-independent AC and keeps innate spells out of pre
   vm.runInContext(`character = { level: 1, class: 'fighter', race: 'elf', race_sub: 'wood_elf' }; renderPage();`, context);
   assert.equal(vital('КД'), '—');
 
+  fillWizard(context, {class:'fighter',race:'human',background:'soldier',creation_worn_armor:'chain-mail'});
+  vm.runInContext(`character.abilities.strength = 8; renderPage();`, context);
+  assert.equal(vital('Скорость'), '20', 'heavy armor penalty applies with low Strength');
+  vm.runInContext(`delete character.abilities.strength; renderPage();`, context);
+  assert.equal(vital('Скорость'), '—');
+  vm.runInContext(`character.abilities.strength = 15; renderPage();`, context);
+  assert.equal(vital('Скорость'), '30');
+
   fillWizard(context, {class:'wizard',race:'triton',background:'sage',
     abilities:{strength:8,dexterity:14,constitution:13,intelligence:15,wisdom:12,charisma:10}});
   const fog = vm.runInContext(`renderPage(); getCreationExtras().spells.find(spell => spell.id === 'fog-cloud').label`, context);
