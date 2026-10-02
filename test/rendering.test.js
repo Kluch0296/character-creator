@@ -218,7 +218,7 @@ function loadScript(dom, configData) {
     clearTimeout
   };
   vm.createContext(context);
-  for (const name of ['rules.js', 'creation-options.js', 'lss-export.js', 'wizard-steps.js']) {
+  for (const name of ['rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(projectRoot, name), 'utf8'), context, { filename: name });
   }
   const script = fs.readFileSync(path.join(projectRoot, 'script.js'), 'utf8');
@@ -344,9 +344,12 @@ test('shrinking prepared spell count prunes hidden entries and permits all visib
   assert.equal(result.prepared.length,3);
   assert.ok(!result.errors.some(e=>e.id==='creation_prepared'));
   assert.ok(dom.root.textContent.includes('доступно 3 вместо 4'));
-  const select=dom.document.getElementById('field-creation_prepared_2');
-  select.value='cure-wounds'; select.dispatchEvent({type:'change'});
-  assert.equal(vm.runInContext('character.creation_prepared.length',context),3);
+  const card=value=>dom.root.querySelector(`[data-choice-option="creation_prepared:${value}"]`);
+  assert.equal(card('cure-wounds').disabled,true,'full selection locks unselected cards');
+  card('create-or-destroy-water').click();
+  assert.equal(vm.runInContext('character.creation_prepared.length',context),2);
+  card('cure-wounds').click();
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_prepared)',context)),['bane','bless','cure-wounds']);
   vm.runInContext(`character.abilities.wisdom=8; renderPage();`,context);
   assert.equal(vm.runInContext('typeof character.creation_prepared',context),'string');
   assert.ok(dom.document.getElementById('field-creation_prepared'));
