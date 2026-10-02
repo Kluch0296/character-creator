@@ -478,6 +478,25 @@ function sheetTags(container, items, emptyText) {
   container.appendChild(tags);
 }
 
+function dependsOnMissingAbility(read) {
+  const missing = ABILITY_LABELS.map(ability => ability.id).filter(id => !hasAbilityValue(id));
+  if (!missing.length) return false;
+  const original = character;
+  const probe = value => {
+    character = { ...original, abilities: { ...(original.abilities || {}), ...Object.fromEntries(missing.map(id => [id, value])) } };
+    try {
+      return read(CharacterRules.derivedStats(character, getCreationExtras()));
+    } finally {
+      character = original;
+    }
+  };
+  try {
+    return probe(3) !== probe(20);
+  } catch (error) {
+    return true;
+  }
+}
+
 function renderCharacterSheet(aside, steps) {
   aside.innerHTML = '';
   toggleClass(aside, 'is-expanded', sheetExpanded);
@@ -545,7 +564,7 @@ function renderCharacterSheet(aside, steps) {
   const speed = stats && (typeof stats.speed === 'number' ? stats.speed : stats.speed && stats.speed.walk);
   const vitalValues = [
     ['Хиты', classOption && hasAbilityValue('constitution') && stats && Number.isFinite(stats.hp) ? stats.hp : '—'],
-    ['КД', hasAbilityValue('dexterity') && stats && Number.isFinite(stats.ac) ? stats.ac : '—'],
+    ['КД', race && stats && Number.isFinite(stats.ac) && !dependsOnMissingAbility(result => result.ac) ? stats.ac : '—'],
     ['Скорость', race && speed ? speed : '—'],
     ['Иниц.', hasAbilityValue('dexterity') && stats && Number.isFinite(stats.initiative) ? signedValue(stats.initiative) : '—']
   ];
@@ -596,13 +615,17 @@ function renderCharacterSheet(aside, steps) {
 
   const spells = extras && extras.spells || [];
   const cantrips = spells.filter(spell => !spell.level);
-  const leveled = spells.filter(spell => spell.level && spell.status !== 'spellbook');
+  const classSpells = spells.filter(spell => spell.level && ['prepared', 'known'].includes(spell.status));
   const bookOnly = spells.filter(spell => spell.status === 'spellbook');
+  const innate = spells.filter(spell => spell.level && ['racial', 'feat', 'ritual'].includes(spell.status));
   if (cantrips.length) sheetTags(sheetSection(details, 'Заговоры'), cantrips.map(spell => ({ text: spell.label || spell.id })));
-  if (leveled.length || bookOnly.length) {
+  if (classSpells.length || bookOnly.length) {
     const section = sheetSection(details, casting && casting.mode === 'book' ? 'Подготовлено' : 'Заклинания');
-    sheetTags(section, leveled.map(spell => ({ text: spell.label || spell.id, star: spell.status === 'prepared' })), 'Пока ничего не подготовлено');
+    sheetTags(section, classSpells.map(spell => ({ text: spell.label || spell.id, star: spell.status === 'prepared' })), 'Пока ничего не подготовлено');
     if (bookOnly.length) section.appendChild(createElement('p', 'sheet-note', `Ещё в книге: ${bookOnly.map(spell => spell.label || spell.id).join(', ')}`));
+  }
+  if (innate.length) {
+    sheetTags(sheetSection(details, 'Особые заклинания'), innate.map(spell => ({ text: spell.source ? `${spell.label || spell.id} · ${spell.source}` : spell.label || spell.id })));
   }
 
   const equipment = extras && extras.equipment || [];
@@ -689,7 +712,7 @@ function renderRaceSelection(container, element) {
     const sortLabel = createElement('label', 'race-sort');
     sortLabel.appendChild(createElement('span', '', 'Порядок'));
     const sort = createElement('select');
-    [['fit', 'Сначала подходящие'], ['default', 'По алфавиту']].forEach(([value, label]) => {
+    [['fit', 'Сначала подходящие'], ['alpha', 'По алфавиту']].forEach(([value, label]) => {
       const option = createElement('option', '', label);
       option.value = value;
       sort.appendChild(option);
@@ -738,9 +761,10 @@ function renderRaceSelection(container, element) {
 
   function buildGrid() {
     grid.innerHTML = '';
-    const sorted = guide && raceViewState.sort === 'fit'
-      ? [...entries].sort((a, b) => Number(!!(b.fit && b.fit.recommended)) - Number(!!(a.fit && a.fit.recommended)))
-      : entries;
+    const sorted = !guide ? entries
+      : raceViewState.sort === 'fit'
+        ? [...entries].sort((a, b) => Number(!!(b.fit && b.fit.recommended)) - Number(!!(a.fit && a.fit.recommended)))
+        : [...entries].sort((a, b) => plainLabel(a.option.label).localeCompare(plainLabel(b.option.label), 'ru'));
     cards = sorted.map(entry => {
       const button = createRaceCard(entry, guide);
       button.addEventListener('click', () => {

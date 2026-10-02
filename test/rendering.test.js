@@ -400,6 +400,34 @@ test('option and race summaries describe armor, darkvision, size and bonus plans
   assert.ok(result.plans.includes('+2/+1 или +1/+1/+1'));
 });
 
+test('live sheet shows ability-independent AC and keeps innate spells out of preparation', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const vital = label => dom.root.querySelectorAll('.sheet-vital').find(item => item.children[1].textContent === label).children[0].textContent;
+  vm.runInContext(`character = { level: 1, class: 'fighter', race: 'tortle' }; currentPageIndex = 1; renderPage();`, context);
+  assert.equal(vital('КД'), '17');
+  vm.runInContext(`character = { level: 1, class: 'fighter', race: 'elf', race_sub: 'wood_elf' }; renderPage();`, context);
+  assert.equal(vital('КД'), '—');
+
+  fillWizard(context, {class:'wizard',race:'triton',background:'sage',
+    abilities:{strength:8,dexterity:14,constitution:13,intelligence:15,wisdom:12,charisma:10}});
+  const fog = vm.runInContext(`renderPage(); getCreationExtras().spells.find(spell => spell.id === 'fog-cloud').label`, context);
+  const section = title => dom.root.querySelectorAll('.sheet-section').find(node => node.children[0].textContent === title);
+  assert.ok(!section('Подготовлено').textContent.includes(fog));
+  assert.ok(section('Особые заклинания').textContent.includes(fog));
+});
+
+test('alphabetical race order sorts by displayed name', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const names = JSON.parse(vm.runInContext(`
+    raceViewState.sort = 'alpha'; character = { level: 1, class: 'wizard' }; currentPageIndex = 1; renderPage();
+    JSON.stringify(Array.from(document.querySelectorAll('.race-card__name')).map(node => node.textContent.replace(/\\u00ad/g, '')));
+  `, context));
+  assert.ok(names.length > 10);
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, 'ru')));
+});
+
 test('loads release flow and renders all 13 classes including fighter', async () => {
   const config = readConfig();
   const dom = createDOM();
