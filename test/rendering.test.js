@@ -218,7 +218,7 @@ function loadScript(dom, configData) {
     clearTimeout
   };
   vm.createContext(context);
-  for (const name of ['rules.js', 'creation-options.js', 'lss-export.js', 'wizard-steps.js']) {
+  for (const name of ['rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(projectRoot, name), 'utf8'), context, { filename: name });
   }
   const script = fs.readFileSync(path.join(projectRoot, 'script.js'), 'utf8');
@@ -344,12 +344,96 @@ test('shrinking prepared spell count prunes hidden entries and permits all visib
   assert.equal(result.prepared.length,3);
   assert.ok(!result.errors.some(e=>e.id==='creation_prepared'));
   assert.ok(dom.root.textContent.includes('доступно 3 вместо 4'));
-  const select=dom.document.getElementById('field-creation_prepared_2');
-  select.value='cure-wounds'; select.dispatchEvent({type:'change'});
-  assert.equal(vm.runInContext('character.creation_prepared.length',context),3);
+  const card=value=>dom.root.querySelector(`[data-choice-option="creation_prepared:${value}"]`);
+  assert.equal(card('cure-wounds').disabled,true,'full selection locks unselected cards');
+  card('create-or-destroy-water').click();
+  assert.equal(vm.runInContext('character.creation_prepared.length',context),2);
+  card('cure-wounds').click();
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_prepared)',context)),['bane','bless','cure-wounds']);
   vm.runInContext(`character.abilities.wisdom=8; renderPage();`,context);
   assert.equal(vm.runInContext('typeof character.creation_prepared',context),'string');
   assert.ok(dom.document.getElementById('field-creation_prepared'));
+});
+
+test('sole wizard preparation can be removed and stale spell filters reset', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  fillWizard(context, {class:'wizard',race:'dwarf',race_sub:'mountain-dwarf',background:'sage',
+    abilities:{strength:10,dexterity:14,constitution:13,intelligence:8,wisdom:12,charisma:10}});
+  const setup = JSON.parse(vm.runInContext(`
+    pickerState.set('creation_spellbook', {kind:'missing-kind', query:''});
+    currentPageIndex = config.pages.findIndex(p => p.id === 'mechanics'); renderPage();
+    JSON.stringify({count: CreationOptions.getChoices(character, getCreationContext()).find(c => c.id === 'creation_prepared').count,
+      prepared: character.creation_prepared, kind: pickerState.get('creation_spellbook').kind});
+  `, context));
+  assert.equal(setup.count, 1);
+  assert.equal(setup.kind, 'all');
+  dom.root.querySelector(`[data-focus-key="prep:${setup.prepared}"]`).click();
+  assert.equal(vm.runInContext('character.creation_prepared', context), '');
+  dom.root.querySelector(`[data-focus-key="prep:${setup.prepared}"]`).click();
+  assert.equal(vm.runInContext('character.creation_prepared', context), setup.prepared);
+});
+
+test('option and race summaries describe armor, darkvision, size and bonus plans accurately', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const result = JSON.parse(vm.runInContext(`
+    const R = CharacterRules.RACES;
+    const parts = id => raceTraitParts(R[id], id).join(' · ');
+    const before = parts('harengon');
+    character = { level: 1, race: 'harengon', creation_size: 'small' };
+    JSON.stringify({
+      leather: describeOption({value:'leather'}), scale: describeOption({value:'scale-mail'}),
+      genasi: parts('genasi'), elf: parts('elf'), before, after: parts('harengon'),
+      size: raceTraitItems(R.harengon, null, 'harengon').find(item => item[0] === 'Размер')[1],
+      plans: raceBonusChips(R.harengon).map(chip => chip.text).join(' | ')
+    });
+  `, context));
+  assert.match(result.leather, /^КД 11 \+ ЛОВ/);
+  assert.ok(!result.leather.includes('Infinity'));
+  assert.ok(result.scale.includes('макс. 2'));
+  assert.ok(!result.genasi.includes('тёмное зрение'));
+  assert.ok(result.elf.includes('тёмное зрение 60'));
+  assert.ok(result.before.includes('маленький или средний'));
+  assert.ok(result.after.endsWith('маленький'));
+  assert.equal(result.size, 'Маленький');
+  assert.ok(result.plans.includes('+2/+1 или +1/+1/+1'));
+});
+
+test('live sheet shows ability-independent AC and keeps innate spells out of preparation', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const vital = label => dom.root.querySelectorAll('.sheet-vital').find(item => item.children[1].textContent === label).children[0].textContent;
+  vm.runInContext(`character = { level: 1, class: 'fighter', race: 'tortle' }; currentPageIndex = 1; renderPage();`, context);
+  assert.equal(vital('КД'), '17');
+  vm.runInContext(`character = { level: 1, class: 'fighter', race: 'elf', race_sub: 'wood_elf' }; renderPage();`, context);
+  assert.equal(vital('КД'), '—');
+
+  fillWizard(context, {class:'fighter',race:'human',background:'soldier',creation_worn_armor:'chain-mail'});
+  vm.runInContext(`character.abilities.strength = 8; renderPage();`, context);
+  assert.equal(vital('Скорость'), '20', 'heavy armor penalty applies with low Strength');
+  vm.runInContext(`delete character.abilities.strength; renderPage();`, context);
+  assert.equal(vital('Скорость'), '—');
+  vm.runInContext(`character.abilities.strength = 15; renderPage();`, context);
+  assert.equal(vital('Скорость'), '30');
+
+  fillWizard(context, {class:'wizard',race:'triton',background:'sage',
+    abilities:{strength:8,dexterity:14,constitution:13,intelligence:15,wisdom:12,charisma:10}});
+  const fog = vm.runInContext(`renderPage(); getCreationExtras().spells.find(spell => spell.id === 'fog-cloud').label`, context);
+  const section = title => dom.root.querySelectorAll('.sheet-section').find(node => node.children[0].textContent === title);
+  assert.ok(!section('Подготовлено').textContent.includes(fog));
+  assert.ok(section('Особые заклинания').textContent.includes(fog));
+});
+
+test('alphabetical race order sorts by displayed name', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const names = JSON.parse(vm.runInContext(`
+    raceViewState.sort = 'alpha'; character = { level: 1, class: 'wizard' }; currentPageIndex = 1; renderPage();
+    JSON.stringify(Array.from(document.querySelectorAll('.race-card__name')).map(node => node.textContent.replace(/\\u00ad/g, '')));
+  `, context));
+  assert.ok(names.length > 10);
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, 'ru')));
 });
 
 test('loads release flow and renders all 13 classes including fighter', async () => {

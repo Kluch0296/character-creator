@@ -76,7 +76,7 @@ function renderLoading() {
 async function loadConfig() {
   renderLoading();
   try {
-    if (typeof CharacterRules === 'undefined' || typeof CreationOptions === 'undefined' || typeof LssExport === 'undefined' || typeof renderMechanics !== 'function') throw new Error('Не удалось загрузить модули правил. Обновите страницу или проверьте доступность файлов приложения.');
+    if (typeof CharacterRules === 'undefined' || typeof CreationOptions === 'undefined' || typeof LssExport === 'undefined' || typeof SpellInfo === 'undefined' || typeof renderMechanics !== 'function' || typeof renderCharacterSheet !== 'function') throw new Error('Не удалось загрузить модули правил. Обновите страницу или проверьте доступность файлов приложения.');
     const response = await fetch('config.json', { cache: 'no-store' });
     if (response && response.ok === false) {
       throw new Error(`Конфигурация недоступна (HTTP ${response.status || 'ошибка'})`);
@@ -222,17 +222,21 @@ function restoreDraft() {
 }
 
 function saveDraft(pageId) {
+  if (!config) return;
   try {
-    if (typeof window === 'undefined' || !window.localStorage || !config) return;
+    if (typeof window === 'undefined' || !window.localStorage) throw new Error('localStorage unavailable');
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
       version: 3,
       edition: config.meta.edition,
       pageId: pageId || (config.pages[currentPageIndex] ? config.pages[currentPageIndex].id : 'result'),
       character
     }));
+    markDraftSaved(true);
   } catch (error) {
     // Браузер может запрещать localStorage. Мастер остаётся работоспособным без автосохранения.
+    markDraftSaved(false);
   }
+  scheduleLiveRefresh();
 }
 
 function clearDraft() {
@@ -251,6 +255,8 @@ function renderPage() {
     return;
   }
 
+  cancelLiveRefresh();
+  liveRefs = null;
   renderedFieldNodes = new Map();
   activeAdditionalFieldIds = [];
   app.innerHTML = '';
@@ -258,8 +264,10 @@ function renderPage() {
 
   const shell = createElement('div', 'app-shell');
   renderHeader(shell);
+  const stepper = createStepperNode();
+  shell.appendChild(stepper);
+  const layout = createElement('div', 'wizard-layout');
   const main = createElement('main', 'wizard-main');
-  renderProgress(main, false);
 
   const page = config.pages[currentPageIndex];
   const card = createElement('section', `page-card page-card--${page.id}`);
@@ -284,14 +292,23 @@ function renderPage() {
   const elements = page.elements || [page];
   elements.forEach(element => renderElement(content, element));
   card.appendChild(content);
-  renderNavigation(card);
+  const status = renderNavigation(card);
   main.appendChild(card);
   renderScopeNote(main);
-  shell.appendChild(main);
+  layout.appendChild(main);
+  const sheet = createElement('aside', 'character-sheet');
+  sheet.setAttribute('aria-label', 'Лист персонажа');
+  layout.appendChild(sheet);
+  shell.appendChild(layout);
   app.appendChild(shell);
 
   syncActiveAdditionalFieldIds();
+  const steps = getStepStates(false);
+  fillStepper(stepper, steps, false);
+  renderCharacterSheet(sheet, steps);
+  updateActionStatus(status, steps[currentPageIndex].errors);
   saveDraft(page.id);
+  liveRefs = { stepper, sheet, status };
   focusPageTitle(title);
 }
 
@@ -307,52 +324,32 @@ function renderHeader(container) {
   brand.appendChild(brandCopy);
   header.appendChild(brand);
 
-  const reference = createDndLink(config.meta.reference, 'Справочник dnd.su');
+  const tools = createElement('div', 'header-tools');
+  saveIndicatorNode = createElement('span', 'save-indicator', 'Черновик сохранён');
+  tools.appendChild(saveIndicatorNode);
+  const reset = createElement('button', 'header-button', 'Начать заново');
+  reset.type = 'button';
+  reset.addEventListener('click', confirmRestart);
+  tools.appendChild(reset);
+  const reference = createDndLink(config.meta.reference, 'Справочник dnd.su ↗');
   if (reference) {
     reference.classList.add('header-link');
-    header.appendChild(reference);
+    tools.appendChild(reference);
   }
+  header.appendChild(tools);
   container.appendChild(header);
 }
 
-function renderProgress(container, complete) {
-  const nav = createElement('nav', 'stepper');
-  nav.setAttribute('aria-label', 'Этапы создания персонажа');
-  const list = createElement('ol', 'stepper-list');
-  config.pages.forEach((page, index) => {
-    const item = createElement('li', 'stepper-item');
-    const isComplete = complete || index < currentPageIndex;
-    const isCurrent = !complete && index === currentPageIndex;
-    toggleClass(item, 'is-complete', isComplete);
-    toggleClass(item, 'is-current', isCurrent);
-    if (isCurrent) item.setAttribute('aria-current', 'step');
-    const number = createElement('span', 'stepper-number', isComplete ? '✓' : String(index + 1));
-    number.setAttribute('aria-hidden', 'true');
-    const stepButton = createElement('button', 'stepper-button');
-    stepButton.appendChild(number);
-    stepButton.appendChild(createElement('span', 'stepper-label', STEP_LABELS[page.id] || page.title));
-    stepButton.type = 'button';
-    stepButton.disabled = !complete && index >= currentPageIndex;
-    stepButton.setAttribute('aria-label', `Перейти: ${STEP_LABELS[page.id] || page.title}`);
-    stepButton.addEventListener('click', () => { currentPageIndex = index; renderPage(); scrollToPageTop(); });
-    item.appendChild(stepButton);
-    list.appendChild(item);
-  });
-  nav.appendChild(list);
+function confirmRestart() {
+  const confirmed = typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm('Начать заново? Текущий черновик будет удалён.');
+  if (confirmed) restartWizard();
+}
 
-  const progress = createElement('div', 'progress-track');
-  setAttributes(progress, {
-    role: 'progressbar',
-    'aria-label': 'Прогресс создания персонажа',
-    'aria-valuemin': 0,
-    'aria-valuemax': 100,
-    'aria-valuenow': complete ? 100 : Math.round(((currentPageIndex + 1) / config.pages.length) * 100)
-  });
-  const bar = createElement('div', 'progress-value');
-  bar.style.width = `${complete ? 100 : ((currentPageIndex + 1) / config.pages.length) * 100}%`;
-  progress.appendChild(bar);
-  nav.appendChild(progress);
+function renderProgress(container, complete) {
+  const nav = createStepperNode();
+  fillStepper(nav, getStepStates(complete), complete);
   container.appendChild(nav);
+  return nav;
 }
 
 function renderScopeNote(container) {
@@ -383,26 +380,36 @@ function renderElement(container, element) {
 
 function renderNavigation(container) {
   const actions = createElement('div', 'wizard-actions');
-  const left = createElement('div', 'wizard-actions__group');
   if (currentPageIndex > 0) {
-    const back = createElement('button', 'secondary-button', '← Назад');
+    const previous = config.pages[currentPageIndex - 1];
+    const previousLabel = STEP_LABELS[previous.id] || previous.title;
+    const back = createElement('button', 'secondary-button wizard-back');
     back.type = 'button';
+    back.setAttribute('aria-label', `Назад: ${previousLabel}`);
+    back.appendChild(document.createTextNode('← '));
+    back.appendChild(createElement('span', 'nav-step-name', previousLabel));
     back.addEventListener('click', () => {
       currentPageIndex -= 1;
       renderPage();
       scrollToPageTop();
     });
-    left.appendChild(back);
+    actions.appendChild(back);
   }
 
-  const reset = createElement('button', 'text-button', 'Сбросить черновик');
-  reset.type = 'button';
-  reset.addEventListener('click', restartWizard);
-  left.appendChild(reset);
-  actions.appendChild(left);
+  const status = createElement('p', 'wizard-status');
+  status.setAttribute('aria-live', 'polite');
+  actions.appendChild(status);
 
-  const nextLabel = currentPageIndex === config.pages.length - 1 ? 'Создать карточку →' : 'Продолжить →';
-  const next = createElement('button', 'primary-button', nextLabel);
+  const isLast = currentPageIndex === config.pages.length - 1;
+  const next = createElement('button', 'primary-button wizard-next');
+  if (isLast) {
+    next.textContent = 'Создать карточку →';
+  } else {
+    const upcoming = config.pages[currentPageIndex + 1];
+    next.appendChild(document.createTextNode('Далее'));
+    next.appendChild(createElement('span', 'nav-step-name', `: ${STEP_LABELS[upcoming.id] || upcoming.title}`));
+    next.appendChild(document.createTextNode(' →'));
+  }
   next.type = 'button';
   next.addEventListener('click', () => {
     const errors = validateCurrentPage();
@@ -426,6 +433,7 @@ function renderNavigation(container) {
   });
   actions.appendChild(next);
   container.appendChild(actions);
+  return status;
 }
 
 function renderButtons(container, element) {
@@ -491,6 +499,14 @@ function createChoiceButton(option, groupId) {
   if (option.source) top.appendChild(createElement('span', 'source-badge', option.source));
   body.appendChild(top);
   if (option.description) body.appendChild(createElement('span', 'choice-card__description', option.description));
+  const classRule = groupId === 'class' ? CharacterRules.CLASSES[option.value] : null;
+  const guide = groupId === 'class' ? getClassGuide(option.value) : null;
+  if (classRule || guide) {
+    const meta = createElement('span', 'choice-card__meta');
+    if (classRule) meta.appendChild(createElement('span', 'meta-chip', `Кость хитов к${classRule.hitDie}`));
+    if (guide) meta.appendChild(createElement('span', 'meta-chip meta-chip--key', guide.primary.map(id => abilityInfo(id).label).join(' или ')));
+    body.appendChild(meta);
+  }
   button.appendChild(body);
   button.setAttribute('data-value', String(option.value));
   button.setAttribute('data-group', groupId);
@@ -508,149 +524,6 @@ function renderSelectionDetail(container, option) {
   const link = createDndLink(option.link, 'Подробнее на dnd.su');
   if (link) row.appendChild(link);
   container.appendChild(row);
-}
-
-function renderRaceSelection(container, element) {
-  const wrapper = createElement('div', 'race-selector');
-  registerFieldNode('race', wrapper);
-
-  const toolbar = createElement('div', 'race-toolbar');
-  const searchLabel = createElement('label', 'search-field');
-  const searchIcon = createElement('span', 'search-field__icon', '⌕');
-  searchIcon.setAttribute('aria-hidden', 'true');
-  const search = createElement('input');
-  search.type = 'search';
-  search.placeholder = 'Найти расу';
-  search.setAttribute('aria-label', 'Поиск по расам');
-  searchLabel.appendChild(searchIcon);
-  searchLabel.appendChild(search);
-  const counter = createElement('span', 'race-counter', `${element.options.length} вариантов`);
-  toolbar.appendChild(searchLabel);
-  toolbar.appendChild(counter);
-  wrapper.appendChild(toolbar);
-
-  const layout = createElement('div', 'race-layout');
-  const listPane = createElement('div', 'race-list-pane');
-  const grid = createElement('div', 'race-grid');
-  grid.setAttribute('role', 'group');
-  grid.setAttribute('aria-label', 'Расы');
-  const details = createElement('aside', 'race-details');
-  details.setAttribute('aria-live', 'polite');
-  const buttons = [];
-
-  const updateButtons = selectedValue => {
-    buttons.forEach(({ button, option }) => {
-      const selected = option.value === selectedValue;
-      toggleClass(button, 'is-selected', selected);
-      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-    });
-  };
-
-  element.options.forEach(option => {
-    const button = createChoiceButton(option, 'race');
-    button.classList.add('race-card');
-    buttons.push({ button, option });
-    button.addEventListener('click', () => {
-      if (character.race !== option.value) {
-        clearAllRaceSpecificData();
-        character.race = option.value;
-        delete character.race_sub;
-      }
-      updateButtons(option.value);
-      updateRaceDetails(details, option);
-      clearValidationFor('race');
-      saveDraft();
-    });
-    grid.appendChild(button);
-  });
-
-  search.addEventListener('input', () => {
-    const query = search.value.trim().toLocaleLowerCase('ru');
-    let visible = 0;
-    buttons.forEach(({ button, option }) => {
-      const haystack = `${option.label} ${option.description || ''}`.toLocaleLowerCase('ru');
-      const match = !query || haystack.includes(query);
-      button.hidden = !match;
-      if (match) visible += 1;
-    });
-    counter.textContent = visible ? `${visible} из ${element.options.length}` : 'Ничего не найдено';
-  });
-
-  listPane.appendChild(grid);
-  layout.appendChild(listPane);
-  layout.appendChild(details);
-  wrapper.appendChild(layout);
-  container.appendChild(wrapper);
-
-  const selected = element.options.find(option => option.value === character.race);
-  updateButtons(selected ? selected.value : null);
-  if (selected) updateRaceDetails(details, selected);
-  else renderEmptyRaceDetails(details);
-}
-
-function renderEmptyRaceDetails(panel) {
-  panel.innerHTML = '';
-  panel.appendChild(createElement('span', 'details-mark', '✦'));
-  panel.appendChild(createElement('h3', '', 'Выберите расу'));
-  panel.appendChild(createElement('p', '', 'Здесь появятся краткое описание, подраса и обязательные дополнительные выборы.'));
-}
-
-function updateRaceDetails(panel, raceOption) {
-  panel.innerHTML = '';
-  panel.appendChild(createElement('p', 'details-kicker', 'Выбрано'));
-  panel.appendChild(createElement('h3', '', raceOption.label));
-  if (raceOption.description) panel.appendChild(createElement('p', 'race-description', raceOption.description));
-
-  const meta = createElement('div', 'details-meta');
-  meta.appendChild(createElement('span', 'edition-badge', 'Legacy 5e14'));
-  const link = createDndLink(raceOption.link, 'Открыть справку ↗');
-  if (link) meta.appendChild(link);
-  panel.appendChild(meta);
-
-  if (raceOption.additionalFields) updateAdditionalFields(panel, raceOption);
-
-  if (raceOption.suboptions && raceOption.suboptions.length) {
-    const validSubrace = raceOption.suboptions.some(option => option.value === character.race_sub);
-    if (character.race_sub && !validSubrace) {
-      clearSubraceAdditionalFields(raceOption);
-      delete character.race_sub;
-    }
-
-    const section = createElement('section', 'subrace-section');
-    registerFieldNode('race_sub', section);
-    section.appendChild(createElement('h4', '', 'Выберите подрасу'));
-    const options = createElement('div', 'subrace-options');
-    raceOption.suboptions.forEach(subrace => {
-      const button = createElement('button', 'subrace-button', subrace.label);
-      button.type = 'button';
-      const selected = character.race_sub === subrace.value;
-      toggleClass(button, 'is-selected', selected);
-      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      button.addEventListener('click', () => {
-        if (character.race_sub !== subrace.value) {
-          clearSubraceAdditionalFields(raceOption);
-          character.race_sub = subrace.value;
-        }
-        clearValidationFor('race_sub');
-        updateRaceDetails(panel, raceOption);
-        saveDraft();
-      });
-      options.appendChild(button);
-    });
-    section.appendChild(options);
-
-    const selectedSubrace = raceOption.suboptions.find(option => option.value === character.race_sub);
-    if (selectedSubrace) {
-      const info = createElement('div', 'subrace-info');
-      if (selectedSubrace.description) info.appendChild(createElement('p', '', selectedSubrace.description));
-      const subLink = createDndLink(selectedSubrace.link, 'Подробнее ↗');
-      if (subLink) info.appendChild(subLink);
-      section.appendChild(info);
-      if (selectedSubrace.additionalFields) updateAdditionalFields(section, selectedSubrace);
-    }
-    panel.appendChild(section);
-  }
-  syncActiveAdditionalFieldIds();
 }
 
 function updateAdditionalFields(panel, option) {
@@ -1024,110 +897,6 @@ function renderAbilityBonusControls(container, onChange) {
   container.appendChild(panel);
 }
 
-function renderAbilities(container, page) {
-  if (!character.abilities || typeof character.abilities !== 'object') character.abilities = {};
-  const method = character.abilityMethod || 'standard';
-  const values = method === 'point_buy' ? [8,9,10,11,12,13,14,15] : method === 'manual' ? Array.from({ length: 16 }, (_, i) => i + 3) : [15,14,13,12,10,8];
-  const wrapper = createElement('div', 'abilities-panel');
-  registerFieldNode('abilities', wrapper);
-  const methodLabel = createElement('label', 'method-label', 'Способ определения характеристик');
-  methodLabel.htmlFor = 'ability-method';
-  wrapper.appendChild(methodLabel);
-  const methodSelect = createElement('select', 'ability-method');
-  methodSelect.id = 'ability-method';
-  [{ value: 'standard', label: 'Стандартный набор' }, { value: 'point_buy', label: 'Покупка за 27 очков' }, { value: 'manual', label: 'Броски 4к6, три лучших — ввод результатов' }].forEach(item => {
-    const option = createElement('option', '', item.label); option.value = item.value; methodSelect.appendChild(option);
-  });
-  methodSelect.value = method;
-  methodSelect.addEventListener('change', () => {
-    character.abilityMethod = methodSelect.value;
-    character.abilities = methodSelect.value === 'point_buy' ? Object.fromEntries(ABILITY_LABELS.map(a => [a.id, 8])) : {};
-    saveDraft(); renderPage();
-  });
-  wrapper.appendChild(methodSelect);
-
-  const hint = createElement('div', 'array-hint');
-  hint.appendChild(createElement('span', 'array-hint__label', method === 'point_buy' ? 'Стоимость 8–15: 0, 1, 2, 3, 4, 5, 7, 9' : method === 'manual' ? 'Внесите шесть результатов бросков, согласованных с Мастером' : 'Стандартный набор'));
-  const chips = createElement('div', 'array-chips');
-  if (method === 'standard') values.forEach(value => chips.appendChild(createElement('span', 'array-chip', String(value))));
-  hint.appendChild(chips);
-  wrapper.appendChild(hint);
-
-  const displayNodes = new Map();
-  const budget = createElement('p', 'choice-help');
-  budget.setAttribute('role', 'status');
-  wrapper.appendChild(budget);
-  let refreshTotals = () => {};
-  renderAbilityBonusControls(wrapper, () => refreshTotals());
-
-  const grid = createElement('div', 'abilities-grid');
-  ABILITY_LABELS.forEach(ability => {
-    const card = createElement('div', 'ability-card');
-    const heading = createElement('div', 'ability-card__heading');
-    heading.appendChild(createElement('span', 'ability-short', ability.short));
-    heading.appendChild(createElement('label', '', ability.label));
-    heading.querySelector('label').htmlFor = `ability-${ability.id}`;
-    card.appendChild(heading);
-
-    const select = createElement('select');
-    select.id = `ability-${ability.id}`;
-    select.setAttribute('aria-label', ability.label);
-    const empty = createElement('option', '', '—');
-    empty.value = '';
-    select.appendChild(empty);
-    values.forEach(value => {
-      const option = createElement('option', '', String(value));
-      option.value = String(value);
-      select.appendChild(option);
-    });
-    if (character.abilities[ability.id] !== undefined) select.value = String(character.abilities[ability.id]);
-    const calculation = createElement('div', 'ability-calculation');
-    const bonus = createElement('span', 'ability-bonus');
-    const total = createElement('strong', 'ability-total');
-    const modifier = createElement('span', 'ability-modifier');
-    calculation.appendChild(bonus);
-    calculation.appendChild(createElement('span', 'ability-equals', '='));
-    calculation.appendChild(total);
-    calculation.appendChild(modifier);
-    displayNodes.set(ability.id, { bonus, total, modifier });
-    select.addEventListener('change', () => {
-      if (select.value === '') delete character.abilities[ability.id];
-      else character.abilities[ability.id] = Number(select.value);
-      refreshTotals();
-      clearValidationFor('abilities');
-      saveDraft();
-    });
-    const controls = createElement('div', 'ability-card__controls');
-    controls.appendChild(select);
-    controls.appendChild(calculation);
-    card.appendChild(controls);
-    grid.appendChild(card);
-  });
-  wrapper.appendChild(grid);
-  refreshTotals = () => {
-    const bonuses = getRacialAbilityBonuses();
-    const extraBonuses = typeof CreationOptions !== 'undefined' ? getCreationExtras().abilityBonuses || {} : {};
-    if (method === 'point_buy') {
-      const costs = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
-      const spent = ABILITY_LABELS.reduce((sum, a) => sum + (costs[character.abilities[a.id]] || 0), 0);
-      budget.textContent = `Потрачено ${spent} из 27 очков. Осталось: ${27 - spent}.`;
-      toggleClass(budget, 'field-error', spent > 27);
-    }
-    ABILITY_LABELS.forEach(ability => {
-      const nodes = displayNodes.get(ability.id);
-      const base = character.abilities[ability.id];
-      const amount = (bonuses[ability.id] || 0) + (extraBonuses[ability.id] || 0);
-      const finalValue = base === undefined ? undefined : Number(base) + amount;
-      nodes.bonus.textContent = amount ? formatAbilityBonus(amount) : '+0';
-      nodes.total.textContent = finalValue === undefined ? '—' : String(finalValue);
-      nodes.modifier.textContent = formatModifier(finalValue);
-    });
-  };
-  refreshTotals();
-  wrapper.appendChild(createElement('p', 'abilities-footnote', `${method === 'standard' ? 'Каждое значение стандартного набора используйте ровно один раз. ' : ''}Итог и модификатор учитывают бонусы расы и выбранной черты.`));
-  container.appendChild(wrapper);
-}
-
 function formatModifier(value) {
   if (value === undefined || value === null || value === '') return '—';
   const modifier = Math.floor((Number(value) - 10) / 2);
@@ -1401,6 +1170,8 @@ function getSelectedOption(elementId, value) {
 }
 
 function showResult(container) {
+  cancelLiveRefresh();
+  liveRefs = null;
   renderedFieldNodes = new Map();
   container.innerHTML = '';
   container.setAttribute('aria-busy', 'false');
@@ -1430,7 +1201,7 @@ function showResult(container) {
   hero.appendChild(portrait);
   const heroCopy = createElement('div', 'result-hero__copy');
   heroCopy.appendChild(createElement('p', 'result-kicker', `${config.meta.edition} · уровень ${character.level || 1}`));
-  heroCopy.appendChild(createElement('h2', '', character.name && character.name.trim() ? character.name.trim() : 'Безымянный герой'));
+  heroCopy.appendChild(createElement('h2', '', character.name && character.name.trim() ? softHyphenate(character.name.trim()) : 'Безымянный герой'));
   const subtitleParts = [classOption && classOption.label, race && race.label, subrace && subrace.label].filter(Boolean);
   heroCopy.appendChild(createElement('p', 'result-subtitle', subtitleParts.join(' · ')));
   if (background) heroCopy.appendChild(createElement('span', 'result-tag', background.label));
