@@ -112,7 +112,9 @@ test('fighter eleven styles retain old IDs, nest Superior Technique and apply ef
  let superior={...copy(base),creation_style:'superior-technique',creation_superior_maneuver:'precision-attack'};assert.deepEqual(O.validate(superior,context(superior)),[]);assert.equal(O.getChoices(superior,context(superior)).find(x=>x.id==='creation_superior_maneuver').count,1);
  superior=advance(advance(superior),'champion');assert.equal(extras(superior).resources.filter(x=>x.id==='superior-technique').length,1);assert.equal(extras(superior).resources.find(x=>x.id==='superior-technique').max,1);assert.equal(extras(superior).features.filter(x=>x.name==='Превосходная техника').length,1);
  const invalid={...superior,creation_superior_maneuver:['precision-attack','trip-attack']};assert.ok(O.validate(invalid,context(invalid)).length);
- let thrown={...copy(base),creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes'};const weapon=extras(thrown).attacks.find(x=>x.properties.includes('thrown'));assert.ok(weapon);assert.equal(weapon.damageBonus,stats(thrown).modifiers[weapon.ability]);assert.equal(weapon.notes.filter(x=>x.includes('+2 к урону')).length,1);thrown=advance(advance(thrown),'champion');assert.equal(extras(thrown).attacks.find(x=>x.id===weapon.id).damageBonus,weapon.damageBonus);
+ let thrown={...copy(base),creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes'};const weapon=extras(thrown).attacks.find(x=>x.properties.includes('thrown')&&!x.thrownVariant);assert.ok(weapon);assert.equal(weapon.damageBonus,stats(thrown).modifiers[weapon.ability]);assert.ok(!weapon.notes.some(x=>x.includes('+2 к урону')));
+ const hurled=extras(thrown).attacks.filter(x=>x.id===weapon.id+'-thrown');assert.equal(hurled.length,1);assert.equal(hurled[0].damageBonus,weapon.damageBonus+2);assert.equal(hurled[0].attackBonus,weapon.attackBonus);
+ thrown=advance(advance(thrown),'champion');assert.equal(extras(thrown).attacks.find(x=>x.id===weapon.id).damageBonus,weapon.damageBonus);assert.equal(extras(thrown).attacks.filter(x=>x.id===weapon.id+'-thrown').length,1);
  const unarmed={...copy(base),creation_style:'unarmed-fighting'};assert.match(extras(unarmed).attacks.find(x=>x.id==='unarmed').damage,/^1d6\+/);
 });
 test('Harengon initiative, racial unlocks, resources and slotless grants retain exact export distinctions',()=>{
@@ -219,7 +221,7 @@ test('first-level class resources exist before level 2, including a newly entere
   for(const [id,max,rest] of resources){const r=e.resources.find(x=>x.id===id);assert.ok(r,cls+':'+id);assert.equal(r.max,max,cls+':'+id);assert.equal(r.rest,rest,cls+':'+id);}
   assert.ok(JSON.parse(E.buildLssExport(c,{},stats(c),e)[0].data).text.traits.value.data.content.some(p=>p.content?.[0]?.text.startsWith(e.resources[0].name+': '+e.resources[0].max)),cls);
  }
- const paladin=create('paladin');paladin.abilities.charisma=6;assert.ok(!extras(paladin).resources.some(x=>x.id==='divine-sense'));
+ const paladin=create('paladin');paladin.abilities.charisma=6;assert.equal(extras(paladin).resources.find(x=>x.id==='divine-sense')?.max,1);
  const multi=enter(create('wizard'),'barbarian'),rage=extras(multi).resources.find(x=>x.id==='barbarian:rage');assert.ok(rage);assert.equal(rage.max,2);
  const three=advance(advance(create('barbarian')),'berserker');assert.equal(extras(three).resources.filter(x=>x.id==='rage').length,1);assert.equal(extras(three).resources.find(x=>x.id==='rage').max,3);
 });
@@ -308,4 +310,51 @@ test('Kensei, Four Elements and Primal Companion follow their published features
  const companion=primal.features.find(f=>f.name==='Первобытный спутник');assert.ok(companion);assert.match(companion.description,/КД 15, хиты 20 \(3к8\)/);
  const phb=extras(advance(ranger,'beast-master',{companion_rules:'phb-beast'}));
  assert.ok(phb.features.some(f=>f.name==='Спутник следопыта'));assert.ok(!phb.features.some(f=>f.name==='Первобытный спутник'));
+});
+
+test('Deft Explorer keeps its own Canny languages selectable after derivation',()=>{
+ const ranger=create('ranger',undefined,{creation_explorer_feature:'deft-explorer',creation_canny_languages:['celestial','infernal']});
+ assert.deepEqual(ranger.creation_canny_languages,['celestial','infernal']);assert.deepEqual(O.validate(ranger,context(ranger)),[]);
+ const g=O.getChoices(ranger,context(ranger)).find(x=>x.id==='creation_canny_languages');
+ assert.ok(['celestial','infernal'].every(id=>g.options.some(o=>o.value===id)));
+ assert.ok(!g.options.some(o=>o.value==='common'));
+});
+
+test('class resources follow published counts and pools',()=>{
+ const paladin=create('paladin',undefined,{abilities:{strength:16,dexterity:10,constitution:14,intelligence:10,wisdom:12,charisma:8}});
+ assert.equal(stats(paladin).modifiers.charisma,-1);assert.equal(extras(paladin).resources.find(r=>r.id==='divine-sense')?.max,1);
+ const soulknife=extras(advance(advance(create('rogue')),'soulknife'));assert.equal(soulknife.resources.find(r=>r.id==='psionic-dice')?.max,4);
+ const wildfire=extras(advance(create('druid'),'wildfire'));assert.ok(wildfire.resources.some(r=>r.id==='wild-shape'));assert.ok(!wildfire.resources.some(r=>r.id==='wildfire-spirit'));
+});
+
+test('Whispers of the Dead stays a rest-time choice outside the ledger',()=>{
+ const two=advance(create('rogue')),p=fill(two,L.begin(two,context(two)),{subclass:'phantom'});
+ assert.ok(!L.getChoices(two,p,context(two)).some(g=>g.id==='phantom_proficiency'));
+ const phantom=L.commit(two,p,context(two));assert.deepEqual(L.inspect(phantom,context(phantom)).errors,[]);
+ assert.deepEqual(stats(phantom).proficiencies.skills.slice().sort(),stats(two).proficiencies.skills.slice().sort());
+ assert.ok(extras(phantom).features.some(f=>f.name==='Шёпот мёртвых'));
+});
+
+test('Hex Warrior adds a Charisma line for eligible weapons',()=>{
+ const hexblade=create('warlock','hexblade',{abilities:{strength:10,dexterity:14,constitution:14,intelligence:10,wisdom:12,charisma:16}}),e=extras(hexblade),m=stats(hexblade).modifiers;
+ const dagger=e.attacks.find(x=>x.id==='dagger'),hex=e.attacks.find(x=>x.id==='dagger-hex');
+ assert.ok(dagger&&hex);assert.equal(hex.ability,'charisma');assert.equal(hex.attackBonus,2+m.charisma);assert.equal(hex.damageBonus,m.charisma);
+ assert.ok(!e.attacks.some(x=>x.hexWarrior&&x.properties.includes('two-handed')));
+ const native=JSON.parse(E.buildLssExport(hexblade,{},stats(hexblade),e)[0].data);assert.ok(native.weaponsList.some(w=>w.ability==='cha'));
+ const strong=create('warlock','hexblade');assert.ok(!extras(strong).attacks.some(x=>x.hexWarrior));
+});
+
+test('manual feature summaries replace catalogue duplicates',()=>{
+ for(const c of [advance(create('bard')),advance(create('paladin')),advance(create('artificer'))]){
+  const names=extras(c).features.map(f=>f.name);assert.equal(names.length,new Set(names).size,c.class+': '+names.filter((n,i)=>names.indexOf(n)!==i).join(', '));
+ }
+ assert.match(extras(advance(create('artificer'))).features.find(f=>f.name==='Инфузии').description,/до 2 предметов/);
+});
+
+test('level-three racial spells use stored gith and yuan-ti IDs',()=>{
+ const level3=race=>advance(advance(create('fighter',undefined,{human_feature:undefined,...race})),'champion');
+ const spells=c=>extras(c).spells.filter(x=>x.status==='racial'&&x.source==='Раса');
+ const zerai=spells(level3({race:'gith',race_sub:'gitzerai'}));assert.ok(zerai.some(x=>x.id==='shield'&&x.ability==='wisdom'));assert.ok(!zerai.some(x=>x.id==='jump'));
+ assert.ok(spells(level3({race:'gith',race_sub:'githyanki'})).some(x=>x.id==='jump'&&x.ability==='intelligence'));
+ assert.ok(spells(level3({race:'yuan-ti-pureblood'})).some(x=>x.id==='suggestion'&&x.ability==='charisma'));
 });

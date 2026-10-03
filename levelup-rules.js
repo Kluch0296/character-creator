@@ -112,7 +112,7 @@
  'fast-hands':['Быстрые руки','Хитрое действие также позволяет Ловкость рук, воровские инструменты и действие Использование предмета.'],
  'second-story-work':['Работа на втором этаже','Лазание не стоит дополнительного движения; прыжок с разбега увеличивается на модификатор Ловкости.'],
  'wails-from-the-grave':['Стенания из могилы','После Скрытой атаки нанесите половину её костей вверх некротическим уроном другой цели в 30 футах; мастерство применений за долгий отдых.'],
- 'whispers-of-the-dead':['Шёпот мёртвых','После отдыха можно сменить дополнительное владение навыком или инструментом.'],
+ 'whispers-of-the-dead':['Шёпот мёртвых','После короткого или долгого отдыха выберите навык или инструмент, которым не владеете: владение действует до следующего такого выбора. В лист не вносится — отметьте текущий выбор на сайте.'],
  'master-of-tactics':['Мастер тактики','Помощь бонусным действием; при помощи атаке союзника цель может находиться в 30 футах, если видит или слышит вас.'],
  'skirmisher':['Налётчик','Реакция в конце хода врага в 5 футах: переместитесь до половины скорости без провоцированных атак.'],
  'survivalist':['Выживальщик','Владение Природой и Выживанием, если отсутствовало, и удвоенный бонус мастерства для этих навыков.'],
@@ -286,6 +286,20 @@
  function group(id,name,ids,count=1,section='class',source='PHB',optional=false){return {id,label:name,count,section,source,optional,options:ids.map(x=>typeof x==='string'?option(x,null,source):x)};}
  function eligible(o,c,s,known=[]){return !o.prerequisite.length||o.prerequisite.some(p=>(!p.level||Number(p.level.level||p.level)<=s.level)&&(!p.pact||s.choices.pact===p.pact.toLowerCase())&&(!p.spell||p.spell.every(x=>[...s.cantrips,...s.known,...known].includes(slug(x))))&&(!p.feature||p.feature.every(x=>[...s.invocations,...s.infusions].includes(slug(x)))));}
  function optionList(type,c,s,known){return uniq(D.options.filter(o=>o.types.includes(type)&&eligible(o,c,s,known)).map(o=>o.id)).map(id=>{const o=D.options.find(o=>o.id===id);return option(id,OPTION_NAMES[id]||o.name,o.source);});}
+ function withDamage(attack,bonus){return {...attack,damageBonus:bonus,damage:attack.damage.replace(/[+-]\d+$/,'')+(bonus>=0?'+':'')+bonus};}
+ // Melee thrown weapons get the style bonus only when thrown, so it is a separate attack line.
+ function thrownStyle(attacks,a){
+  for(const attack of [...attacks]){const props=attack.properties||[];if(!props.includes('thrown')||attack.thrownVariant)continue;
+   if(props.includes('ranged')){Object.assign(attack,withDamage(attack,attack.damageBonus+2));attack.notes=[...(attack.notes||[]),'Бой метательным оружием: +2 к урону.'];}
+   else if(!attacks.some(x=>x.id===attack.id+'-thrown'))attacks.push({...withDamage(attack,mod(a[attack.ability])+2),id:attack.id+'-thrown',label:(attack.label||attack.name||attack.id)+' (метание)',thrownVariant:true,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(attack.notes||[]).filter(x=>x.startsWith('Нет владения'))]});
+  }
+ }
+ function hexWarrior(attacks,a){
+  for(const attack of [...attacks]){const props=attack.properties||[],shift=mod(a.charisma)-mod(a[attack.ability]);
+   if(!['simple','martial'].includes(attack.group)||props.includes('two-handed')||attack.hexWarrior||shift<=0||attacks.some(x=>x.id===attack.id+'-hex'))continue;
+   attacks.push({...withDamage(attack,attack.damageBonus+shift),id:attack.id+'-hex',label:(attack.label||attack.name||attack.id)+' (Ведьмовской воин)',ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+(attack.proficient?0:2),hexWarrior:true,notes:['Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.',...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+  }
+ }
  function featureSkills(ids,context){const missing=ids.filter(id=>!context.proficiencies?.skills.includes(id));return missing.length?missing:ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
  function createChoices(c,context={}){
@@ -301,7 +315,7 @@
   if(c.class==='ranger'){
    add('favored_feature','Избранный враг или его замена TCE',['favored-enemy','favored-foe']);result[result.length-1].optional=true;
    add('explorer_feature','Исследователь природы или его замена TCE',['natural-explorer','deft-explorer']);result[result.length-1].optional=true;
-   if(c.creation_explorer_feature==='deft-explorer'){add('canny_skill','Искусность: компетентность в известном навыке',(context.proficiencies||R.resolveProficiencies(c)).skills,1,'proficiencies','TCE');add('canny_languages','Искусность: два языка',R.CHOICE_LANGUAGES.filter(id=>!(context.proficiencies||R.resolveProficiencies(c)).languages.includes(id)),2,'proficiencies','TCE');}
+   if(c.creation_explorer_feature==='deft-explorer'){add('canny_skill','Искусность: компетентность в известном навыке',(context.proficiencies||R.resolveProficiencies(c)).skills,1,'proficiencies','TCE');add('canny_languages','Искусность: два языка',R.CHOICE_LANGUAGES.filter(id=>arr(c.creation_canny_languages).includes(id)||!(context.proficiencies||R.resolveProficiencies(c)).languages.includes(id)),2,'proficiencies','TCE');}
   }
   return result;
  }
@@ -383,7 +397,6 @@
     case 'ranger:fey-wanderer':add('fey_skill','Очарование фей: навык',featureSkills(['deception','performance','persuasion'],context),1,'proficiencies');break;
     case 'ranger:swarmkeeper':add('swarm','Облик роя (не меняет механику)',['insects','birds','pixies','twigs']);break;
     case 'rogue:mastermind':add('gaming_set','Игровой набор',R.GAMING_SETS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');add('languages','Два языка',R.CHOICE_LANGUAGES.filter(id=>!context.proficiencies?.languages.includes(id)),2,'proficiencies');break;
-    case 'rogue:phantom':add('phantom_proficiency','Шёпот мёртвых: владение до следующего отдыха',uniq([...Object.keys(R.SKILLS),...Object.keys(R.TOOLS)]).filter(id=>![...context.proficiencies?.skills||[],...context.proficiencies?.tools||[]].includes(id)),1,'proficiencies');break;
     case 'artificer:alchemist':add('specialist_tool','Инструменты алхимика',context.proficiencies?.tools.includes('alchemist')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['alchemist'],1,'proficiencies');break;
     case 'artificer:artillerist':add('specialist_tool','Инструменты резчика',context.proficiencies?.tools.includes('woodcarver')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['woodcarver'],1,'proficiencies');break;
     case 'artificer:armorer':case 'artificer:battle-smith':add('specialist_tool','Инструменты кузнеца',context.proficiencies?.tools.includes('smith')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['smith'],1,'proficiencies');break;
@@ -475,7 +488,7 @@
   const inspected=providedState?{state:providedState,errors:[]}:inspectSingle(c,context),s=inspected.state,sc=subclass(c,s),a=context.abilities||R.finalAbilities(c,base),e=clone(base);
   e.fixedProficiencies=e.fixedProficiencies||[];e.features=e.features||[];e.spells=e.spells||[];e.notes=e.notes||[];e.resources=[];e.progressionErrors=inspected.errors;e.effectiveLevel=s.level;e.hpRolls=s.entries.map(x=>x.hp.value);e.levelChoices=clone(s.choices);e.subclass=sc?{...sc,label:sc.class==='wizard'&&sc.id==='war'?'Военная магия':sc.class==='sorcerer'&&sc.id==='shadow'?'Теневая магия':SUBNAMES[sc.id]||sc.name}:null;e.progressionProficiencyChoices=Object.fromEntries(Object.entries(s.choices).filter(([id])=>id.startsWith('proficiency:')).map(([id,value])=>[id.slice(12),value]));
   const featureNotes=new Set(e.features.map(f=>f.name+': '+f.description));e.notes=e.notes.filter(note=>!featureNotes.has(note));
-  const feature=(name,description,source=sc?.source||'PHB',level=s.level)=>{const rule=FEATURE_RULES[c.class==='rogue'&&slug(name)==='psychic-blades'?'soulknife-blades':slug(name)];e.features.push({name:rule?.[0]||name,description:rule?.[1]||description,source,url:url(c.class),level});};
+  const feature=(name,description,source=sc?.source||'PHB',level=s.level)=>{const rule=FEATURE_RULES[c.class==='rogue'&&slug(name)==='psychic-blades'?'soulknife-blades':slug(name)];e.features=e.features.filter(f=>f.name!==(rule?.[0]||name));e.features.push({name:rule?.[0]||name,description:rule?.[1]||description,source,url:url(c.class),level});};
   const grant=(type,id,noReplacement=false)=>{const source=sc?.name||'Повышение уровня';if(id&&!e.fixedProficiencies.some(g=>g.type===type&&g.id===id&&g.source===source))e.fixedProficiencies.push({type,id,source,...(noReplacement?{noReplacement:true}:{})});};
   // Advancement features grant a proficiency only if it is missing; they never open a free replacement.
   const gain=(type,id)=>grant(type,id,true);
@@ -500,7 +513,7 @@
    if(c.class==='warlock'){
     if(sc.id==='celestial'){spell('light','cantrip',sc.label,'charisma');spell('sacred-flame','cantrip',sc.label,'charisma');resource('healing-light','Исцеляющий свет (к6)',s.level+1);}
     if(sc.id==='undying')spell('spare-the-dying','cantrip',sc.label,'charisma');
-    if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');}
+    if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a);}
     if(sc.id==='fathomless'){e.swimOverride=40;resource('tentacle','Щупальце глубин',2);}
     if(sc.id==='undead')resource('form-of-dread','Облик ужаса',2);
    }
@@ -519,7 +532,7 @@
    if(c.class==='barbarian')resource('rage','Ярость',s.level===3?3:2);
    if(c.class==='bard')resource('bardic-inspiration','Бардовское вдохновение (к6)',Math.max(1,mod(a.charisma)));
    if(c.class==='fighter')resource('second-wind','Второе дыхание',1,'short-rest');
-   if(c.class==='paladin'){if(1+mod(a.charisma)>0)resource('divine-sense','Божественное чувство',1+mod(a.charisma));resource('lay-on-hands','Наложение рук',5*s.level);}
+   if(c.class==='paladin'){resource('divine-sense','Божественное чувство',Math.max(1,1+mod(a.charisma)));resource('lay-on-hands','Наложение рук',5*s.level);}
   }
   if(!onlyCreation&&s.level>1){
    // Replace obsolete first-level counters and future-tense hints with current values.
@@ -535,7 +548,7 @@
    if(c.class==='rogue')feature('Скрытая атака','+'+(s.level===3?'2':'1')+'к6 один раз за ход при соблюдении условий.');
    if(c.class==='sorcerer'){resource('sorcery-points','Единицы чародейства',s.level);if(s.level===3)feature('Метамагия',arr(s.choices.metamagic).map(label).join(', '));}
    if(c.class==='warlock'){feature('Воззвания',s.invocations.map(id=>label(id)+': '+(OPTION_RULES[id]||'')).join('; '));if(s.choices.pact)feature('Предмет договора',label(s.choices.pact)+': '+(OPTION_RULES[s.choices.pact]||''));if(s.choices.pact==='chain')spell('find-familiar','ritual','Договор цепи','charisma',true,'Бонусное заклинание договора; можно применять как ритуал.');}
-   if(c.class==='artificer')feature('Инфузии',s.infusions.map(label).join(', ')+'; изучено 4, одновременно до 2 предметов; каждый предмет имеет одну инфузию.');
+   if(c.class==='artificer')feature('Инфузии',s.infusions.map(id=>label(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; ')+'. Изучено 4, одновременно до 2 предметов; каждый предмет имеет одну инфузию.');
    if(s.choices['variant_magical-inspiration']==='yes')feature('Магическое вдохновение','Существо с костью вдохновения может добавить её результат к лечению или урону заклинания одной цели.','TCE');
    if(s.choices['variant_harness-divine-power']==='yes'){resource('harness-divine-power','Использование божественной силы',1);feature('Использование божественной силы','Бонусное действие: потратьте Божественный канал и восстановите ячейку 1-го круга; 1 / долгий отдых.','TCE');}
    if(s.choices['variant_wild-companion']==='yes'){spell('find-familiar','feature','Дикий спутник','wisdom',true,'Потратьте Дикий облик: без компонентов, фея, на '+Math.floor(s.level/2)+' час.');}
@@ -544,14 +557,14 @@
    if(s.choices['variant_cantrip-formulas']==='yes')feature('Формулы заговоров','После долгого отдыха и изучения формул в книге можно заменить один заговор волшебника другим из его списка. Не даёт свободную замену при повышении.','TCE');
    if(s.choices['variant_primal-awareness']==='yes'){e.features=e.features.filter(f=>f.id!=='primeval-awareness'&&f.name!=='Primeval Awareness'&&f.name!=='Первозданная осведомлённость');spell('speak-with-animals','feature','Первобытная осведомлённость','wisdom',true,'1 раз / долгий отдых; также можно использовать ячейку.');}
    for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).forEach(id=>gain(type,id));
-   for(const key of ['cavalier_proficiency','samurai_proficiency','phantom_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
+   for(const key of ['cavalier_proficiency','samurai_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
    e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...arr(s.choices.expertise)]);
    if(sc?.id==='rune-knight'){gain('tool','smith');gain('language','giant');resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));}
    if(sc?.id==='battle-master')resource('superiority-dice','Кости превосходства (к8)',4,'short-rest');
    if(sc?.id==='arcane-archer')resource('arcane-shot','Мистический выстрел',2,'short-rest');
    if(sc?.id==='samurai')resource('fighting-spirit','Боевой дух',3);
    if(sc?.id==='echo-knight')resource('unleash-incarnation','Высвобождение воплощения',Math.max(1,mod(a.constitution)));
-   if(sc?.id==='psi-warrior')resource('psionic-dice','Псионические кости (к6)',4);
+   if(sc?.id==='psi-warrior'||sc?.id==='soulknife')resource('psionic-dice','Псионические кости (к6)',4);
    if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песнь клинка',2);}
    if(sc?.id==='mercy'){gain('skill','insight');gain('skill','medicine');gain('tool','herbalism_kit');}
    if(sc?.id==='drunken-master'){gain('skill','performance');gain('tool','brewer');}
@@ -563,7 +576,6 @@
    if(sc?.id==='abjuration'){resource('arcane-ward','Магическая защита: хиты',2*s.level+mod(a.intelligence));feature('Магическая защита','При заклинании ограждения от 1-го круга создаётся защита; максимум '+(2*s.level+mod(a.intelligence))+' хитов. Другие ограждения восстанавливают 2 × круг; создание 1 / долгий отдых.');}
    if(sc?.id==='divination')resource('portent','Предзнаменование: сохранённые к20',2);
    if(sc?.id==='stars')resource('guiding-bolt','Направляющий снаряд без ячейки',2);
-   if(sc?.id==='wildfire')resource('wildfire-spirit','Дух дикого огня (Дикий облик)',2,'short-rest');
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
    if(sc?.id==='artillerist')resource('eldritch-cannon','Мистическая пушка без ячейки',1);
    if(sc?.id==='battle-smith')resource('steel-defender','Стальной защитник: хиты',2+mod(a.intelligence)+5*s.level);
@@ -597,13 +609,13 @@
    if(style)feature('Боевой стиль',label(style));
    for(const attack of e.attacks||[]){const props=attack.properties||[];
     if(style==='archery'&&props.includes('ranged'))attack.attackBonus+=2;
-    if((style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&attack.group!=='unarmed'&&attack.group!=='natural')||(style==='thrown-weapon-fighting'&&props.includes('thrown')&&props.includes('ranged'))){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/, '')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes.push(style==='dueling'?'Дуэлянт: бонус при отсутствии другого оружия в руке; щит допустим.':'Метательное оружие: +2 к урону дальнобойной атаки.');}
-    if(style==='thrown-weapon-fighting'&&props.includes('thrown')&&!props.includes('ranged'))attack.notes.push('При метании оружия: +2 к урону дальнобойной атаки; можно извлечь оружие частью атаки.');
+    if(style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!attack.thrownVariant&&attack.group!=='unarmed'&&attack.group!=='natural'){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/, '')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes.push('Дуэлянт: бонус при отсутствии другого оружия в руке; щит допустим.');}
     if(style==='great-weapon-fighting'&&(props.includes('two-handed')||props.includes('versatile')))attack.notes.push('При атаке двумя руками перебросьте 1 и 2 на костях урона.');
     if(style==='two-weapon-fighting')attack.notes.push('К урону атаки вторым оружием добавляется модификатор характеристики.');
    }
+   if(style==='thrown-weapon-fighting'&&e.attacks)thrownStyle(e.attacks,a);
    if(c.class==='warlock'&&sc?.id==='fiend'){e.features=e.features.filter(f=>!f.name.startsWith('Покровитель:'));feature('Благословение тёмного','При снижении враждебного существа до 0 хитов получаете '+Math.max(1,s.level+mod(a.charisma))+' временных хитов.',sc.source,1);}
-   const CHOICE_LABELS={style:'Боевой стиль',metamagic:'Метамагия',invocations:'Воззвания',infusions:'Инфузии',totem:'Дух тотема',storm_environment:'Среда ауры бури',divine_damage:'Божественная ярость',giant_cantrip:'Заговор Великана',giant_language:'Язык Великана',expertise:'Компетентность',subclass_skills:'Навыки подкласса',swords_style:'Стиль Коллегии Мечей',bonus_cantrip:'Дополнительный заговор',bladesinger_weapon:'Оружие Песни клинка',illusion_cantrip:'Улучшенная малая иллюзия',maneuvers:'Боевые приёмы',artisan_tool:'Ремесленный инструмент',arcane_shots:'Мистические выстрелы',archer_skill:'Навык мистического лучника',archer_cantrip:'Заговор мистического лучника',runes:'Руны',discipline:'Стихийная дисциплина',kensei_melee:'Рукопашное оружие кэнсэя',kensei_ranged:'Дальнобойное оружие кэнсэя',kensei_tool:'Путь кисти',dragon_language:'Язык Драконьего ученика',hunter_prey:'Добыча охотника',companion_rules:'Правила спутника',companion:'Спутник',fey_skill:'Навык Странника фей',swarm:'Облик роя',gaming_set:'Игровой набор',languages:'Языки',phantom_proficiency:'Шёпот мёртвых',specialist_tool:'Инструмент специальности',land:'Земля круга',pact:'Предмет договора'};
+   const CHOICE_LABELS={style:'Боевой стиль',metamagic:'Метамагия',invocations:'Воззвания',totem:'Дух тотема',storm_environment:'Среда ауры бури',divine_damage:'Божественная ярость',giant_cantrip:'Заговор Великана',giant_language:'Язык Великана',expertise:'Компетентность',subclass_skills:'Навыки подкласса',swords_style:'Стиль Коллегии Мечей',bonus_cantrip:'Дополнительный заговор',bladesinger_weapon:'Оружие Песни клинка',illusion_cantrip:'Улучшенная малая иллюзия',maneuvers:'Боевые приёмы',artisan_tool:'Ремесленный инструмент',arcane_shots:'Мистические выстрелы',archer_skill:'Навык мистического лучника',archer_cantrip:'Заговор мистического лучника',runes:'Руны',discipline:'Стихийная дисциплина',kensei_melee:'Рукопашное оружие кэнсэя',kensei_ranged:'Дальнобойное оружие кэнсэя',kensei_tool:'Путь кисти',dragon_language:'Язык Драконьего ученика',hunter_prey:'Добыча охотника',companion_rules:'Правила спутника',companion:'Спутник',fey_skill:'Навык Странника фей',swarm:'Облик роя',gaming_set:'Игровой набор',languages:'Языки',specialist_tool:'Инструмент специальности',land:'Земля круга',pact:'Предмет договора'};
    for(const [key,value] of Object.entries(s.choices))if(CHOICE_LABELS[key])feature(CHOICE_LABELS[key],arr(value).map(id=>label(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; '));
   }
   const m=magic(c,s,a);
@@ -623,7 +635,7 @@
    if(c.race==='elf'&&c.race_sub==='drow')racial('faerie-fire','charisma');if(c.race==='tiefling')spell('hellish-rebuke','racial','Раса','charisma',true,'Как заклинание 2-го круга, 1 раз / долгий отдых');
    if(c.race==='triton')racial('gust-of-wind','charisma');if(c.race==='fairy')racial('faerie-fire',c.creation_racial_spell_ability||'charisma');
    if(c.race==='genasi'&&c.race_sub==='fire-genasi')racial('burning-hands','constitution');if(c.race==='genasi'&&c.race_sub==='water-genasi')racial('create-or-destroy-water','constitution');
-   if(c.race==='gith')racial(c.race_sub==='githzerai'?'shield':'jump',c.race_sub==='githzerai'?'wisdom':'intelligence');if(c.race==='yuan-ti')racial('suggestion','charisma');
+   if(c.race==='gith')racial(c.race_sub==='gitzerai'?'shield':'jump',c.race_sub==='gitzerai'?'wisdom':'intelligence');if(c.race==='yuan-ti-pureblood')racial('suggestion','charisma');
    if(c.race==='aasimar'){const forms={'aasimar-guardian':'Во время формы скорость полёта 30 футов; при нанесении урона одной цели раз за ход дополнительно '+s.level+' излучением.','aasimar-punisher':'Свет 10 футов и тусклый свет ещё 10; в конце каждого хода вы и существа в 10 футах получаете '+Math.ceil(s.level/2)+' излучением; одна цель раз за ход дополнительно '+s.level+' излучением.','fallen-aasimar':'При активации существа в 10 футах, видящие вас, проходят спасбросок Харизмы (Сл '+(10+mod(a.charisma))+') или испуганы до конца вашего следующего хода; одна цель раз за ход дополнительно '+s.level+' некротической энергией.'};feature('Преображение аасимара','Действие, 1 минута, 1 / долгий отдых. '+(forms[c.race_sub]||''),'VGM');e.features.at(-1).url='https://dnd.su/race/161-aasimar/';}
   }
   e.spells=Array.from(new Map(e.spells.map(x=>[x.id+'|'+x.source+'|'+x.status,x])).values());
@@ -739,10 +751,11 @@
    if(cls==='fighter'){
     const style=canonicalStyle(x.character.creation_style);if(style==='defense'&&seed.armor)seed.acBonus=(seed.acBonus||0)+1;
     for(const attack of seed.attacks){const props=attack.properties||[];if(style==='archery'&&props.includes('ranged'))attack.attackBonus+=2;
-     if((style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!['unarmed','natural'].includes(attack.group))||(style==='thrown-weapon-fighting'&&props.includes('thrown')&&props.includes('ranged'))){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
+     if(style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!attack.thrownVariant&&!['unarmed','natural'].includes(attack.group)){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
      if(style==='unarmed-fighting'&&attack.group==='unarmed')attack.damage='1d6'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
      if(style==='great-weapon-fighting'&&(props.includes('two-handed')||props.includes('versatile')))attack.notes.push('Бой большим оружием: перебрасывайте 1 и 2 на костях урона при атаке двумя руками.');if(style==='two-weapon-fighting')attack.notes.push('Бой двумя оружиями: к урону второго оружия добавляется модификатор характеристики.');
     }
+    if(style==='thrown-weapon-fighting')thrownStyle(seed.attacks,context.abilities||R.finalAbilities(c,base));
    }
    const part=deriveSingle(x.character,{...context,baseExtras:seed},seed,x.state);Object.assign(part.progressionProficiencyChoices,seed.progressionProficiencyChoices);e.attacks=part.attacks;
    e.features.push(...part.features.filter(f=>!(['barbarian','monk'].includes(cls)&&e.unarmoredDefense!==cls&&f.description.startsWith('Защита без доспехов'))).map(f=>({...f,classId:cls,sourceClass:NAMES[cls]})));e.spells.push(...part.spells.map(sp=>({...sp,classId:cls})));e.fixedProficiencies.push(...part.fixedProficiencies);e.resources.push(...part.resources.map(r=>({...r,id:cls+':'+r.id,classId:cls})));e.proficiencySlots.push(...part.proficiencySlots);e.notes.push(...part.notes);e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...(part.fixedExpertise||[])]);Object.assign(e.progressionProficiencyChoices,part.progressionProficiencyChoices);
