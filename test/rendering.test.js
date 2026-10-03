@@ -787,6 +787,19 @@ test('malformed pending drafts can be cancelled and corrupt ledgers block export
   assert.equal(vm.runInContext('getDerivedCharacter().hp',context),baseline);assert.throws(()=>vm.runInContext('getExportData()',context));
   assert.ok(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled);
 });
+test('a falsey advancement ledger still asks to reset before editing and the reset unblocks export', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  vm.runInContext('currentPageIndex=config.pages.length;character.advancement=null;renderPage();',context);
+  const click=text=>{const button=dom.root.querySelectorAll('button').find(b=>b.textContent===text);assert.ok(button,text);button.click();};
+  click('← Вернуться к редактированию');
+  assert.ok(dom.document.getElementById('progression-reset-dialog'));
+  click('Сбросить прокачку и продолжить');
+  assert.equal(vm.runInContext("Object.hasOwn(character,'advancement')",context),false);
+  assert.equal(vm.runInContext('character.level',context),1);
+  vm.runInContext('currentPageIndex=config.pages.length;renderPage();',context);
+  assert.doesNotThrow(()=>vm.runInContext('getExportData()',context));
+  assert.equal(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled,false);
+});
 test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
   for (const cls of ['fighter','bard','warlock']) {
     const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:cls});

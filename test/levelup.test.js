@@ -1,26 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const R=require('../rules'),O=require('../creation-options'),L=require('../levelup-rules'),D=require('../levelup-data'),E=require('../lss-export'),S=require('../spell-info');
-const copy=x=>JSON.parse(JSON.stringify(x));
-function context(c){const seed=O.derive(c);const abilities=R.finalAbilities(c,seed);const baseExtras=O.derive(c,{abilities});return {abilities,baseExtras,proficiencies:R.resolveProficiencies(c,baseExtras)};}
-function create(cls,branch){const c={level:1,class:cls,race:'human',human_feature:'human_stats',background:'sage',name:'Сохранённый герой',abilities:Object.fromEntries(R.ABILITIES.map(id=>[id,16])),proficiencyChoices:{}};if(branch&&['cleric','sorcerer','warlock'].includes(cls))c[{cleric:'creation_domain',sorcerer:'creation_origin',warlock:'creation_patron'}[cls]]=branch;
- for(let pass=0;pass<9;pass++){
-  const ctx=context(c);for(const g of O.getChoices(c,ctx)){const selected=Array.isArray(c[g.id])?c[g.id]:c[g.id]?[c[g.id]]:[];if(selected.length!==g.count||selected.some(id=>!g.options.some(o=>o.value===id)))c[g.id]=g.count===1?g.options[0]?.value:g.options.slice(0,g.count).map(x=>x.value);}
-  const prof=R.resolveProficiencies(c,O.derive(c,context(c)));for(const slot of prof.slots){const chosen=c.proficiencyChoices[slot.id];if(!slot.options.includes(chosen)||prof.errors.some(e=>e.id===slot.id)){const used=[...prof.skills,...prof.tools,...prof.languages];c.proficiencyChoices[slot.id]=slot.options.find(id=>slot.expertise?!prof.expertise.includes(id):!used.includes(id));}}
- }
- assert.deepEqual(O.validate(c,context(c)),[],cls+': creation');assert.deepEqual(R.resolveProficiencies(c,O.derive(c,context(c))).errors,[],cls+': proficiencies');return c;
-}
-function fill(c,p,pinned={}){
- Object.assign(p.choices,pinned);
- for(let pass=0;pass<10;pass++){
-  const groups=L.getChoices(c,p,context(c));const active=new Set(groups.map(g=>g.id));for(const key of Object.keys(p.choices))if(!active.has(key))delete p.choices[key];
-  for(const g of groups){if(Object.hasOwn(pinned,g.id))continue;const selected=Array.isArray(p.choices[g.id])?p.choices[g.id]:p.choices[g.id]?[p.choices[g.id]]:[];if(selected.length!==g.count||selected.some(id=>!g.options.some(o=>o.value===id)))p.choices[g.id]=g.count===1?g.options[0]?.value:g.options.slice(0,g.count).map(o=>o.value);}
- }
- return p;
-}
-function advance(c,branch,choices={}){let p=L.begin(c,context(c));if(L.subclasses(c.class)[0].level===p.to&&branch)choices={...choices,subclass:branch};fill(c,p,choices);assert.deepEqual(L.transition(c,p,context(c)).errors,[],c.class+':'+branch+':'+p.to);return L.commit(c,p,context(c));}
-function extras(c){const ctx=context(c);return L.derive(c,ctx,ctx.baseExtras);}
-function stats(c){return R.derivedStats(c,extras(c));}
+const {copy,context,create,fill,advance,enter,extras,stats}=require('./fixtures/characters');
 test('catalogue admits every published legacy branch and all 26 transitions preserve creation',()=>{
  assert.equal(D.subclasses.length,118);let transitions=0;
  for(const branch of D.subclasses){let c=create(branch.class,branch.id);const initial=copy(c);c=advance(c,branch.id);c=advance(c,branch.id);const e=extras(c);assert.equal(c.level,3,branch.id);assert.equal(e.subclass.id,branch.id);assert.deepEqual(L.inspect(copy(c),context(c)).errors,[],branch.id);assert.ok(stats(c).hp>stats(initial).hp);for(const key of Object.keys(initial))if(key!=='level')assert.deepEqual(c[key],initial[key],branch.id+':'+key);const native=JSON.parse(E.buildLssExport(c,{},stats(c),e)[0].data);assert.equal(native.info.level.value,3);assert.equal(native.vitality['hp-max'].value,stats(c).hp);assert.equal(native.vitality['hp-dice-current'].value,3);transitions+=2;}
@@ -54,7 +35,6 @@ test('nested prerequisites, optional feature selection and current resources are
  let wizard=create('wizard');wizard=advance(wizard,'abjuration');assert.equal(extras(wizard).resources.find(x=>x.id==='arcane-ward').max,7);
  let bard=create('bard');bard=advance(bard,'lore');const bp=L.begin(bard,context(bard)),newSkills=Object.keys(R.SKILLS).filter(id=>!context(bard).proficiencies.skills.includes(id)).slice(0,3);fill(bard,bp,{subclass:'lore',subclass_skills:newSkills,expertise:newSkills.slice(0,2)});assert.deepEqual(L.transition(bard,bp,context(bard)).errors,[]);bard=L.commit(bard,bp,context(bard));assert.ok(stats(bard).proficiencies.expertise.includes(newSkills[0]));
 });
-module.exports={create,fill,advance,context,extras,stats};
 test('all 13 × 13 entries preserve the foundation and advance only the selected class',()=>{
  for(const starting of Object.keys(R.CLASSES))for(const target of Object.keys(R.CLASSES)){
   const c=create(starting),initial=copy(c),p=fill(c,L.selectClass(c,L.begin(c,context(c)),target,context(c)));
@@ -230,4 +210,64 @@ test('new ranger Canny can choose the skill gained in the same advancement',()=>
  const c=create('wizard'),p=fill(c,L.selectClass(c,L.begin(c,context(c)),'ranger',context(c)),{'ranger:entry_skill':'survival','ranger:creation_explorer_feature':'deft-explorer','ranger:creation_canny_skill':'survival'});
  const g=L.getChoices(c,p,context(c)).find(x=>x.id==='ranger:creation_canny_skill');assert.ok(g.options.some(x=>x.value==='survival'));
  assert.deepEqual(L.transition(c,p,context(c)).errors,[]);const next=L.commit(c,p,context(c));assert.ok(stats(next).proficiencies.skills.includes('survival'));assert.ok(stats(next).proficiencies.expertise.includes('survival'));
+});
+
+test('first-level class resources exist before level 2, including a newly entered class',()=>{
+ const expected={barbarian:[['rage',2,'long-rest']],bard:[['bardic-inspiration',3,'long-rest']],fighter:[['second-wind',1,'short-rest']],paladin:[['divine-sense',4,'long-rest'],['lay-on-hands',5,'long-rest']]};
+ for(const [cls,resources] of Object.entries(expected)){
+  const c=create(cls),e=extras(c);
+  for(const [id,max,rest] of resources){const r=e.resources.find(x=>x.id===id);assert.ok(r,cls+':'+id);assert.equal(r.max,max,cls+':'+id);assert.equal(r.rest,rest,cls+':'+id);}
+  assert.ok(JSON.parse(E.buildLssExport(c,{},stats(c),e)[0].data).text.traits.value.data.content.some(p=>p.content?.[0]?.text.startsWith(e.resources[0].name+': '+e.resources[0].max)),cls);
+ }
+ const paladin=create('paladin');paladin.abilities.charisma=6;assert.ok(!extras(paladin).resources.some(x=>x.id==='divine-sense'));
+ const multi=enter(create('wizard'),'barbarian'),rage=extras(multi).resources.find(x=>x.id==='barbarian:rage');assert.ok(rage);assert.equal(rage.max,2);
+ const three=advance(advance(create('barbarian')),'berserker');assert.equal(extras(three).resources.filter(x=>x.id==='rage').length,1);assert.equal(extras(three).resources.find(x=>x.id==='rage').max,3);
+});
+
+test('automatic subclass proficiencies already owned do not open a free replacement',()=>{
+ const c=advance(create('rogue',undefined,{background:'outlander'})),before=stats(c).proficiencies.skills;assert.ok(before.includes('survival'));
+ const p=fill(c,L.begin(c,context(c)),{subclass:'scout'});
+ assert.ok(!L.getChoices(c,p,context(c)).some(g=>g.id.startsWith('proficiency:')),'no replacement slot');
+ assert.deepEqual(L.transition(c,p,context(c)).errors,[]);
+ const scout=L.commit(c,p,context(c)),after=stats(scout).proficiencies;
+ assert.deepEqual(after.skills.slice().sort(),[...new Set([...before,'nature','survival'])].sort());
+ assert.ok(after.expertise.includes('nature')&&after.expertise.includes('survival'));
+ assert.deepEqual(R.resolveProficiencies(scout,extras(scout)).errors,[]);
+});
+
+test('Improved Minor Illusion offers another wizard cantrip when Minor Illusion is known from any source',()=>{
+ const gnome={race:'gnome',race_sub:'forest-gnome',human_feature:undefined};
+ const wizard=create('wizard',undefined,gnome);assert.ok(extras(wizard).spells.some(x=>x.id==='minor-illusion'));
+ const p=fill(wizard,L.begin(wizard,context(wizard)),{subclass:'illusion'}),g=L.getChoices(wizard,p,context(wizard)).find(x=>x.id==='illusion_cantrip');
+ assert.ok(g.options.length>1);assert.ok(!g.options.some(x=>x.value==='minor-illusion'));
+ assert.deepEqual(L.transition(wizard,p,context(wizard)).errors,[]);assert.notEqual(L.commit(wizard,p,context(wizard)).level,1);
+ const multi=enter(create('fighter',undefined,gnome),'wizard'),mp=fill(multi,L.selectClass(multi,L.begin(multi,context(multi)),'wizard',context(multi)),{'subclass':'illusion'});
+ const mg=L.getChoices(multi,mp,context(multi)).find(x=>x.id==='illusion_cantrip');assert.ok(mg);assert.ok(!mg.options.some(x=>x.value==='minor-illusion'));
+ assert.deepEqual(L.transition(multi,mp,context(multi)).errors,[]);const done=L.commit(multi,mp,context(multi));assert.deepEqual(L.inspect(done,context(done)).errors,[]);
+ const human=create('wizard'),hp=fill(human,L.begin(human,context(human)),{subclass:'illusion'});assert.deepEqual(L.getChoices(human,hp,context(human)).find(x=>x.id==='illusion_cantrip').options.map(x=>x.value),['minor-illusion']);
+});
+
+test('a ranger opts into TCE expanded spells when spellcasting starts and keeps the choice later',()=>{
+ const ranger=create('ranger'),probe=fill(ranger,L.begin(ranger,context(ranger)));
+ const optIn=L.getChoices(ranger,probe,context(ranger)).find(g=>g.id==='expanded_spells');assert.ok(optIn);assert.deepEqual(optIn.options.map(x=>x.value),['no','yes']);
+ const learn=choice=>L.getChoices(ranger,fill(ranger,L.begin(ranger,context(ranger)),{expanded_spells:choice}),context(ranger)).find(g=>g.id==='learn').options.map(x=>x.value);
+ for(const id of ['entangle','searing-smite']){assert.ok(learn('yes').includes(id),id);assert.ok(!learn('no').includes(id),id);}
+ const two=L.commit(ranger,fill(ranger,L.begin(ranger,context(ranger)),{expanded_spells:'yes',learn:['entangle','searing-smite']}),context(ranger));
+ assert.ok(extras(two).spells.some(x=>x.id==='entangle'));
+ const p3=fill(two,L.begin(two,context(two)),{subclass:'hunter'});assert.ok(!L.getChoices(two,p3,context(two)).some(g=>g.id==='expanded_spells'));
+ assert.ok(L.getChoices(two,p3,context(two)).find(g=>g.id==='learn').options.length>0);
+ assert.deepEqual(L.inspect(L.commit(two,p3,context(two)),context(two)).errors,[]);
+ const paladin=create('paladin'),pp=fill(paladin,L.begin(paladin,context(paladin)));assert.ok(!L.getChoices(paladin,pp,context(paladin)).some(g=>g.id==='expanded_spells'));
+ const fromWizard=enter(create('wizard'),'ranger'),rp=fill(fromWizard,L.selectClass(fromWizard,L.begin(fromWizard,context(fromWizard)),'ranger',context(fromWizard)),{expanded_spells:'yes'});
+ assert.ok(L.getChoices(fromWizard,rp,context(fromWizard)).find(g=>g.id==='learn').options.some(x=>x.value==='entangle'));
+});
+
+test('LSS subclass field lists every acquired subclass with its class',()=>{
+ const cleric=create('cleric','life'),cs=enter(cleric,'sorcerer',{'sorcerer:creation_origin':'draconic'}),e=extras(cs);
+ const native=JSON.parse(E.buildLssExport(cs,{subclass:e.subclass.label},stats(cs),e)[0].data);
+ assert.equal(native.info.charSubclass.value,'Жрец: Жизнь / Чародей: Драконья кровь');
+ const fighter=enter(create('fighter'),'warlock',{'warlock:creation_patron':'fiend'}),fe=extras(fighter);
+ assert.equal(JSON.parse(E.buildLssExport(fighter,{},stats(fighter),fe)[0].data).info.charSubclass.value,'Колдун: Исчадие');
+ const single=advance(advance(create('fighter')),'champion'),se=extras(single);
+ assert.equal(JSON.parse(E.buildLssExport(single,{subclass:se.subclass.label},stats(single),se)[0].data).info.charSubclass.value,'Чемпион');
 });

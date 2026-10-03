@@ -273,7 +273,8 @@
   return uniq(result);
  }
  function spellList(cls,max,c={},s=firstState(c),exact=false){
-  let ids=Object.values(D.spells).filter(x=>(x.classes.includes(cls)||(c.creation_expanded_spells==='yes'&&x.optionalClasses?.includes(cls)))&&(exact?x.level===max:x.level>0&&x.level<=max)&&!x.restrictions).map(x=>x.id);
+  const expanded=(c.creation_expanded_spells||s.choices?.expanded_spells)==='yes';
+  let ids=Object.values(D.spells).filter(x=>(x.classes.includes(cls)||(expanded&&x.optionalClasses?.includes(cls)))&&(exact?x.level===max:x.level>0&&x.level<=max)&&!x.restrictions).map(x=>x.id);
   if(c.class==='sorcerer'&&c.creation_origin==='divine-soul')ids.push(...Object.values(D.spells).filter(x=>x.classes.includes('cleric')&&(exact?x.level===max:x.level>0&&x.level<=max)).map(x=>x.id));
   if(cls==='warlock')ids.push(...additional(c,s,'expanded').filter(id=>exact?D.spells[id].level===max:D.spells[id].level>0&&D.spells[id].level<=max));
   if(cls==='wizard'&&['chronurgy','graviturgy'].includes(s.subclass))ids.push(...Object.values(D.spells).filter(x=>x.source==='EGW'&&(exact?x.level===max:x.level>0&&x.level<=max)).map(x=>x.id));
@@ -361,7 +362,7 @@
     case 'bard:spirits':add('guidance_bonus','Заговор Указание',[option('guidance','Указание: дальность 60 футов')],1,'spells');break;
     case 'druid:land':add('bonus_cantrip','Дополнительный заговор',spellList('druid',0,c,s,true).filter(id=>!old.cantrips.includes(id)),1,'spells');break;
     case 'wizard:bladesinging':add('bladesinger_weapon','Одноручное рукопашное оружие',Object.keys(R.WEAPONS).filter(id=>!['simple','martial','firearms','improvised','glaive','greataxe','greatsword','halberd','maul','pike','light_crossbow','dart','shortbow','sling','blowgun','hand_crossbow','heavy_crossbow','longbow','net'].includes(id)),1,'proficiencies');break;
-    case 'wizard:illusion':add('illusion_cantrip','Улучшенная малая иллюзия',old.cantrips.includes('minor-illusion')?spellList('wizard',0,c,s,true).filter(id=>!old.cantrips.includes(id)):['minor-illusion'],1,'spells');break;
+    case 'wizard:illusion':{const known=new Set([...old.cantrips,...(context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id))]);add('illusion_cantrip','Улучшенная малая иллюзия',known.has('minor-illusion')?spellList('wizard',0,c,s,true).filter(id=>!known.has(id)):['minor-illusion'],1,'spells');break;}
     case 'fighter:battle-master':add('maneuvers','Три боевых приёма',optionList('MV:B',c,s),3);add('artisan_tool','Ремесленный инструмент',R.ARTISAN_TOOLS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');break;
     case 'fighter:arcane-archer':add('arcane_shots','Два варианта мистического выстрела',optionList('AS',c,s),2);add('archer_skill','Знания мистического лучника',['arcana','nature'].filter(id=>!context.proficiencies?.skills.includes(id)).length?['arcana','nature'].filter(id=>!context.proficiencies?.skills.includes(id)):Object.keys(R.SKILLS).filter(id=>!context.proficiencies?.skills.includes(id)),1,'proficiencies');add('archer_cantrip','Заговор мистического лучника',['prestidigitation','druidcraft'],1,'spells');break;
     case 'fighter:rune-knight':add('runes','Две доступные руны',optionList('RN',c,s),2);break;
@@ -390,7 +391,10 @@
   // Combat-time forms (wild shape, starry form, cannon, armor, drake essence) remain mutable.
   const m=magic(c,s,a);
   if(m){
-   const cls=m.third?'wizard':c.class,automatic=automaticSpells(c,s),allowed=spellList(cls,m.max,c,s).filter(id=>!automatic.includes(id));
+   const cls=m.third?'wizard':c.class;
+   // Delayed casters (ranger) decide on the TCE list when their spellcasting starts.
+   if(!c.creation_expanded_spells&&!magic(c,old,a)&&Object.values(D.spells).some(x=>x.optionalClasses?.includes(cls)&&x.level>0&&x.level<=m.max))add('expanded_spells','Дополнительный список заклинаний TCE (с разрешения Мастера)',['no','yes'],1,'spells','TCE',true);
+   const automatic=automaticSpells(c,s),allowed=spellList(cls,m.max,c,s).filter(id=>!automatic.includes(id));
    if(m.third&&p.to===3){add('third_cantrips','Заговоры подкласса',spellList('wizard',0,c,s,true).filter(id=>sc.id!=='arcane-trickster'||id!=='mage-hand'),2,'spells');add('third_restricted','Два заклинания ограниченных школ',allowed.filter(id=>(sc.id==='eldritch-knight'?['A','V']:['E','I']).includes(D.spells[id].school)),2,'spells');add('third_free','Одно заклинание любой школы',allowed.filter(id=>!arr(p.choices.third_restricted).includes(id)),1,'spells');}
    else if(c.class==='wizard'){add('book_add','Два новых заклинания в книгу',allowed.filter(id=>!old.book.includes(id)),2,'spells');const book=uniq([...old.book,...arr(p.choices.book_add)]);add('prepared','Подготовка из книги',book,Math.min(book.length,m.prepareCount),'spells');}
    else if(m.prepareCount){add('prepared','Подготовленные заклинания (бонусные отдельно)',allowed.filter(id=>!additional(c,s,'prepared').includes(id)),m.prepareCount,'spells');}
@@ -469,7 +473,9 @@
   e.fixedProficiencies=e.fixedProficiencies||[];e.features=e.features||[];e.spells=e.spells||[];e.notes=e.notes||[];e.resources=[];e.progressionErrors=inspected.errors;e.effectiveLevel=s.level;e.hpRolls=s.entries.map(x=>x.hp.value);e.levelChoices=clone(s.choices);e.subclass=sc?{...sc,label:sc.class==='wizard'&&sc.id==='war'?'Военная магия':sc.class==='sorcerer'&&sc.id==='shadow'?'Теневая магия':SUBNAMES[sc.id]||sc.name}:null;e.progressionProficiencyChoices=Object.fromEntries(Object.entries(s.choices).filter(([id])=>id.startsWith('proficiency:')).map(([id,value])=>[id.slice(12),value]));
   const featureNotes=new Set(e.features.map(f=>f.name+': '+f.description));e.notes=e.notes.filter(note=>!featureNotes.has(note));
   const feature=(name,description,source=sc?.source||'PHB',level=s.level)=>{const rule=FEATURE_RULES[c.class==='rogue'&&slug(name)==='psychic-blades'?'soulknife-blades':slug(name)];e.features.push({name:rule?.[0]||name,description:rule?.[1]||description,source,url:url(c.class),level});};
-  const grant=(type,id)=>{const source=sc?.name||'Повышение уровня';if(id&&!e.fixedProficiencies.some(g=>g.type===type&&g.id===id&&g.source===source))e.fixedProficiencies.push({type,id,source});};
+  const grant=(type,id,noReplacement=false)=>{const source=sc?.name||'Повышение уровня';if(id&&!e.fixedProficiencies.some(g=>g.type===type&&g.id===id&&g.source===source))e.fixedProficiencies.push({type,id,source,...(noReplacement?{noReplacement:true}:{})});};
+  // Advancement features grant a proficiency only if it is missing; they never open a free replacement.
+  const gain=(type,id)=>grant(type,id,true);
   const resource=(id,name,max,rest='long-rest')=>e.resources.push({id,name,max,rest});
   const spell=(id,status,source=sc?.label||sc?.name||NAMES[c.class],ability,exempt=true,usage,slotless=['racial','ritual','feature','invocation'].includes(status))=>{const x=D.spells[id];if(x)e.spells.push({id,label:label(id),level:x.level,ability:ability||magic(c,s,a)?.ability||'wisdom',source,status,limitExempt:exempt,usage,slotless});};
   if(c.class==='fighter'&&c.creation_style==='superior-technique'){resource('superior-technique','Превосходная техника: кость превосходства (к6)',1,'short-rest');e.features=e.features.filter(f=>f.name!=='Превосходная техника');feature('Превосходная техника',label(c.creation_superior_maneuver)+': '+(OPTION_RULES[c.creation_superior_maneuver]||'')+' Одна кость к6; восстановление после короткого или долгого отдыха.','TCE',1);}
@@ -506,17 +512,23 @@
    if(c.creation_favored_feature==='favored-foe'){e.features=e.features.filter(f=>f.name!=='Избранный враг'&&f.name!=='Язык избранного врага'&&!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Избранный враг')));e.proficiencySlots=(e.proficiencySlots||[]).filter(x=>!x.id.includes('favored-enemy-language'));resource('favored-foe','Избранный противник',2);feature('Избранный противник','При попадании пометьте цель, концентрация до 1 минуты. Первый урон по ней в каждый ваш ход +1к4; 2 / долгий отдых. Заменяет Избранного врага.','TCE');}
    if(c.creation_explorer_feature==='deft-explorer'){e.features=e.features.filter(f=>f.name!=='Исследователь природы'&&!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Исследователь природы')));e.fixedExpertise=arr(c.creation_canny_skill);arr(c.creation_canny_languages).forEach(id=>grant('language',id));feature('Ловкий исследователь: Искусность','Компетентность: '+label(c.creation_canny_skill)+'; два языка. Заменяет Исследователя природы.','TCE');}
   }
+  if(!onlyCreation){
+   if(c.class==='barbarian')resource('rage','Ярость',s.level===3?3:2);
+   if(c.class==='bard')resource('bardic-inspiration','Бардовское вдохновение (к6)',Math.max(1,mod(a.charisma)));
+   if(c.class==='fighter')resource('second-wind','Второе дыхание',1,'short-rest');
+   if(c.class==='paladin'){if(1+mod(a.charisma)>0)resource('divine-sense','Божественное чувство',1+mod(a.charisma));resource('lay-on-hands','Наложение рук',5*s.level);}
+  }
   if(!onlyCreation&&s.level>1){
    // Replace obsolete first-level counters and future-tense hints with current values.
    e.features=e.features.filter(f=>!(f.name==='Умение 1-го уровня'&&/появ|одна ячейка|1к10 \+ 1|запас 5|Ярость: 2|Скрытая атака:/.test(f.description)));
    for(const f of D.features.filter(f=>f.class===c.class&&f.level>1&&f.level<=s.level&&(!f.subclass||f.subclass===sc?.id)&&(f.subclass||f.source!=='TCE'||c.class==='artificer'))) if(FEATURE_RULES[f.id]&&!e.features.some(x=>x.name===FEATURE_RULES[f.id][0]))feature(f.name,FEATURE_RULES[f.id][1],f.source,f.level);
-   if(c.class==='barbarian'){resource('rage','Ярость',s.level===3?3:2);feature('Ярость','+2 к урону рукопашным оружием от Силы; сопротивление физическому урону без тяжёлого доспеха.');}
-   if(c.class==='bard'){e.jackOfAllTrades=true;resource('bardic-inspiration','Бардовское вдохновение (к6)',Math.max(1,mod(a.charisma)));feature('Мастер на все руки','+1 к проверкам характеристик без владения, в том числе инициативе без владения.');if(!R.RACES[c.race]?.initiativeProficiency)e.initiativeBonus=(e.initiativeBonus||0)+1;}
+   if(c.class==='barbarian'){feature('Ярость','+2 к урону рукопашным оружием от Силы; сопротивление физическому урону без тяжёлого доспеха.');}
+   if(c.class==='bard'){e.jackOfAllTrades=true;feature('Мастер на все руки','+1 к проверкам характеристик без владения, в том числе инициативе без владения.');if(!R.RACES[c.race]?.initiativeProficiency)e.initiativeBonus=(e.initiativeBonus||0)+1;}
    if(c.class==='cleric'){resource('channel-divinity','Божественный канал',1,'short-rest');}
    if(c.class==='druid'){resource('wild-shape','Дикий облик',2,'short-rest');feature('Дикий облик',sc?.id==='moon'?'Форма зверя до ПО 1, без плавания/полёта; бонусное действие.':'Форма зверя до ПО 1/4, без плавания/полёта; действие.');}
-   if(c.class==='fighter'){resource('action-surge','Всплеск действий',1,'short-rest');resource('second-wind','Второе дыхание',1,'short-rest');feature('Второе дыхание','Бонусное действие: восстановите 1к10 + '+s.level+' хитов.');}
+   if(c.class==='fighter'){resource('action-surge','Всплеск действий',1,'short-rest');feature('Второе дыхание','Бонусное действие: восстановите 1к10 + '+s.level+' хитов.');}
    if(c.class==='monk'){resource('ki','Ци',s.level,'short-rest');if(!e.armor&&!e.shield)e.speedBonus=(e.speedBonus||0)+10;feature('Ци','Сл '+(10+mod(a.wisdom))+'; передвижение без доспеха/щита +10 футов; формы и оружие выбираются при применении.');}
-   if(c.class==='paladin'){resource('lay-on-hands','Наложение рук',5*s.level);feature('Божественная кара','После попадания рукопашным оружием: ячейка 1-го круга даёт +2к8 излучения, +1к8 против нежити/исчадий.');if(s.level===3)resource('channel-divinity','Божественный канал',1,'short-rest');}
+   if(c.class==='paladin'){feature('Божественная кара','После попадания рукопашным оружием: ячейка 1-го круга даёт +2к8 излучения, +1к8 против нежити/исчадий.');if(s.level===3)resource('channel-divinity','Божественный канал',1,'short-rest');}
    if(c.class==='rogue')feature('Скрытая атака','+'+(s.level===3?'2':'1')+'к6 один раз за ход при соблюдении условий.');
    if(c.class==='sorcerer'){resource('sorcery-points','Единицы чародейства',s.level);if(s.level===3)feature('Метамагия',arr(s.choices.metamagic).map(label).join(', '));}
    if(c.class==='warlock'){feature('Воззвания',s.invocations.map(id=>label(id)+': '+(OPTION_RULES[id]||'')).join('; '));if(s.choices.pact)feature('Предмет договора',label(s.choices.pact)+': '+(OPTION_RULES[s.choices.pact]||''));if(s.choices.pact==='chain')spell('find-familiar','ritual','Договор цепи','charisma',true,'Бонусное заклинание договора; можно применять как ритуал.');}
@@ -528,21 +540,21 @@
    if(s.choices['variant_ki-fueled-attack']==='yes')feature('Атака за ци','Если потратили ци частью действия, можете бонусным действием атаковать безоружно или монашеским оружием.','TCE');
    if(s.choices['variant_cantrip-formulas']==='yes')feature('Формулы заговоров','После долгого отдыха и изучения формул в книге можно заменить один заговор волшебника другим из его списка. Не даёт свободную замену при повышении.','TCE');
    if(s.choices['variant_primal-awareness']==='yes'){e.features=e.features.filter(f=>f.id!=='primeval-awareness'&&f.name!=='Primeval Awareness'&&f.name!=='Первозданная осведомлённость');spell('speak-with-animals','feature','Первобытная осведомлённость','wisdom',true,'1 раз / долгий отдых; также можно использовать ячейку.');}
-   for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_proficiency:'skill',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).forEach(id=>grant(type,id));
-   for(const key of ['cavalier_proficiency','samurai_proficiency','phantom_proficiency'])arr(s.choices[key]).forEach(id=>grant(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
+   for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_proficiency:'skill',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).forEach(id=>gain(type,id));
+   for(const key of ['cavalier_proficiency','samurai_proficiency','phantom_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
    e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...arr(s.choices.expertise)]);
-   if(sc?.id==='rune-knight'){grant('tool','smith');grant('language','giant');resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));}
+   if(sc?.id==='rune-knight'){gain('tool','smith');gain('language','giant');resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));}
    if(sc?.id==='battle-master')resource('superiority-dice','Кости превосходства (к8)',4,'short-rest');
    if(sc?.id==='arcane-archer')resource('arcane-shot','Мистический выстрел',2,'short-rest');
    if(sc?.id==='samurai')resource('fighting-spirit','Боевой дух',3);
    if(sc?.id==='echo-knight')resource('unleash-incarnation','Высвобождение воплощения',Math.max(1,mod(a.constitution)));
    if(sc?.id==='psi-warrior')resource('psionic-dice','Псионические кости (к6)',4);
-   if(sc?.id==='bladesinging'){grant('armor','light');grant('skill','performance');resource('bladesong','Песнь клинка',2);}
-   if(sc?.id==='mercy'){grant('skill','insight');grant('skill','medicine');grant('tool','herbalism_kit');}
-   if(sc?.id==='drunken-master'){grant('skill','performance');grant('tool','brewer');}
-   if(sc?.id==='assassin'||sc?.id==='mastermind'){grant('tool','disguise_kit');grant('tool',sc.id==='assassin'?'poisoner_kit':'forgery_kit');}
-   if(sc?.id==='scout'){grant('skill','nature');grant('skill','survival');e.fixedExpertise.push('nature','survival');}
-   if(sc?.id==='shepherd')grant('language','sylvan');
+   if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песнь клинка',2);}
+   if(sc?.id==='mercy'){gain('skill','insight');gain('skill','medicine');gain('tool','herbalism_kit');}
+   if(sc?.id==='drunken-master'){gain('skill','performance');gain('tool','brewer');}
+   if(sc?.id==='assassin'||sc?.id==='mastermind'){gain('tool','disguise_kit');gain('tool',sc.id==='assassin'?'poisoner_kit':'forgery_kit');}
+   if(sc?.id==='scout'){gain('skill','nature');gain('skill','survival');e.fixedExpertise.push('nature','survival');}
+   if(sc?.id==='shepherd')gain('language','sylvan');
    if(sc?.id==='dreams')resource('balm-of-summer-court','Бальзам Летнего двора (к6)',s.level);
    if(sc?.id==='shepherd')resource('spirit-totem','Тотемный дух',1,'short-rest');
    if(sc?.id==='abjuration'){resource('arcane-ward','Магическая защита: хиты',2*s.level+mod(a.intelligence));feature('Магическая защита','При заклинании ограждения от 1-го круга создаётся защита; максимум '+(2*s.level+mod(a.intelligence))+' хитов. Другие ограждения восстанавливают 2 × круг; создание 1 / долгий отдых.');}
@@ -552,9 +564,9 @@
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
    if(sc?.id==='artillerist')resource('eldritch-cannon','Мистическая пушка без ячейки',1);
    if(sc?.id==='battle-smith')resource('steel-defender','Стальной защитник: хиты',2+mod(a.intelligence)+5*s.level);
-   if(sc?.id==='armorer')grant('armor','heavy');if(sc?.id==='battle-smith')grant('weapon','martial');
-   if(sc?.id==='swords'){grant('armor','medium');grant('weapon','scimitar');}
-   if(sc?.id==='valor'){grant('armor','medium');grant('armor','shield');grant('weapon','martial');}
+   if(sc?.id==='armorer')gain('armor','heavy');if(sc?.id==='battle-smith')gain('weapon','martial');
+   if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}
+   if(sc?.id==='valor'){gain('armor','medium');gain('armor','shield');gain('weapon','martial');}
    if(sc?.id==='drakewarden')spell('thaumaturgy','cantrip',sc.label,'wisdom');
    if(['war','chronurgy'].includes(sc?.id)&&c.class==='wizard')e.initiativeBonus=(e.initiativeBonus||0)+mod(a.intelligence);
    if(sc?.id==='swashbuckler')e.initiativeBonus=(e.initiativeBonus||0)+mod(a.charisma);
@@ -564,7 +576,7 @@
    for(const [key,status] of Object.entries({bonus_cantrip:'cantrip',illusion_cantrip:'cantrip',archer_cantrip:'cantrip',giant_cantrip:'cantrip',style_cantrips:'cantrip',tome_cantrips:'cantrip',book_rituals:'ritual',guidance_bonus:'cantrip'}))arr(s.choices[key]).forEach(id=>spell(id,status,sc?.label));
    if(sc?.id==='spores')spell('chill-touch','cantrip',sc.label);if(sc?.id==='swarmkeeper')spell('mage-hand','cantrip',sc.label);
    if(sc?.id==='totem-warrior'){spell('beast-sense','ritual',sc.label,'wisdom',true,'Только ритуал');spell('speak-with-animals','ritual',sc.label,'wisdom',true,'Только ритуал');}
-   for(const id of [...s.invocations,...arr(s.choices.discipline)]){const o=D.options.find(o=>o.id===id);if(id==='beguiling-influence'){grant('skill','deception');grant('skill','persuasion');}if(o)for(const x of o.additionalSpells||[])for(const values of Object.values(x.innate||{})){const scan=v=>{if(typeof v==='string')spell(slug(v),s.invocations.includes(id)?'invocation':'feature',label(id),s.invocations.includes(id)?'charisma':'wisdom',true,id==='thief-of-five-fates'?'1 раз / долгий отдых; расходует ячейку колдуна.':s.invocations.includes(id)?'Без ячейки, по условиям воззвания':'За ци, по условиям дисциплины',id!=='thief-of-five-fates');else if(Array.isArray(v))v.forEach(scan);else if(v&&typeof v==='object')Object.values(v).forEach(scan);};scan(values);}}
+   for(const id of [...s.invocations,...arr(s.choices.discipline)]){const o=D.options.find(o=>o.id===id);if(id==='beguiling-influence'){gain('skill','deception');gain('skill','persuasion');}if(o)for(const x of o.additionalSpells||[])for(const values of Object.values(x.innate||{})){const scan=v=>{if(typeof v==='string')spell(slug(v),s.invocations.includes(id)?'invocation':'feature',label(id),s.invocations.includes(id)?'charisma':'wisdom',true,id==='thief-of-five-fates'?'1 раз / долгий отдых; расходует ячейку колдуна.':s.invocations.includes(id)?'Без ячейки, по условиям воззвания':'За ци, по условиям дисциплины',id!=='thief-of-five-fates');else if(Array.isArray(v))v.forEach(scan);else if(v&&typeof v==='object')Object.values(v).forEach(scan);};scan(values);}}
    const style=s.choices.style||s.choices.swords_style;
    if(style==='defense'&&e.armor)e.acBonus=(e.acBonus||0)+1;
    if(style)feature('Боевой стиль',label(style));
@@ -649,9 +661,11 @@
   for(const g of result)if(g.id.endsWith('creation_style'))g.options=g.options.filter(o=>!styles.has(canonicalStyle(o.value)));
   return result;
  }
+ // Decisions after level 1 depend on everything the hero already has from every class.
+ function progressContext(c,context,s){if(s.level<2)return context;const e=derive(c,context,context.baseExtras||{},s);return {...context,proficiencies:R.resolveProficiencies(c,e),knownSpells:uniq(e.spells.map(x=>x.id))};}
  function getChoices(c,p,context={},previous){
   if(!p||p.version===1)return getChoicesSingle(c,p,context,previous?.classStates?.[c.class]?.state||previous);
-  const s=previous||inspect(c,context).state,cls=p.classId;if(!Object.hasOwn(R.CLASSES,cls))return [];if(s.level>1)context={...context,proficiencies:R.resolveProficiencies(c,derive(c,context,context.baseExtras||{},s))};
+  const s=previous||inspect(c,context).state,cls=p.classId;if(!Object.hasOwn(R.CLASSES,cls))return [];context=progressContext(c,context,s);
   const owned=s.classStates[cls];if(!owned)return entryChoices(c,p,context,s);
   const local={...p,version:1,from:owned.state.level,to:owned.state.level+1,foundation:foundation(owned.character)};
   const base=cls===c.class?context.baseExtras:entryExtras(c,{classId:cls,choices:owned.onboarding},context);
@@ -676,7 +690,7 @@
   }else{
    const local={...p,version:1,from:owned.state.level,to:owned.state.level+1,foundation:foundation(owned.character)};
    const base=cls===c.class?context.baseExtras:entryExtras(c,{classId:cls,choices:owned.onboarding},context);
-   const result=transitionSingle(owned.character,local,{...context,baseExtras:base},owned.state);if(result.errors.length)return {errors:result.errors,state:s};next.classStates[cls].state=result.state;
+   const result=transitionSingle(owned.character,local,{...progressContext(c,context,s),baseExtras:base},owned.state);if(result.errors.length)return {errors:result.errors,state:s};next.classStates[cls].state=result.state;
   }
   next.level=p.to;next.entries=[...s.entries,clone(p)];
   for(const key of ['subclass','choices','known','book','prepared','cantrips','invocations','infusions','bonusReplacements'])next[key]=clone(next.classStates[c.class].state[key]);

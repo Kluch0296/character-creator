@@ -61,6 +61,7 @@ function advancementField(container, g, p, context) {
     const on = selected.includes(option.value), locked = g.count > 1 && selected.length >= g.count && !on;
     const card = spell ? createSpellCard(g, option, {selected:on,locked}) : createOptionCard(g, option, {selected:on,locked,multi:g.count > 1});
     const main = spell ? card.querySelector('.spell-card__main') : card;
+    if (!spell && option.source && /(^|:)(subclass|creation_domain|creation_origin|creation_patron)$/.test(g.id)) card.appendChild(createElement('span', 'source-badge advancement-option__source', option.source));
     main.addEventListener('click', () => {
       const next = selected.filter(id => id !== option.value);
       if (!on) {if (g.count > 1 && selected.length >= g.count) return;if (g.count === 1) next.length = 0;next.push(option.value);}
@@ -74,31 +75,57 @@ function advancementField(container, g, p, context) {
   const filters = renderPickerFilters(g, cards, spell);field.appendChild(filters.bar);
   const grid = createElement('div', spell ? 'spell-grid' : 'pick-grid');cards.forEach(({card}) => grid.appendChild(card));field.appendChild(grid);
   applyPickerFilter(g.id, cards, spell, filters.chips);
-  const link=createElement('a','reference-link',`Правила и источник: ${g.source || 'PHB'}`);
-  link.href=g.options.find(o=>selected.includes(o.value))?.url||`https://5e14.dnd.su/class/${LevelUpData.references[p.classId || character.class]}/`;
+  const picked=g.options.find(o=>selected.includes(o.value)&&o.url);
+  const link=createElement('a','reference-link',picked?`Подробнее: ${plainLabel(picked.label)} ↗`:'Правила класса ↗');
+  link.href=picked?.url||`https://5e14.dnd.su/class/${LevelUpData.references[p.classId || character.class]}/`;
   link.target='_blank';link.rel='noopener noreferrer';field.appendChild(link);container.appendChild(field);
 }
 
-function advancementClassPicker(card, p, context) {
+function advancementClassCard(option, p, context) {
+  const selected = option.value === (p.classId || character.class), die = CharacterRules.CLASSES[option.value]?.hitDie;
+  const item = createElement('div', `advancement-class${selected ? ' is-selected' : ''}${option.level ? ' is-owned' : ''}${option.eligible ? '' : ' is-unavailable'}`);
+  const button = createElement('button', 'advancement-class__pick');button.type = 'button';button.disabled = !option.eligible;
+  button.setAttribute('aria-pressed', selected ? 'true' : 'false');button.setAttribute('data-focus-key', `advancement-class:${option.value}`);
+  const image = getSelectedOption('class', option.value)?.image;
+  if (image) {const icon = createElement('img', 'advancement-class__icon');icon.src = image;icon.alt = '';icon.width = 44;icon.height = 44;icon.loading = 'lazy';button.appendChild(icon);}
+  const body = createElement('span', 'advancement-class__body'), head = createElement('span', 'advancement-class__head');
+  head.appendChild(createElement('span', 'advancement-class__name', plainLabel(option.label)));
+  head.appendChild(createElement('span', 'advancement-class__level', option.level ? `${option.level} → ${option.nextLevel}` : 'новый'));
+  body.appendChild(head);
+  body.appendChild(createElement('span', 'advancement-class__meta', `${option.level ? `${option.nextLevel}-й уровень класса` : 'Первый уровень класса'} · кость хитов к${die}`));
+  if (!option.level) {
+    // The target's own requirement reads without its class prefix; other classes keep theirs.
+    const own = `${option.label}: `, unmet = (option.unmet || []).map(text => text.startsWith(own) ? text.slice(own.length) : text);
+    body.appendChild(createElement('span', `advancement-class__req ${unmet.length ? 'is-unmet' : 'is-met'}`, unmet.length ? `Нужно: ${unmet.join('; ')}` : `✓ ${option.requirements}`));
+  }
+  button.appendChild(body);
+  const check = createElement('span', 'pick-card__check advancement-class__check', selected ? '✓' : '');check.setAttribute('aria-hidden', 'true');button.appendChild(check);
+  button.addEventListener('click', () => {
+    if (selected) return;
+    character.pendingAdvancement = LevelUpRules.selectClass(character, p, option.value, context);character.pendingAdvancement.step = 0;
+    saveDraft('result');renderPage();focusByKey(getApp(), `advancement-class:${option.value}`);
+  });
+  item.appendChild(button);
+  if (option.url) {const source = createElement('a', 'reference-link advancement-class__link', 'Правила класса ↗');source.href = option.url;source.target = '_blank';source.rel = 'noopener noreferrer';item.appendChild(source);}
+  return item;
+}
+
+function advancementClassPicker(card, p, context, options) {
   card.appendChild(createElement('p', 'choice-help', 'Продолжите текущий класс или возьмите первый уровень другого. Мультиклассирование — опциональное правило, согласуйте его с Мастером.'));
-  const grid = createElement('div', 'advancement-classes');
-  const options = LevelUpRules.classOptions ? LevelUpRules.classOptions(character, context) : [{value:character.class,label:getSelectedOption('class',character.class)?.label,level:p.from,nextLevel:p.to,eligible:true}];
-  for (const option of options) {
-    const item = createElement('div', `advancement-class${!option.eligible ? ' is-unavailable' : ''}`);
-    const button = createElement('button', `pick-card${option.value === (p.classId || character.class) ? ' is-selected' : ''}`);button.type='button';button.disabled=!option.eligible;
-    button.setAttribute('aria-pressed', option.value === (p.classId || character.class) ? 'true' : 'false');button.setAttribute('data-focus-key',`advancement-class:${option.value}`);
-    button.appendChild(createElement('span','pick-card__name',plainLabel(option.label)));
-    button.appendChild(createElement('span','pick-card__text',option.level ? `${option.level} → ${option.nextLevel} уровень класса` : 'Новый класс · 1-й уровень'));
-    button.addEventListener('click',()=>{
-      if (option.value === (p.classId || character.class)) return;
-      character.pendingAdvancement=LevelUpRules.selectClass(character,p,option.value,context);character.pendingAdvancement.step=0;
-      saveDraft('result');renderPage();focusByKey(getApp(),`advancement-class:${option.value}`);
-    });item.appendChild(button);
-    if (option.requirements) item.appendChild(createElement('p','choice-help',Array.isArray(option.requirements)?option.requirements.join('; '):String(option.requirements)));
-    if (option.unmet?.length) item.appendChild(createElement('p','conflict-note',`Не выполнено: ${Array.isArray(option.unmet)?option.unmet.join('; '):option.unmet}`));
-    if (option.url) {const source=createElement('a','reference-link','Правила класса ↗');source.href=option.url;source.target='_blank';source.rel='noopener noreferrer';item.appendChild(source);}
-    grid.appendChild(item);
-  }card.appendChild(grid);
+  const fresh = options.filter(option => !option.level);
+  const groups = [
+    ['Ваши классы', options.filter(option => option.level), ''],
+    ['Новый класс', [...fresh.filter(option => option.eligible), ...fresh.filter(option => !option.eligible)], 'Нужно 13+ в основной характеристике нового класса и всех уже имеющихся.']
+  ];
+  for (const [title, items, note] of groups) {
+    if (!items.length) continue;
+    const section = createElement('section', 'advancement-classes-group');
+    section.appendChild(createElement('h3', 'advancement-classes-group__title', title));
+    if (note) section.appendChild(createElement('p', 'advancement-classes-group__note', note));
+    const grid = createElement('div', 'advancement-classes');
+    items.forEach(option => grid.appendChild(advancementClassCard(option, p, context)));
+    section.appendChild(grid);card.appendChild(section);
+  }
 }
 
 function advancementHp(p, context) {
@@ -109,17 +136,30 @@ function advancementHp(p, context) {
 }
 
 function advancementHpField(card, p, context, onChange) {
-  const gain=advancementHp(p,context),die=gain.die,average=die/2+1;
+  const die=advancementHp(p,context).die,average=die/2+1,before=getDerivedCharacter().hp;
   const averageGain=advancementHp({...p,hp:{mode:'average',value:average}},context);
-  const field=createElement('div','form-field');
+  const field=createElement('div','form-field advancement-hp');
   field.appendChild(createElement('p','choice-help',`Кость выбранного класса: к${die}. Минимальная прибавка — 1 хит.`));
-  const label=createElement('label','field-label','Способ получения хитов');label.htmlFor='advancement-hp-mode';field.appendChild(label);
-  const select=createElement('select','mechanic-select');select.id='advancement-hp-mode';
-  for (const [id,name] of [['average',`Среднее: +${averageGain.gain} хитов (${average} + ТЕЛ ${signedValue(averageGain.constitution)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''})`],['roll','Ввести фактический бросок']]) {const option=createElement('option','',name);option.value=id;select.appendChild(option);}
-  select.value=p.hp.mode;select.addEventListener('change',()=>{p.hp={mode:select.value,value:select.value==='average'?average:1};saveDraft('result');renderPage();document.getElementById('advancement-hp-mode')?.focus({preventScroll:true});});field.appendChild(select);
-  const strip=createElement('p','advancement-hp-strip');strip.setAttribute('aria-live','polite');field.appendChild(strip);
-  const updateStrip=()=>{const hp=advancementHp(p,context);const valid=Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=die;strip.textContent=valid?`${hp.raw} кость + (${signedValue(hp.constitution)}) ТЕЛ${hp.bonus ? ` + ${hp.bonus} бонусы` : ''} = +${hp.gain} хитов`:`Введите целый бросок от 1 до ${die}.`;};updateStrip();
-  if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.value=p.hp.value;input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
+  const modes=createElement('div','advancement-hp-modes');modes.setAttribute('role','group');modes.setAttribute('aria-label','Способ получения хитов');
+  const mode=(id,title,text)=>{
+    const button=createElement('button',`advancement-hp-mode${p.hp.mode===id?' is-selected':''}`);button.type='button';
+    button.setAttribute('aria-pressed',p.hp.mode===id?'true':'false');button.setAttribute('data-focus-key',`advancement-hp:${id}`);
+    button.appendChild(createElement('span','advancement-hp-mode__title',title));button.appendChild(createElement('span','advancement-hp-mode__text',text));
+    button.addEventListener('click',()=>{if(p.hp.mode===id)return;p.hp={mode:id,value:id==='average'?average:1};saveDraft('result');renderPage();focusByKey(getApp(),`advancement-hp:${id}`);});
+    modes.appendChild(button);
+  };
+  mode('average',`Среднее: +${averageGain.gain} хитов`,`${average} + ТЕЛ ${signedValue(averageGain.constitution)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''} · без броска`);
+  mode('roll','Свой бросок',`Бросьте к${die} и введите результат`);
+  field.appendChild(modes);
+  if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select advancement-hp-roll');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.inputMode='numeric';input.value=p.hp.value;input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
+  const strip=createElement('div','advancement-hp-strip');strip.setAttribute('aria-live','polite');field.appendChild(strip);
+  const updateStrip=()=>{
+    const hp=advancementHp(p,context),valid=Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=die;strip.textContent='';strip.classList.remove('is-invalid');
+    if(!valid){strip.classList.add('is-invalid');strip.textContent=`Введите целый бросок от 1 до ${die}.`;return;}
+    const formula=createElement('span','advancement-hp-strip__formula',`${hp.raw} кость + (${signedValue(hp.constitution)}) ТЕЛ${hp.bonus ? ` + ${hp.bonus} бонусы` : ''} = `);
+    formula.appendChild(createElement('strong','advancement-hp-strip__gain',`+${hp.gain} хитов`));strip.appendChild(formula);
+    strip.appendChild(createElement('span','advancement-hp-strip__total',`Максимум хитов: ${before} → ${before+hp.gain}`));
+  };updateStrip();
   card.appendChild(field);
 }
 
@@ -134,24 +174,36 @@ function showAdvancement(container) {
   const steps=['Класс','Хиты','Умения и владения','Заклинания','Проверка'];
   if (p.version===1 && p.uiVersion!==2) {p.step=Number.isInteger(p.step)?p.step+1:0;p.uiVersion=2;}
   const step=Number.isInteger(p.step)&&p.step>=0&&p.step<steps.length?p.step:0;
-  card.appendChild(createElement('p','eyebrow',`Общий уровень ${p.from} → ${p.to} · шаг ${step+1} из ${steps.length}`));
-  const heading=createElement('h2','',steps[step]);heading.tabIndex=-1;card.appendChild(heading);
-  card.appendChild(createElement('p','choice-help','Исходный герой сохранён. Все изменения применяются вместе после проверки.'));
-  card.appendChild(createElement('p','advancement-class-line',`Выбранный класс: ${plainLabel(getSelectedOption('class',p.classId || character.class)?.label)} · общий уровень ${p.to}`));
-  const progress=createElement('ol','advancement-progress');steps.forEach((name,i)=>{const item=createElement('li',i===step?'is-current':'',name);if(i===step)item.setAttribute('aria-current','step');progress.appendChild(item);});card.appendChild(progress);
+  const classOptions=LevelUpRules.classOptions(character,context),selectedClass=classOptions.find(option=>option.value===(p.classId||character.class));
+  const head=createElement('header','advancement-head');
+  head.appendChild(createElement('p','advancement-eyebrow',`Общий уровень ${p.from} → ${p.to} · шаг ${step+1} из ${steps.length}`));
+  const heading=createElement('h2','advancement-title',steps[step]);heading.tabIndex=-1;head.appendChild(heading);
+  const chips=createElement('div','advancement-chips');
+  if(selectedClass)chips.appendChild(createElement('span','advancement-chip advancement-chip--class',`${plainLabel(selectedClass.label)} ${selectedClass.level ? `${selectedClass.level} → ${selectedClass.nextLevel}` : '· новый класс'}`));
+  chips.appendChild(createElement('span','advancement-chip',`Кость хитов к${CharacterRules.CLASSES[p.classId||character.class]?.hitDie}`));
+  chips.appendChild(createElement('span','advancement-chip advancement-chip--muted','Исходный герой сохранён до подтверждения'));
+  head.appendChild(chips);card.appendChild(head);
+  const progress=createElement('ol','advancement-progress');progress.setAttribute('aria-label','Шаги повышения');
+  steps.forEach((name,i)=>{
+    const item=createElement('li',i<step?'is-done':i===step?'is-current':'');if(i===step)item.setAttribute('aria-current','step');
+    const target=i<step?createElement('button','advancement-progress__link'):createElement('span','advancement-progress__link');
+    if(i<step){target.type='button';target.addEventListener('click',()=>{p.step=i;saveDraft('result');renderPage();scrollToPageTop();});}
+    const index=createElement('span','advancement-progress__index',i<step?'✓':String(i+1));index.setAttribute('aria-hidden','true');
+    target.appendChild(index);target.appendChild(createElement('span','advancement-progress__name',name));item.appendChild(target);progress.appendChild(item);
+  });card.appendChild(progress);
   const groups=LevelUpRules.getChoices(character,p,context),transition=LevelUpRules.transition(character,p,context),errors=transition.errors;
   const aside=createElement('aside','character-sheet advancement-sheet');aside.setAttribute('aria-label','Лист персонажа при повышении');
   const updateSheet=()=>{
     const current=LevelUpRules.transition(character,p,context),base=context.baseExtras,committed=LevelUpRules.derive(character,context,base);
     const extras=current.errors.length?committed:LevelUpRules.derive(character,context,base,current.state);
     const stats=CharacterRules.derivedStats(character,extras),hp=advancementHp(p,context);
-    const eligible=!LevelUpRules.classOptions||LevelUpRules.classOptions(character,context).some(option=>option.value===(p.classId||character.class)&&option.eligible);
+    const eligible=!!selectedClass?.eligible;
     const validHp=eligible&&Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=hp.die&&(p.hp.mode==='roll'||p.hp.mode==='average'&&hp.raw===hp.die/2+1);
     if (current.errors.length&&validHp) {stats.hp+=hp.gain;stats.maxHp=stats.hp;}
     renderCharacterSheet(aside,null,{character,extras,stats,label:current.errors.length?(validHp?'Предпросмотр хитов':'Сохранённый герой'):'Предпросмотр повышения',note:current.errors.length?(validHp?'Умения и магия показывают сохранённого героя, пока выборы не завершены. Хиты учитывают допустимую прибавку.':'Укажите допустимые класс, хиты и решения. До проверки здесь показан сохранённый герой.'):'Все решения проверены. Изменения применятся после подтверждения.'});
   };updateSheet();
   if(step===0){
-    advancementClassPicker(card,p,context);
+    advancementClassPicker(card,p,context,classOptions);
   } else if(step===1){
     advancementHpField(card,p,context,updateSheet);
   } else if(step<4){
@@ -162,7 +214,7 @@ function showAdvancement(container) {
     if(errors.length){const list=createElement('ul','validation-summary');list.setAttribute('role','alert');errors.forEach(e=>list.appendChild(createElement('li','',e.message)));card.appendChild(list);}
     else {
       const extra=LevelUpRules.derive(character,context,context.baseExtras,transition.state),after=CharacterRules.derivedStats(character,extra),before=getDerivedCharacter();
-      const review=createElement('dl','summary-grid');appendDefinition(review,'Общий уровень',`${p.from} → ${p.to}`);appendDefinition(review,'Классы',characterClassLabel(character,extra));appendDefinition(review,'Максимум хитов',`${before.hp} → ${after.hp} (+${advancementHp(p,context).gain})`);appendDefinition(review,'Кости хитов',characterHitDiceLabel(after,extra));appendDefinition(review,'Подклассы',extra.subclasses?.map(item=>item.label).join(', ')||extra.subclass?.label||'—');
+      const review=createElement('dl','summary-grid');appendDefinition(review,'Общий уровень',`${p.from} → ${p.to}`);appendDefinition(review,'Классы',characterClassLabel(character,extra));appendDefinition(review,'Максимум хитов',`${before.hp} → ${after.hp} (+${advancementHp(p,context).gain})`);appendDefinition(review,'Кости хитов',characterHitDiceLabel(after,extra));const multiclass=(extra.classes||[]).length>1;appendDefinition(review,'Подклассы',(extra.subclasses||[]).map(item=>multiclass?`${extra.classes.find(x=>x.id===item.classId)?.label||item.classId}: ${item.label}`:item.label).join(' / ')||extra.subclass?.label||'—');
       const slots=Object.entries(extra.spellcasting?.slotTiers||{}).map(([level,count])=>`${count} × ${level}-й круг`);if(extra.spellcasting?.pactSlots) slots.push(`${extra.spellcasting.pactSlots.count} × ${extra.spellcasting.pactSlots.level}-й круг (договор, короткий отдых)`);appendDefinition(review,'Ячейки',slots.join('; ')||'—');card.appendChild(review);
       appendResultList(card,'Ресурсы',(extra.resources||[]).map(x=>`${x.name}: ${x.max}, ${x.rest==='short-rest'?'короткий':'долгий'} отдых`));
       appendResultList(card,'Новые решения',groups.map(g=>g.label+': '+(Array.isArray(p.choices[g.id])?p.choices[g.id]:[p.choices[g.id]]).map(id=>g.options.find(o=>o.value===id)?.label||id).join(', ')));
@@ -180,7 +232,8 @@ function showAdvancement(container) {
 }
 
 function confirmProgressionResetForEdit(onConfirm=()=>renderPage()) {
-  if(!character.advancement&&!character.pendingAdvancement)return true;
+  // A present but falsey ledger (advancement: null) is corrupt and still needs an explicit reset.
+  if(!Object.hasOwn(character,'advancement')&&!Object.hasOwn(character,'pendingAdvancement'))return true;
   const existing=document.getElementById('progression-reset-dialog');if(existing)return false;
   const previousFocus=document.activeElement;const overlay=createElement('div','progression-reset-overlay'),dialog=createElement('section','result-card progression-reset-dialog');dialog.id='progression-reset-dialog';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','progression-reset-title');
   const title=createElement('h2','','Сбросить прокачку для редактирования?');title.id='progression-reset-title';dialog.appendChild(title);

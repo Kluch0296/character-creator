@@ -59,7 +59,11 @@
     const classText=multiclass?classes.map(c=>`${c.label || c.id} ${c.level}`).join(' / '):labels.class || character.class;
     const pools=list(derived.hitDicePools || options.hitDicePools);
     const diceText=pools.map(p=>`${p.count}к${p.die}`).join(' + ');
-    const infoValues = {charClass:classText, charSubclass:labels.subclass || options.subclass?.label || '', level:derived.level || character.level || 1,
+    const subclasses=list(options.subclasses).filter(s=>s?.label || s?.name);
+    const subclassText=multiclass&&subclasses.length
+      ? subclasses.map(s=>`${classes.find(c=>c.id===s.classId)?.label || s.classId}: ${s.label || s.name}`).join(' / ')
+      : labels.subclass || options.subclass?.label || '';
+    const infoValues = {charClass:classText, charSubclass:subclassText, level:derived.level || character.level || 1,
       background:labels.background || character.background,playerName:character.playerName || '',
       race:[labels.race || character.race, labels.subrace].filter(Boolean).join(' — '),alignment:labels.alignment || character.alignment || '',experience:0};
     const data = {
