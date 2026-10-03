@@ -3437,3 +3437,14 @@ noscript {
     box-shadow: none;
   }
 }
+/* Advancement uses the existing card and form visual language. */
+.advancement-main { max-width: 960px; margin: 0 auto; width: 100%; }
+.advancement-card { padding: clamp(18px, 4vw, 40px); }
+.advancement-progress { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 16px 24px; color: var(--muted, #a6adbb); }
+.advancement-progress .is-current { color: var(--text, #f0f2f6); font-weight: 700; }
+.advancement-field { min-width: 0; border: 1px solid var(--border, #394150); border-radius: 12px; margin: 16px 0; padding: 16px; }
+.advancement-field select { width: 100%; max-width: 100%; margin-bottom: 12px; }
+.advancement-field .reference-link { display: block; margin-top: 8px; }
+.progression-reset-overlay { position: fixed; inset: 0; z-index: 100; background: #060a12cc; display: grid; place-items: center; padding: 20px; }
+.progression-reset-dialog { max-width: 640px; padding: 28px; max-height: 90vh; overflow: auto; }
+@media(max-width: 600px) { .advancement-progress { gap: 8px 16px; font-size: 13px; } .advancement-card .result-actions { display: flex; flex-direction: column; } .advancement-card .result-actions button { width: 100%; } }

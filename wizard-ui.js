@@ -387,6 +387,7 @@ function fillStepper(nav, steps, complete) {
     button.setAttribute('aria-label', `${step.label}${step.summary ? `: ${step.summary}` : ''}`);
     button.setAttribute('title', `${step.label}${step.summary ? ` — ${step.summary}` : ''}`);
     button.addEventListener('click', () => {
+      if(typeof LevelUpRules!=='undefined'&&currentPageIndex>=config.pages.length&&!confirmProgressionResetForEdit(()=>{currentPageIndex=step.index;renderPage();scrollToPageTop();}))return;
       currentPageIndex = step.index;
       renderPage();
       scrollToPageTop();
@@ -623,18 +624,22 @@ function renderCharacterSheet(aside, steps) {
       grid.appendChild(item);
     });
     magic.appendChild(grid);
-    if (casting.slots) {
-      const slots = createElement('p', 'sheet-slots', `Ячейки ${casting.slotLevel}-го круга: `);
-      for (let index = 0; index < casting.slots; index++) slots.appendChild(createElement('span', 'sheet-slot'));
+    for (const [level,count] of Object.entries(casting.pactSlots?{[casting.pactSlots.level]:casting.pactSlots.count}:casting.slotTiers||{[casting.slotLevel]:casting.slots})) {
+      const slots = createElement('p', 'sheet-slots', `Ячейки ${level}-го круга${casting.pactSlots?' (договор)':''}: `);
+      for (let index = 0; index < count; index++) slots.appendChild(createElement('span', 'sheet-slot'));
       magic.appendChild(slots);
     }
   }
 
   const spells = extras && extras.spells || [];
+  if (extras && extras.resources && extras.resources.length) {
+    const section = sheetSection(details, 'Ресурсы');
+    for (const resource of extras.resources) section.appendChild(createElement('p', 'sheet-note', `${resource.name}: максимум ${resource.max}; восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`));
+  }
   const cantrips = spells.filter(spell => !spell.level);
   const classSpells = spells.filter(spell => spell.level && ['prepared', 'known'].includes(spell.status));
   const bookOnly = spells.filter(spell => spell.status === 'spellbook');
-  const innate = spells.filter(spell => spell.level && ['racial', 'feat', 'ritual'].includes(spell.status));
+  const innate = spells.filter(spell => spell.level && ['racial', 'feat', 'ritual', 'feature', 'invocation'].includes(spell.status));
   if (cantrips.length) sheetTags(sheetSection(details, 'Заговоры'), cantrips.map(spell => ({ text: spell.label || spell.id })));
   if (classSpells.length || bookOnly.length) {
     const section = sheetSection(details, casting && casting.mode === 'book' ? 'Подготовлено' : 'Заклинания');

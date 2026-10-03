@@ -9,7 +9,12 @@ function getCreationExtras() {
   const context = getCreationContext();
   const extras = CreationOptions.derive(character, context);
   const proficiencies = CharacterRules.resolveProficiencies(character, extras);
-  return CreationOptions.derive(character, { ...context, proficiencies });
+  const base=CreationOptions.derive(character, { ...context, proficiencies });
+  if(typeof LevelUpRules==='undefined')return base;
+  const progression=LevelUpRules.derive(character,{...context,baseExtras:base,proficiencies},base);
+  const finalProficiencies=CharacterRules.resolveProficiencies(character,progression);
+  const recalculated=CreationOptions.derive(character,{...context,proficiencies:finalProficiencies});
+  return LevelUpRules.derive(character,{...context,baseExtras:base,proficiencies},recalculated);
 }
 
 function getResolvedProficiencies() {
@@ -485,7 +490,7 @@ function renderMechanicalSummary(container) {
   appendDefinition(list, 'Класс доспеха', stats.armorClass ?? extras.armorClass);
   appendDefinition(list, 'Скорость', typeof stats.speed === 'number' ? `${stats.speed} футов` : stats.speed?.walk);
   appendDefinition(list, 'Инициатива', signedNumber(stats.initiative));
-  appendDefinition(list, 'Кость хитов', `1к${stats.hitDie}`);
+  appendDefinition(list, 'Кости хитов', `${stats.hitDice||1}к${stats.hitDie}`);
   appendDefinition(list, 'Бонус мастерства', '+2');
   appendDefinition(list, 'Пассивное Восприятие', stats.passivePerception);
   for (const [id, label] of [['darkvision','Тёмное зрение'],['fly','Полёт'],['swim','Плавание'],['climb','Лазание']]) if (stats[id]) appendDefinition(list, label, `${stats[id]} футов`);
@@ -516,9 +521,11 @@ function renderMechanicalSummary(container) {
   appendResultList(container, 'Атаки', (extras.attacks || []).map(attack => `${attack.label}: ${signedNumber(attack.attackBonus)} к попаданию, ${attack.damage} урона${attack.notes?.length ? `. ${attack.notes.join(' ')}` : ''}`));
   if (extras.spellcasting) {
     const casting = extras.spellcasting;
-    appendResultList(container, 'Использование заклинаний', [`Базовая характеристика: ${ABILITY_LABELS.find(a => a.id === casting.ability)?.label}; атака ${signedNumber(casting.attackBonus)}; Сл спасброска ${casting.saveDC}.`, `Ячейки: ${casting.slots} × ${casting.slotLevel}-го уровня; восстановление после ${casting.slotRecovery === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`]);
+    const tiers=casting.pactSlots?{[casting.pactSlots.level]:casting.pactSlots.count}:casting.slotTiers||{[casting.slotLevel]:casting.slots};
+    appendResultList(container, 'Использование заклинаний', [`Базовая характеристика: ${ABILITY_LABELS.find(a => a.id === casting.ability)?.label}; атака ${signedNumber(casting.attackBonus)}; Сл спасброска ${casting.saveDC}.`, `Ячейки: ${Object.entries(tiers).map(([level,count])=>`${count} × ${level}-й круг`).join(', ')}; восстановление после ${casting.slotRecovery === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`]);
   }
-  appendResultList(container, 'Заклинания и заговоры', (extras.spells || []).map(spell => `${spell.label || spell.id} · ${spell.level ? `${spell.level}-й уровень` : 'заговор'} · ${spell.source}${spell.status ? ` · ${{prepared:'подготовлено',known:'известно',spellbook:'в книге',racial:'от расы',ritual:'ритуал',feat:'от черты',cantrip:'известно'}[spell.status] || spell.status}` : ''}${spell.usage ? ` · ${spell.usage}` : ''}`));
+  appendResultList(container, 'Заклинания и заговоры', (extras.spells || []).map(spell => `${spell.label || spell.id} · ${spell.level ? `${spell.level}-й уровень` : 'заговор'} · ${spell.source}${spell.status ? ` · ${{prepared:'подготовлено',known:'известно',spellbook:'в книге',racial:'от расы',ritual:'ритуал',feat:'от черты',cantrip:'известно',invocation:'воззвание',feature:'от умения'}[spell.status] || spell.status}` : ''}${spell.usage ? ` · ${spell.usage}` : ''}`));
+  appendResultList(container, 'Ресурсы', (extras.resources || []).map(resource => `${resource.name}: максимум ${resource.max}; восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`));
   appendResultList(container, 'Особенности и примечания', [...new Set([...(stats.notes || []), ...(extras.features || []).map(feature => `${feature.name}: ${feature.description}`)])]);
 }
 

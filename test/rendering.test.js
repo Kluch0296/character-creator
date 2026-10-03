@@ -218,7 +218,7 @@ function loadScript(dom, configData) {
     clearTimeout
   };
   vm.createContext(context);
-  for (const name of ['rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js']) {
+  for (const name of ['rules.js', 'levelup-data.js', 'levelup-rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js', 'levelup-ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(projectRoot, name), 'utf8'), context, { filename: name });
   }
   const script = fs.readFileSync(path.join(projectRoot, 'script.js'), 'utf8');
@@ -749,4 +749,63 @@ test('configuration links, assets and option values are release-safe', () => {
   const highElf = elf.suboptions.find(option => option.value === 'high_elf');
   const cantrips = highElf.additionalFields[0].additionalFields[0].options;
   assert.ok(cantrips.some(option => option.value === 'blade-ward'));
+});
+
+
+test('advancement UI restores a legacy draft, resumes/cancels and commits each level once with export agreement', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();
+  fillWizard(context,{class:'fighter',race:'dwarf',race_sub:'hill-dwarf',background:'soldier',name:'CODEX QA legacy',creation_style:'defense',creation_worn_armor:'chain-mail',creation_shield_equipped:'yes'});
+  vm.runInContext("currentPageIndex=config.pages.length;saveDraft('result');restoreDraft();renderPage();",context);
+  const original=JSON.parse(vm.runInContext('JSON.stringify(character)',context));
+  const click=text=>{const button=dom.root.querySelectorAll('button').find(b=>b.textContent===text);assert.ok(button,text);assert.equal(button.disabled,false,text);button.click();};
+  click('Повысить до 2-го уровня');click('Далее →');
+  vm.runInContext('restoreDraft();renderPage();',context);
+  assert.ok(dom.root.textContent.includes('шаг 2 из 4'));
+  click('Отменить повышение');assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character)',context)),original);
+  click('Повысить до 2-го уровня');click('Далее →');click('Далее →');click('Далее →');click('Применить повышение');
+  vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('character.level',context),2);
+  click('Повысить до 3-го уровня');click('Далее →');
+  const select=dom.document.getElementById('advancement-subclass-0');assert.ok(select);select.value='champion';select.dispatchEvent({type:'change'});
+  click('Далее →');click('Далее →');click('Применить повышение');
+  const result=JSON.parse(vm.runInContext('JSON.stringify({character,stats:getDerivedCharacter(),native:getExportData()})',context));
+  assert.equal(result.character.level,3);assert.equal(result.stats.hp,34);assert.equal(result.stats.ac,19);assert.equal(result.character.advancement.entries.length,2);
+  for(const key of Object.keys(original))if(key!=='level')assert.deepEqual(result.character[key],original[key]);
+  const native=JSON.parse(result.native[0].data);assert.equal(native.info.level.value,3);assert.equal(native.vitality['hp-max'].value,result.stats.hp);assert.equal(native.vitality['hp-dice-current'].value,3);
+  assert.ok(!dom.root.textContent.includes('Повысить до 4-го уровня'));
+  click('← Вернуться к редактированию');assert.ok(dom.document.getElementById('progression-reset-dialog'));click('Оставить героя');assert.equal(vm.runInContext('character.level',context),3);
+  click('← Вернуться к редактированию');click('Сбросить прокачку и продолжить');assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.name',context),original.name);
+});
+
+test('malformed pending drafts can be cancelled and corrupt ledgers block export with no added HP', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  const baseline=vm.runInContext('getDerivedCharacter().hp',context);
+  vm.runInContext('currentPageIndex=config.pages.length;character.pendingAdvancement={version:1,choices:null};renderPage();',context);
+  assert.ok(dom.root.textContent.includes('Повреждён черновик повышения'));
+  dom.root.querySelectorAll('button').find(b=>b.textContent==='Отменить повышение').click();
+  assert.equal(vm.runInContext('character.level',context),1);
+  vm.runInContext("const p=LevelUpRules.begin(character,getAdvancementContext());character=LevelUpRules.commit(character,p,getAdvancementContext());character.advancement.entries.push(p);character.level=3;renderPage();",context);
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),baseline);assert.throws(()=>vm.runInContext('getExportData()',context));
+  assert.ok(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled);
+});
+test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
+  for (const cls of ['fighter','bard','warlock']) {
+    const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:cls});
+    vm.runInContext(`
+      for(let level=2;level<=${cls==='warlock'?3:2};level++){
+        const p=LevelUpRules.begin(character,getAdvancementContext());
+        if(level===3)p.choices.pact='chain';
+        for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);
+        character=LevelUpRules.commit(character,p,getAdvancementContext());
+      }
+      const left=document.createElement('div'),right=document.createElement('aside');
+      renderMechanicalSummary(left);renderCharacterSheet(right,getStepStates());
+      sheetProbe={left:left.textContent,right:right.textContent,extras:getCreationExtras(),export:getExportData()};
+    `,context);
+    const result=JSON.parse(vm.runInContext('JSON.stringify(sheetProbe)',context));
+    if(cls==='warlock'){
+      const spell=result.extras.spells.find(x=>x.id==='find-familiar');assert.ok(spell&&spell.ability==='charisma');assert.ok(result.left.includes(spell.label));assert.ok(result.right.includes(spell.label));assert.ok(result.export[0].spells.slotless.includes(context.LssExport.SPELL_IDS['find-familiar']));
+    } else {
+      for(const r of result.extras.resources){const text=`${r.name}: максимум ${r.max}; восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха.`;assert.ok(result.left.includes(text),cls+':left:'+r.id);assert.ok(result.right.includes(text),cls+':right:'+r.id);}
+    }
+  }
 });

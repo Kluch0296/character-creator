@@ -51,9 +51,10 @@
   }
   /** Native LSS v2 export. Inputs are deliberately separate to prevent base scores replacing final scores. */
   function buildLssExport(character, labels = {}, derived = {}, options = {}) {
+    if(options.progressionErrors?.length)throw new Error(options.progressionErrors[0].message);
     const p = derived.proficiencies || {};
     const abilities = derived.abilities || character.abilities || {};
-    const infoValues = {charClass:labels.class || character.class, charSubclass:labels.subclass || '', level:character.level || 1,
+    const infoValues = {charClass:labels.class || character.class, charSubclass:labels.subclass || options.subclass?.label || '', level:derived.level || character.level || 1,
       background:labels.background || character.background,playerName:character.playerName || '',
       race:[labels.race || character.race, labels.subrace].filter(Boolean).join(' — '),alignment:labels.alignment || character.alignment || '',experience:0};
     const data = {
@@ -84,6 +85,7 @@
     data.text.prof=richText(proficiencyText(p));
     data.text.traits=richText([
       ...list(options.features).map(f=>typeof f==='string'?f:`${f.name || f.label}: ${f.description || ''}`),
+      ...list(options.resources).map(r=>`${r.name}: ${r.max}; восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха.`),
       ...list(derived.notes),
       derived.darkvision ? `Тёмное зрение: ${derived.darkvision} футов.` : '',
       ...['swim','climb','fly'].filter(k=>derived[k]).map(k=>`${{swim:'Плавание',climb:'Лазание',fly:'Полёт'}[k]}: ${derived[k]} футов.`),
@@ -114,8 +116,12 @@
     if(casting && ABILITIES[casting.ability]) {
       data.spellsInfo.base={name:'base',code:ABILITIES[casting.ability],value:ABILITY_NAMES[casting.ability]};
       data.spellsInfo.available={classes:[character.class]};
-      if(casting.slots) data[casting.slotRecovery==='short-rest'?'spellsPact':'spells'][`slots-${casting.slotLevel || 1}`]={value:casting.slots};
-      if(casting.slots) data.text.attacks.value.data.content.push(...richText([`Ячейки: ${casting.slots} × ${casting.slotLevel || 1}-й уровень; восстановление: ${casting.slotRecovery==='short-rest'?'короткий отдых':'долгий отдых'}.`]).value.data.content);
+      const tiers=casting.slotTiers|| (casting.slotRecovery!=='short-rest'?{[casting.slotLevel||1]:casting.slots}:{});
+      for(const [level,count]of Object.entries(tiers))if(count)data.spells[`slots-${level}`]={value:count};
+      const pact=casting.pactSlots||(casting.slotRecovery==='short-rest'?{level:casting.slotLevel||1,count:casting.slots}:null);
+      if(pact?.count)data.spellsPact[`slots-${pact.level}`]={value:pact.count};
+      const text=[...Object.entries(tiers).filter(([,n])=>n).map(([level,count])=>`${count} × ${level}-й круг (долгий отдых)`),pact?.count?`${pact.count} × ${pact.level}-й круг (короткий отдых)`:null].filter(Boolean).join('; ');
+      if(text)data.text.attacks.value.data.content.push(...richText(['Ячейки: '+text+'.']).value.data.content);
     }
     for(const coin of ['cp','sp','gp','ep','pp']) {
       if(Number.isFinite(options.money?.[coin])) data.coins[coin]={value:options.money[coin]};
@@ -136,7 +142,7 @@
       disabledBlocks:{'info-left':[],'info-right':[],'subinfo-left':[],'subinfo-right':[],'notes-left':[],'notes-right':[]},
       spells:{mode:'cards',prepared:spellIds(nativeSpells.filter(s=>s.status!=='spellbook')),
         book:spellIds(nativeSpells.filter(s=>s.status==='spellbook'||(character.class==='wizard'&&s.level>0&&['prepared','known'].includes(s.status)))),
-        slotless:spellIds(nativeSpells.filter(s=>['racial','ritual','feat'].includes(s.status))),edition:'2014',granted},data:JSON.stringify(data)}];
+        slotless:spellIds(nativeSpells.filter(s=>s.slotless||['racial','ritual','feat'].includes(s.status))),edition:'2014',granted},data:JSON.stringify(data)}];
   }
   return {buildLssExport,richText,SPELL_IDS};
 });
