@@ -436,6 +436,31 @@ test('alphabetical race order sorts by displayed name', async () => {
   assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, 'ru')));
 });
 
+test('sticky panels reserve the measured action bar height', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const props = {}, observers = [];
+  dom.document.documentElement = { style: { setProperty: (name, value) => { props[name] = value; } } };
+  context.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; this.targets = []; observers.push(this); }
+    observe(target) { this.targets.push(target); }
+    disconnect() { this.targets = []; }
+  };
+  vm.runInContext(`character = { level: 1, class: 'barbarian', race: 'gith', race_sub: 'githyanki' }; currentPageIndex = 1; renderPage();`, context);
+  const bar = dom.root.querySelector('.wizard-actions');
+  const observer = observers.at(-1);
+  assert.deepEqual(observer.targets, [bar]);
+  assert.equal(dom.root.querySelector('.wizard-next').getAttribute('aria-label'), 'Далее: Предыстория');
+  bar.getBoundingClientRect = () => ({ height: 74.2 });
+  observer.callback();
+  assert.equal(props['--actions-height'], '75px');
+
+  fillWizard(context);
+  vm.runInContext(`currentPageIndex = config.pages.length; renderPage();`, context);
+  assert.deepEqual(observer.targets, []);
+  assert.equal(props['--actions-height'], '0px');
+});
+
 test('loads release flow and renders all 13 classes including fighter', async () => {
   const config = readConfig();
   const dom = createDOM();
