@@ -271,3 +271,41 @@ test('LSS subclass field lists every acquired subclass with its class',()=>{
  const single=advance(advance(create('fighter')),'champion'),se=extras(single);
  assert.equal(JSON.parse(E.buildLssExport(single,{subclass:se.subclass.label},stats(single),se)[0].data).info.charSubclass.value,'Чемпион');
 });
+
+test('warlock invocations accept prerequisite cantrips known from any source',()=>{
+ const feat={human_feature:'human_alt',creation_feat:'magic-initiate',creation_feat_class:'warlock',creation_feat_cantrips:['eldritch-blast','minor-illusion'],creation_cantrips:['chill-touch','mage-hand']};
+ const offered=c=>L.getChoices(c,fill(c,L.begin(c,context(c))),context(c)).find(g=>g.id==='invocations').options.map(o=>o.value);
+ const initiate=create('warlock','fiend',feat);assert.ok(!initiate.creation_cantrips.includes('eldritch-blast'));
+ assert.ok(offered(initiate).includes('agonizing-blast'));
+ assert.ok(!offered(create('warlock','fiend',{creation_cantrips:['chill-touch','mage-hand']})).includes('agonizing-blast'));
+ const p=fill(initiate,L.begin(initiate,context(initiate)),{invocations:['agonizing-blast','armor-of-shadows']});
+ assert.deepEqual(L.transition(initiate,p,context(initiate)).errors,[]);
+ const done=L.commit(initiate,p,context(initiate));assert.deepEqual(L.inspect(done,context(done)).errors,[]);
+});
+
+test('subclass skill features never grant skills outside their fixed lists',()=>{
+ const monk=advance(advance(create('monk')),'ascendant-dragon'),before=stats(advance(create('monk'))).proficiencies.skills;
+ assert.ok(!Object.hasOwn(monk.advancement.entries[1].choices,'dragon_proficiency'));
+ assert.deepEqual(stats(monk).proficiencies.skills.slice().sort(),before.slice().sort());
+ const me=extras(monk);assert.ok(me.features.some(f=>f.name==='Драконий ученик'));assert.ok(me.resources.some(r=>r.id==='draconic-presence'));
+ const fighter=create('fighter',undefined,{human_feature:'human_alt',proficiencyChoices:{'human-alt:0:0':'nature'}});
+ assert.ok(['arcana','nature'].every(id=>stats(fighter).proficiencies.skills.includes(id)));
+ const two=advance(fighter),p=fill(two,L.begin(two,context(two)),{subclass:'arcane-archer'});
+ assert.deepEqual(L.getChoices(two,p,context(two)).find(g=>g.id==='archer_skill').options.map(o=>o.value),['arcana','nature']);
+ const archer=L.commit(two,p,context(two));assert.deepEqual(stats(archer).proficiencies.skills.slice().sort(),stats(two).proficiencies.skills.slice().sort());
+ assert.deepEqual(R.resolveProficiencies(archer,extras(archer)).errors,[]);
+});
+
+test('Kensei, Four Elements and Primal Companion follow their published features',()=>{
+ const monk=advance(create('monk'));
+ const kensei=L.getChoices(monk,fill(monk,L.begin(monk,context(monk)),{subclass:'kensei'}),context(monk)).find(g=>g.id==='kensei_melee').options.map(o=>o.value);
+ assert.ok(!kensei.includes('lance'));assert.ok(kensei.includes('longsword'));
+ const elements=extras(advance(monk,'four-elements'));
+ assert.ok(elements.features.some(f=>f.name===L.label('elemental-attunement')));
+ const ranger=advance(create('ranger'));
+ const primal=extras(advance(ranger,'beast-master',{companion_rules:'primal-companion',companion:'beast-of-land'}));
+ assert.ok(!primal.features.some(f=>f.name==='Спутник следопыта'));
+ const companion=primal.features.find(f=>f.name==='Первобытный спутник');assert.ok(companion);assert.match(companion.description,/КД 15, хиты 20 \(3к8\)/);
+ const phb=extras(advance(ranger,'beast-master',{companion_rules:'phb-beast'}));
+ assert.ok(phb.features.some(f=>f.name==='Спутник следопыта'));assert.ok(!phb.features.some(f=>f.name==='Первобытный спутник'));
+});
