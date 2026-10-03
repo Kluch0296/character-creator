@@ -108,6 +108,7 @@ let abilityPick = null;
 let liveRefs = null;
 let liveRefreshTimer = null;
 let saveIndicatorNode = null;
+let actionBarObserver = null;
 const raceViewState = { filter: 'all', query: '', sort: 'fit' };
 
 function abilityInfo(id) {
@@ -426,6 +427,21 @@ function updateActionStatus(node, errors) {
 }
 
 /* ---------- Live refresh ---------- */
+
+/* Sticky panels and scroll targets must stop above the sticky action bar, whose height depends on width and status text. */
+function trackActionBarHeight(bar) {
+  if (actionBarObserver) actionBarObserver.disconnect();
+  actionBarObserver = null;
+  if (typeof ResizeObserver === 'undefined' || !document.documentElement || !document.documentElement.style) return;
+  if (!bar) {
+    document.documentElement.style.setProperty('--actions-height', '0px');
+    return;
+  }
+  const update = () => document.documentElement.style.setProperty('--actions-height', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+  if (bar.isConnected) update();
+  actionBarObserver = new ResizeObserver(update);
+  actionBarObserver.observe(bar);
+}
 
 function markDraftSaved(saved) {
   if (!saveIndicatorNode) return;

@@ -307,6 +307,7 @@ function renderPage() {
   fillStepper(stepper, steps, false);
   renderCharacterSheet(sheet, steps);
   updateActionStatus(status, steps[currentPageIndex].errors);
+  trackActionBarHeight(card.querySelector('.wizard-actions'));
   saveDraft(page.id);
   liveRefs = { stepper, sheet, status };
   focusPageTitle(title);
@@ -406,8 +407,10 @@ function renderNavigation(container) {
     next.textContent = 'Создать карточку →';
   } else {
     const upcoming = config.pages[currentPageIndex + 1];
+    const upcomingLabel = STEP_LABELS[upcoming.id] || upcoming.title;
+    next.setAttribute('aria-label', `Далее: ${upcomingLabel}`);
     next.appendChild(document.createTextNode('Далее'));
-    next.appendChild(createElement('span', 'nav-step-name', `: ${STEP_LABELS[upcoming.id] || upcoming.title}`));
+    next.appendChild(createElement('span', 'nav-step-name', `: ${upcomingLabel}`));
     next.appendChild(document.createTextNode(' →'));
   }
   next.type = 'button';
@@ -1172,6 +1175,7 @@ function getSelectedOption(elementId, value) {
 function showResult(container) {
   cancelLiveRefresh();
   liveRefs = null;
+  trackActionBarHeight(null);
   renderedFieldNodes = new Map();
   container.innerHTML = '';
   container.setAttribute('aria-busy', 'false');
