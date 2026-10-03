@@ -316,7 +316,7 @@
     const seen=new Map(), duplicateCounts=new Map();
     plan.fixed.forEach(g=>{
       const key=g.type+':'+g.id;
-      if(seen.has(key)&&(g.type==='skill'||g.type==='tool')) {
+      if(seen.has(key)&&!g.noReplacement&&(g.type==='skill'||g.type==='tool')) {
         const duplicateNumber=(duplicateCounts.get(key)||0)+1;
         duplicateCounts.set(key,duplicateNumber);
         const slot={id:`replacement:${key}:${duplicateNumber}`,type:g.type,source:g.source,options:g.type==='skill'?allSkills:allTools,label:`Повторное владение «${LABELS[g.id]}»: замена`};
@@ -361,12 +361,12 @@
     const r=RACES[character.race]||{}, sub=r.subraces&&Object.hasOwn(r.subraces,character.race_sub)&&r.subraces[character.race_sub]||{}, c=CLASSES[character.class]||{}, proficiencies=resolveProficiencies(character,extra);
     const raceData={...r,...sub}, proficiencyBonus=2;
     const perLevel=(sub.hpBonus||0)+(extra.hpBonus||0), rolls=extra.hpRolls||[];
-    const hp=c.hitDie ? Math.max(1,c.hitDie+modifiers.constitution+perLevel)+rolls.reduce((sum,roll)=>sum+Math.max(1,roll+modifiers.constitution+perLevel),0):null;
+    const hp=c.hitDie ? extra.hpContributions ? Math.max(1,c.hitDie+modifiers.constitution+perLevel+(extra.startingClassHpBonus||0))+extra.hpContributions.reduce((sum,x)=>sum+Math.max(1,x.raw+modifiers.constitution+perLevel+(x.bonus||0)),0) : Math.max(1,c.hitDie+modifiers.constitution+perLevel)+rolls.reduce((sum,roll)=>sum+Math.max(1,roll+modifiers.constitution+perLevel),0):null;
     const acOptions=[{label:'Без доспеха',value:10+modifiers.dexterity}];
     if(raceData.naturalArmor) acOptions.push({label:'Природный доспех',value:raceData.naturalArmor.base+(modifiers[raceData.naturalArmor.ability]||0)});
     const shield=!!extra.shield, worn=extra.armor;
-    if(character.class==='barbarian'&&!worn)acOptions.push({label:'Защита без доспехов варвара',value:10+modifiers.dexterity+modifiers.constitution});
-    if(character.class==='monk'&&!worn&&!shield)acOptions.push({label:'Защита без доспехов монаха',value:10+modifiers.dexterity+modifiers.wisdom});
+    if((extra.unarmoredDefense||character.class)==='barbarian'&&!worn)acOptions.push({label:'Защита без доспехов варвара',value:10+modifiers.dexterity+modifiers.constitution});
+    if((extra.unarmoredDefense||character.class)==='monk'&&!worn&&!shield)acOptions.push({label:'Защита без доспехов монаха',value:10+modifiers.dexterity+modifiers.wisdom});
     (extra.acOptions||[]).forEach(o=>acOptions.push({...o}));
     let ac = Math.max(...acOptions.map(v=>v.value));
     if(worn&&!raceData.noArmor) ac=Number(worn.base)+(worn.dexterity===false?0:Math.min(modifiers.dexterity,worn.dexterityCap===undefined?Infinity:worn.dexterityCap));
@@ -387,7 +387,7 @@
     if(extra.armorClass!==undefined&&Number.isFinite(extra.armorClass))ac=extra.armorClass;
     const size=['harengon','owlin','hadozee','plasmoid','thri-kreen'].includes(character.race)&&['small','medium'].includes(character.creation_size)?character.creation_size:raceData.size||'medium';
     const spellAbility=extra.spellcasting?.ability||c.spellAbility;
-    return {abilities,modifiers,proficiencies,proficiencyBonus,level:extra.effectiveLevel||1,hitDice:extra.effectiveLevel||1,hitDie:c.hitDie||null,hp,maxHp:hp,ac,armorClass:ac,acOptions,speed,swim,climb,fly,darkvision:extra.darkvisionOverride||raceData.darkvision||0,initiative:modifiers.dexterity+(r.initiativeProficiency?2:0)+(extra.initiativeBonus||0),saves,savingThrows:saves,skills,passivePerception:10+skills.perception+(extra.passivePerceptionBonus||0)+(extra.passiveBonus||0),passiveInvestigation:10+skills.investigation+(extra.passiveBonus||0),spellAbility:spellAbility||null,spellSaveDc:spellAbility?8+2+modifiers[spellAbility]:null,spellAttack:spellAbility?2+modifiers[spellAbility]:null,carryingCapacity:abilities.strength===null?null:abilities.strength*15*(r.powerfulBuild?2:1),size,notes:[...(r.notes||[]),...(sub.notes||[]),...(extra.notes||[])]};
+    return {abilities,modifiers,proficiencies,proficiencyBonus,level:extra.effectiveLevel||1,hitDice:extra.effectiveLevel||1,hitDicePools:extra.hitDicePools||[{die:c.hitDie,count:extra.effectiveLevel||1}],hitDie:c.hitDie||null,hp,maxHp:hp,ac,armorClass:ac,acOptions,speed,swim,climb,fly,darkvision:extra.darkvisionOverride||raceData.darkvision||0,initiative:modifiers.dexterity+(r.initiativeProficiency?2:0)+(extra.initiativeBonus||0),saves,savingThrows:saves,skills,passivePerception:10+skills.perception+(extra.passivePerceptionBonus||0)+(extra.passiveBonus||0),passiveInvestigation:10+skills.investigation+(extra.passiveBonus||0),spellAbility:spellAbility||null,spellSaveDc:spellAbility?8+2+modifiers[spellAbility]:null,spellAttack:spellAbility?2+modifiers[spellAbility]:null,carryingCapacity:abilities.strength===null?null:abilities.strength*15*(r.powerfulBuild?2:1),size,notes:[...(r.notes||[]),...(sub.notes||[]),...(extra.notes||[])]};
   }
   return {ABILITIES,SKILLS,SKILL_ABILITIES,TOOLS,ARTISAN_TOOLS,INSTRUMENTS,GAMING_SETS,LANGUAGES,CHOICE_LANGUAGES,WEAPONS,SIMPLE_WEAPONS,MARTIAL_WEAPONS,ARMOR,LABELS,RACES,CLASSES,BACKGROUNDS,DEFERRED_FIELD_IDS,abilityProfile,abilityBonuses,finalAbilities,validateAbilities,getProficiencyPlan,resolveProficiencies,derivedStats,optionType,labelFor};
 });

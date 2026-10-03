@@ -396,5 +396,17 @@
     result.notes.push(...result.features.map(f=>`${f.name}: ${f.description}`));
     return levelup()?.creationExtras(c, context, result) || result;
   }
-  return {getChoices,validate,derive,getEquipment,raceSpells,spellList,FEATS,DOMAINS,PATRONS,SPELL_NAMES,LISTS,WEAPONS,ARMOR,CASTING};
+  // A secondary class receives its features and casting choices, never a second
+  // race, background, starting kit, saving throws or full set of class skills.
+  function classChoices(c,context={}) {
+    const projected={...c,race:undefined,background:undefined,human_feature:undefined};
+    return getChoices(projected,context).filter(g=>['class','spells','proficiencies'].includes(g.section)&&!['creation_racial_spell_ability'].includes(g.id));
+  }
+  function classExtras(c,context={}) {
+    const result=derive({...c,race:undefined,background:undefined,human_feature:undefined},context);
+    result.equipment=[];result.money={};result.attacks=[];result.armor=null;result.shield=false;
+    result.savingThrowProficiencies=[];result.abilityBonuses={};result.raceSpells=[];
+    return result;
+  }
+  return {getChoices,validate,derive,classChoices,classExtras,getEquipment,raceSpells,spellList,FEATS,DOMAINS,PATRONS,SPELL_NAMES,LISTS,WEAPONS,ARMOR,CASTING};
 });

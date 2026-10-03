@@ -760,12 +760,12 @@ test('advancement UI restores a legacy draft, resumes/cancels and commits each l
   const click=text=>{const button=dom.root.querySelectorAll('button').find(b=>b.textContent===text);assert.ok(button,text);assert.equal(button.disabled,false,text);button.click();};
   click('Повысить до 2-го уровня');click('Далее →');
   vm.runInContext('restoreDraft();renderPage();',context);
-  assert.ok(dom.root.textContent.includes('шаг 2 из 4'));
+  assert.ok(dom.root.textContent.includes('шаг 2 из 5'));
   click('Отменить повышение');assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character)',context)),original);
-  click('Повысить до 2-го уровня');click('Далее →');click('Далее →');click('Далее →');click('Применить повышение');
+  click('Повысить до 2-го уровня');click('Далее →');click('Далее →');click('Далее →');click('Далее →');click('Применить повышение');
   vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('character.level',context),2);
-  click('Повысить до 3-го уровня');click('Далее →');
-  const select=dom.document.getElementById('advancement-subclass-0');assert.ok(select);select.value='champion';select.dispatchEvent({type:'change'});
+  click('Повысить до 3-го уровня');click('Далее →');click('Далее →');
+  const subclass=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')==='subclass:champion');assert.ok(subclass);subclass.click();
   click('Далее →');click('Далее →');click('Применить повышение');
   const result=JSON.parse(vm.runInContext('JSON.stringify({character,stats:getDerivedCharacter(),native:getExportData()})',context));
   assert.equal(result.character.level,3);assert.equal(result.stats.hp,34);assert.equal(result.stats.ac,19);assert.equal(result.character.advancement.entries.length,2);
@@ -808,4 +808,47 @@ test('both final sheets show exact resource maxima and recovery; Chain spell sur
       for(const r of result.extras.resources){const text=`${r.name}: максимум ${r.max}; восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха.`;assert.ok(result.left.includes(text),cls+':left:'+r.id);assert.ok(result.right.includes(text),cls+':right:'+r.id);}
     }
   }
+});
+
+test('advancement spell cards keep filtered selections removable and do not mutate the committed hero', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'wizard'});
+  vm.runInContext("currentPageIndex=config.pages.length;character.pendingAdvancement=LevelUpRules.begin(character,getAdvancementContext());character.pendingAdvancement.step=3;renderPage();",context);
+  const snapshot=vm.runInContext('JSON.stringify({...character,pendingAdvancement:undefined})',context);
+  const choice=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')?.startsWith('book_add:'));
+  assert.ok(choice);const focus=choice.getAttribute('data-focus-key'),value=focus.slice('book_add:'.length);choice.click();
+  assert.equal(vm.runInContext('JSON.stringify({...character,pendingAdvancement:undefined})',context),snapshot);
+  assert.equal(dom.document.activeElement.getAttribute('data-focus-key'),focus);
+  const search=dom.document.getElementById('field-book_add').querySelector('input');assert.ok(search);search.value='нет такого заклинания';search.dispatchEvent({type:'input'});
+  const clear=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')===`clear:book_add:${value}`);assert.ok(clear);assert.equal(clear.hidden,false);clear.click();
+  assert.equal(dom.document.activeElement.type,'search');
+  assert.equal(vm.runInContext('character.pendingAdvancement.choices.book_add.length',context),0);
+  assert.equal(vm.runInContext('JSON.stringify({...character,pendingAdvancement:undefined})',context),snapshot);
+});
+
+test('version-one pending advancement resumes on its original decision step and remains cancellable', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  vm.runInContext("currentPageIndex=config.pages.length;character.pendingAdvancement={...LevelUpRules.begin(character,getAdvancementContext()),version:1,step:1};delete character.pendingAdvancement.classId;renderPage();",context);
+  assert.ok(dom.root.textContent.includes('шаг 3 из 5'));assert.ok(dom.root.textContent.includes('Умения и владения'));
+  vm.runInContext("saveDraft('result');restoreDraft();renderPage();",context);assert.ok(dom.root.textContent.includes('шаг 3 из 5'));
+  dom.root.querySelectorAll('button').find(button=>button.textContent==='Отменить повышение').click();assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);
+});
+
+test('multiclass advancement selects class, explains +7 HP and renders independent magic in preview and result', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'wizard',abilities:{strength:13,dexterity:13,constitution:14,intelligence:14,wisdom:13,charisma:14}});
+  vm.runInContext("currentPageIndex=config.pages.length;startAdvancement();",context);
+  const classButton=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')==='advancement-class:warlock');assert.ok(classButton);assert.equal(classButton.disabled,false);classButton.click();
+  assert.equal(vm.runInContext('character.pendingAdvancement.classId',context),'warlock');
+  dom.root.querySelectorAll('button').find(button=>button.textContent==='Далее →').click();
+  assert.ok(dom.root.textContent.includes('Среднее: +7 хитов'));assert.ok(dom.root.textContent.includes('5 кость + (+2) ТЕЛ = +7 хитов'));
+  const before=vm.runInContext('getDerivedCharacter().hp',context);
+  vm.runInContext(`
+    const p=character.pendingAdvancement;
+    for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);
+    p.step=4;renderPage();
+  `,context);
+  assert.ok(dom.root.textContent.includes('Волшебник 1 / Колдун 1'));
+  const sheet=dom.root.querySelector('.advancement-sheet');assert.ok(sheet);assert.ok(sheet.textContent.includes('Предпросмотр повышения'));assert.ok(sheet.textContent.includes('Магия · Волшебник 1'));assert.ok(sheet.textContent.includes('Магия · Колдун 1'));assert.ok(sheet.textContent.includes('договор, короткий отдых'));assert.ok(sheet.textContent.includes('1к6 + 1к8'));
+  assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before);
+  const commit=dom.root.querySelectorAll('button').find(button=>button.textContent==='Применить повышение');assert.equal(commit.disabled,false);commit.click();
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before+7);assert.ok(dom.root.textContent.includes('Волшебник 1 / Колдун 1'));
 });

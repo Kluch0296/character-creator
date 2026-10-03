@@ -314,8 +314,8 @@
   const tiers=c.class==='warlock'?{}:third?{1:2}:['paladin','ranger','artificer'].includes(c.class)?{1:s.level>=3?3:2}:s.level>=3?{1:4,2:2}:{1:s.level===2?3:2};
   return {ability,knownQuota:third?3:knownQuota,prepareCount,max,tiers,pact:c.class==='warlock'?{level:max,count:s.level===1?1:2}:null,third};
  }
- function getChoices(c,p,context={},previous){
-  const old=previous||inspect(c,context).state, s={...clone(old),level:p.to,choices:{...old.choices,...p.choices},subclass:p.choices?.subclass||old.subclass};
+ function getChoicesSingle(c,p,context={},previous){
+  const old=previous||inspectSingle(c,context).state, s={...clone(old),level:p.to,choices:{...old.choices,...p.choices},subclass:p.choices?.subclass||old.subclass};
   s.cantrips=uniq([...s.cantrips,...arr(p.choices.tome_cantrips)]);
   const sc=subclass(c,s),result=[],a=context.abilities||R.finalAbilities(c);
   const add=(id,name,ids,count=1,section='class',source=sc?.source||'PHB',optional=false)=>result.push(group(id,name,ids,count,section,source,optional));
@@ -415,7 +415,7 @@
   }
   const candidate=clone(s);
   for(const key of Object.keys(candidate.choices))if(key.startsWith('proficiency:')&&Object.hasOwn(p.choices,key)&&!Object.hasOwn(old.choices,key))delete candidate.choices[key];
-  const extras=derive(c,context,context.baseExtras||{},candidate);
+  const extras=deriveSingle(c,context,context.baseExtras||{},candidate);
   const profs=R.resolveProficiencies(c,extras);
   for(const slot of profs.slots.filter(slot=>profs.errors.some(err=>err.id===slot.id))) {
    if(!Object.hasOwn(c.proficiencyChoices||{},slot.id)&&old.level===1&&!slot.id.startsWith('replacement:'))continue;
@@ -425,14 +425,14 @@
   }
   return result;
  }
- function transition(c,p,context={},previous){
-  const old=previous||inspect(c,context).state,errors=[];const fail=(field,message)=>errors.push({id:field,field,message});
+ function transitionSingle(c,p,context={},previous){
+  const old=previous||inspectSingle(c,context).state,errors=[];const fail=(field,message)=>errors.push({id:field,field,message});
   if(!p||p.version!==1||p.from!==old.level||p.to!==old.level+1||p.to>3||p.to<2) {fail('level','Разрешён только следующий уровень, максимум 3.');return {errors,state:old};}
   if(p.foundation!==foundation(c))fail('foundation','Основные выборы изменились. Сначала явно сбросьте зависимую прокачку.');
   const die=R.CLASSES[c.class]?.hitDie, hp=p.hp;
   if(!die||!hp||!['average','roll'].includes(hp.mode)||!Number.isInteger(hp.value)||hp.value<1||hp.value>die||(hp.mode==='average'&&hp.value!==die/2+1))fail('hp','Укажите среднее класса либо целый результат броска от 1 до '+die+'.');
   if(!p.choices||typeof p.choices!=='object'||Array.isArray(p.choices)){fail('choices','Повреждены выборы повышения.');return {errors,state:old};}
-  const groups=getChoices(c,p,context,old),active=new Set(groups.map(g=>g.id));
+  const groups=getChoicesSingle(c,p,context,old),active=new Set(groups.map(g=>g.id));
   for(const g of groups){const selected=arr(p.choices[g.id]);if(selected.length!==g.count||uniq(selected).length!==selected.length||selected.some(x=>!g.options.some(o=>o.value===x)))fail(g.id,g.label+': выберите '+g.count+' различных допустимых вариантов.');}
   for(const k of Object.keys(p.choices))if(!active.has(k))fail(k,'Неизвестный или неактивный выбор: '+k+'.');
   if(errors.length)return {errors,state:old};
@@ -455,19 +455,17 @@
   if(p.choices.bonus_remove&&p.choices.bonus_remove!=='none'){const original=Object.keys(s.bonusReplacements).find(id=>s.bonusReplacements[id]===p.choices.bonus_remove)||p.choices.bonus_remove;s.bonusReplacements[original]=p.choices.bonus_add;}
   return {errors,state:s};
  }
- function inspect(c,context={}){
+ function inspectSingle(c,context={}){
   let state=firstState(c),errors=[];const ledger=c.advancement;
   if(ledger!==undefined&&(!ledger||ledger.version!==1||!Array.isArray(ledger.entries))){errors.push({field:'advancement',message:'Повреждён журнал повышения.'});return {state,errors};}
-  for(const entry of ledger?.entries||[]){const res=transition(c,entry,context,state);if(res.errors.length){errors.push(...res.errors);break;}state=res.state;}
+  for(const entry of ledger?.entries||[]){const res=transitionSingle(c,entry,context,state);if(res.errors.length){errors.push(...res.errors);break;}state=res.state;}
   if(c.level!==undefined&&c.level!==state.level)errors.push({field:'level',message:'Уровень не совпадает с последовательным журналом. Повышение не применяется.'});
   return {state:errors.length?firstState(c):state,errors};
  }
- function begin(c,context={}){const res=inspect(c,context);if(res.errors.length)throw new Error(res.errors[0].message);if(res.state.level>=3)throw new Error('Достигнут предел: 3-й уровень.');return {version:1,from:res.state.level,to:res.state.level+1,foundation:foundation(c),hp:{mode:'average',value:R.CLASSES[c.class].hitDie/2+1},choices:{}};}
- function commit(c,p,context={}){const inspected=inspect(c,context);if(inspected.errors.length)throw new Error(inspected.errors[0].message);const t=transition(c,p,context,inspected.state);if(t.errors.length)throw new Error(t.errors[0].message);const next=clone(c);next.level=t.state.level;next.advancement={version:1,entries:t.state.entries};delete next.pendingAdvancement;return next;}
  function reset(c){const next=clone(c);delete next.advancement;delete next.pendingAdvancement;next.level=1;return next;}
- function creationExtras(c,context={},base){return derive(c,context,base||{},firstState(c),true);}
- function derive(c,context={},base={},providedState,onlyCreation=false){
-  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state,sc=subclass(c,s),a=context.abilities||R.finalAbilities(c,base),e=clone(base);
+ function creationExtras(c,context={},base){return deriveSingle(c,context,base||{},firstState(c),true);}
+ function deriveSingle(c,context={},base={},providedState,onlyCreation=false){
+  const inspected=providedState?{state:providedState,errors:[]}:inspectSingle(c,context),s=inspected.state,sc=subclass(c,s),a=context.abilities||R.finalAbilities(c,base),e=clone(base);
   e.fixedProficiencies=e.fixedProficiencies||[];e.features=e.features||[];e.spells=e.spells||[];e.notes=e.notes||[];e.resources=[];e.progressionErrors=inspected.errors;e.effectiveLevel=s.level;e.hpRolls=s.entries.map(x=>x.hp.value);e.levelChoices=clone(s.choices);e.subclass=sc?{...sc,label:sc.class==='wizard'&&sc.id==='war'?'Военная магия':sc.class==='sorcerer'&&sc.id==='shadow'?'Теневая магия':SUBNAMES[sc.id]||sc.name}:null;e.progressionProficiencyChoices=Object.fromEntries(Object.entries(s.choices).filter(([id])=>id.startsWith('proficiency:')).map(([id,value])=>[id.slice(12),value]));
   const featureNotes=new Set(e.features.map(f=>f.name+': '+f.description));e.notes=e.notes.filter(note=>!featureNotes.has(note));
   const feature=(name,description,source=sc?.source||'PHB',level=s.level)=>{const rule=FEATURE_RULES[c.class==='rogue'&&slug(name)==='psychic-blades'?'soulknife-blades':slug(name)];e.features.push({name:rule?.[0]||name,description:rule?.[1]||description,source,url:url(c.class),level});};
@@ -584,7 +582,7 @@
   const m=magic(c,s,a);
   if(m){
    const auto=uniq([...additional(c,s,['cleric','druid','paladin','artificer'].includes(c.class)?'prepared':'known'),...additional(c,s,'known').filter(id=>D.spells[id]?.level===0)]).map(id=>s.bonusReplacements[id]||id);
-   e.spells=e.spells.filter(x=>(x.source!==NAMES[c.class]||x.limitExempt)&&!(Object.hasOwn(s.bonusReplacements,x.id)&&x.limitExempt&&['cantrip','known','prepared'].includes(x.status)));
+   e.spells=e.spells.filter(x=>x.source!==NAMES[c.class]&&!(Object.hasOwn(s.bonusReplacements,x.id)&&x.limitExempt&&['cantrip','known','prepared'].includes(x.status)));
    const cantrips=uniq(s.cantrips),prepared=uniq([...s.prepared,...auto.filter(id=>D.spells[id]?.level>0)]),known=uniq([...s.known,...auto.filter(id=>D.spells[id]?.level>0)]);
    cantrips.forEach(id=>spell(id,'cantrip',NAMES[c.class],m.ability,false));
    auto.filter(id=>D.spells[id]?.level===0).forEach(id=>spell(id,'cantrip',sc?.label,m.ability,true));
@@ -605,6 +603,143 @@
   e.notes=e.notes.filter(text=>!(s.level>1&&/появ|одна ячейка|1к10 \+ 1|запас 5|Ярость: 2|Скрытая атака:/.test(text)));
   return e;
  }
+ const ABILITY_NAMES={strength:'Сила',dexterity:'Ловкость',constitution:'Телосложение',intelligence:'Интеллект',wisdom:'Мудрость',charisma:'Харизма'};
+ const REQUIREMENTS={barbarian:[['strength']],bard:[['charisma']],cleric:[['wisdom']],druid:[['wisdom']],fighter:[['strength','dexterity']],monk:[['dexterity'],['wisdom']],paladin:[['strength'],['charisma']],ranger:[['dexterity'],['wisdom']],rogue:[['dexterity']],sorcerer:[['charisma']],warlock:[['charisma']],wizard:[['intelligence']],artificer:[['intelligence']]};
+ const SECONDARY={barbarian:{armor:['shield'],weapon:['simple','martial']},bard:{armor:['light']},cleric:{armor:['light','medium','shield']},druid:{armor:['light','medium','shield']},fighter:{armor:['light','medium','shield'],weapon:['simple','martial']},monk:{weapon:['simple','shortsword']},paladin:{armor:['light','medium','shield'],weapon:['simple','martial']},ranger:{armor:['light','medium','shield'],weapon:['simple','martial']},rogue:{armor:['light'],tool:['thieves_tools']},sorcerer:{},warlock:{armor:['light'],weapon:['simple']},wizard:{},artificer:{armor:['light','medium','shield'],tool:['thieves_tools','tinker']}};
+ const canonicalStyle=id=>({great_weapon:'great-weapon-fighting',two_weapon:'two-weapon-fighting'}[id]||id);
+ const optionsAPI=()=>typeof module==='object'&&module.exports?require('./creation-options'):rootOptions();
+ function rootOptions(){return globalThis.CreationOptions;}
+ function multiState(c){const primary=firstState(c);return {...primary,classStates:{[c.class]:{character:clone(c),state:clone(primary)}}};}
+ function classOptions(c,context={}){
+  const s=inspect(c,context).state,a=R.finalAbilities(c,context.baseExtras||{});
+  return Object.keys(NAMES).map(id=>{
+   const existing=s.classStates[id],unmet=[];
+   if(!existing)for(const cls of [...Object.keys(s.classStates),id])for(const alternatives of REQUIREMENTS[cls])if(!alternatives.some(ab=>Number(a[ab])>=13))unmet.push(NAMES[cls]+': '+alternatives.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13');
+   return {value:id,label:NAMES[id],level:existing?.state.level||0,nextLevel:(existing?.state.level||0)+1,eligible:!unmet.length,requirements:REQUIREMENTS[id].map(xs=>xs.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13').join('; '),unmet,url:url(id)};
+  });
+ }
+ function entryCharacter(c,p){
+  const projected={class:p.classId,level:1,abilities:clone(c.abilities||{}),proficiencyChoices:{}};
+  for(const [key,value] of Object.entries(p.choices||{})){const local=key.slice(p.classId.length+1);if(key.startsWith(p.classId+':creation_'))projected[local]=clone(value);if(key.startsWith(p.classId+':proficiency:'))projected.proficiencyChoices[local.slice(12)]=clone(value);}
+  return projected;
+ }
+ function entryExtras(c,p,context){
+  const q=entryCharacter(c,p),e=optionsAPI().classExtras(q,context),source=NAMES[p.classId];
+  for(const [type,ids] of Object.entries(SECONDARY[p.classId]||{}))ids.forEach(id=>e.fixedProficiencies.push({type,id,source,noReplacement:true}));
+  for(const id of arr(p.choices[p.classId+':entry_skill']))e.fixedProficiencies.push({type:'skill',id,source});
+  for(const id of arr(p.choices[p.classId+':entry_instrument']))e.fixedProficiencies.push({type:'tool',id,source});
+  if(p.classId==='druid')e.fixedProficiencies.push({type:'language',id:'druidic',source});
+  if(p.classId==='rogue'){e.fixedProficiencies.push({type:'language',id:'thieves_cant',source});e.fixedExpertise=arr(p.choices[p.classId+':entry_expertise']);}
+  e.proficiencySlots=(e.proficiencySlots||[]).map(slot=>({...slot,id:p.classId+':'+slot.id}));
+  e.progressionProficiencyChoices=Object.fromEntries(Object.entries(q.proficiencyChoices).map(([key,value])=>[p.classId+':'+key,value]));
+  return e;
+ }
+ function entryChoices(c,p,context,s){
+  const q=entryCharacter(c,p),prefix=p.classId+':',prof=context.proficiencies||R.resolveProficiencies(c,context.baseExtras||{});
+  const selectionContext={...context,proficiencies:{...prof,skills:uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill'])])}};
+  const result=optionsAPI().classChoices(q,selectionContext).map(g=>({...g,id:prefix+g.id,options:g.options.map(o=>D.spells[o.value]?{...o,source:D.spells[o.value].source,url:D.spells[o.value].url}:o)}));
+  const add=(id,name,ids,count=1)=>result.push(group(prefix+id,name,ids,count,'proficiencies'));
+  if(['bard','rogue','ranger'].includes(p.classId))add('entry_skill','Дополнительный навык',R.CLASSES[p.classId].choices[0].options.filter(id=>!prof.skills.includes(id)));
+  if(p.classId==='bard')add('entry_instrument','Музыкальный инструмент',R.INSTRUMENTS.filter(id=>!prof.tools.includes(id)));
+  if(p.classId==='rogue')add('entry_expertise','Компетентность: два известных владения',uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill']),'thieves_tools']).filter(id=>!prof.expertise.includes(id)),2);
+  const seed=optionsAPI().classExtras(q,context);
+  const earlier=[];for(const slot of seed.proficiencySlots||[]){const pickedElsewhere=earlier.map(key=>q.proficiencyChoices[key]);result.push(group(prefix+'proficiency:'+slot.id,slot.label,slot.options.filter(id=>!pickedElsewhere.includes(id)&&!(uniq([...prof.skills,...prof.tools,...prof.languages,...arr(p.choices[prefix+'entry_skill']),...arr(p.choices[prefix+'entry_instrument'])]).includes(id))),1,'proficiencies'));earlier.push(slot.id);}
+  // A style cannot be learned twice through different classes.
+  const styles=new Set(Object.values(s.classStates).flatMap(x=>[x.character.creation_style,x.state.choices.style,x.state.choices.swords_style]).filter(Boolean).map(canonicalStyle));
+  for(const g of result)if(g.id.endsWith('creation_style'))g.options=g.options.filter(o=>!styles.has(canonicalStyle(o.value)));
+  return result;
+ }
+ function getChoices(c,p,context={},previous){
+  if(!p||p.version===1)return getChoicesSingle(c,p,context,previous?.classStates?.[c.class]?.state||previous);
+  const s=previous||inspect(c,context).state,cls=p.classId;if(!Object.hasOwn(R.CLASSES,cls))return [];if(s.level>1)context={...context,proficiencies:R.resolveProficiencies(c,derive(c,context,context.baseExtras||{},s))};
+  const owned=s.classStates[cls];if(!owned)return entryChoices(c,p,context,s);
+  const local={...p,version:1,from:owned.state.level,to:owned.state.level+1,foundation:foundation(owned.character)};
+  const base=cls===c.class?context.baseExtras:entryExtras(c,{classId:cls,choices:owned.onboarding},context);
+  const result=getChoicesSingle(owned.character,local,{...context,baseExtras:base},owned.state),styles=new Set(Object.entries(s.classStates).filter(([id])=>id!==cls).flatMap(([,x])=>[x.character.creation_style,x.state.choices.style,x.state.choices.swords_style]).filter(Boolean).map(canonicalStyle));for(const g of result)if(['style','swords_style'].includes(g.id))g.options=g.options.filter(o=>!styles.has(canonicalStyle(o.value)));return result;
+ }
+ function transition(c,p,context={},previous){
+  const s=previous||inspect(c,context).state,fail=(field,message)=>({errors:[{id:field,field,message}],state:s});
+  if(!p||![1,2].includes(p.version)||p.from!==s.level||p.to!==s.level+1||p.to>3||p.to<2)return fail('level','Разрешён только следующий уровень, максимум 3.');
+  if(p.foundation!==foundation(c))return fail('foundation','Основные выборы изменились. Сначала явно сбросьте зависимую прокачку.');
+  const cls=p.version===1?c.class:p.classId;if(!Object.hasOwn(R.CLASSES,cls))return fail('classId','Выберите допустимый класс.');
+  if(p.version===1&&Object.keys(s.classStates).length>1)return fail('classId','Старое повышение относится только к исходному классу.');
+  if(!p.choices||typeof p.choices!=='object'||Array.isArray(p.choices))return fail('choices','Повреждены выборы повышения.');
+  const die=R.CLASSES[cls].hitDie,hp=p.hp;if(!hp||!['average','roll'].includes(hp.mode)||!Number.isInteger(hp.value)||hp.value<1||hp.value>die||(hp.mode==='average'&&hp.value!==die/2+1))return fail('hp','Укажите среднее класса либо целый результат броска от 1 до '+die+'.');
+  const owned=s.classStates[cls],next=clone(s);
+  if(!owned){
+   const choice=classOptionsFromState(c,context,s,cls);if(choice.length)return fail('classId',choice.join('; '));
+   const groups=getChoices(c,p,context,s),errors=[];
+   for(const g of groups){const selected=arr(p.choices[g.id]);if(selected.length!==g.count||uniq(selected).length!==selected.length||selected.some(id=>!g.options.some(o=>o.value===id)))errors.push({id:g.id,field:g.id,message:g.label+': выберите '+g.count+' различных допустимых вариантов.'});}
+   for(const key of Object.keys(p.choices))if(!groups.some(g=>g.id===key))errors.push({id:key,field:key,message:'Неизвестный или неактивный выбор: '+key+'.'});
+   if(errors.length)return {errors,state:s};
+   const q=entryCharacter(c,p);next.classStates[cls]={character:q,state:firstState(q),onboarding:clone(p.choices)};
+  }else{
+   const local={...p,version:1,from:owned.state.level,to:owned.state.level+1,foundation:foundation(owned.character)};
+   const base=cls===c.class?context.baseExtras:entryExtras(c,{classId:cls,choices:owned.onboarding},context);
+   const result=transitionSingle(owned.character,local,{...context,baseExtras:base},owned.state);if(result.errors.length)return {errors:result.errors,state:s};next.classStates[cls].state=result.state;
+  }
+  next.level=p.to;next.entries=[...s.entries,clone(p)];
+  for(const key of ['subclass','choices','known','book','prepared','cantrips','invocations','infusions','bonusReplacements'])next[key]=clone(next.classStates[c.class].state[key]);
+  if(p.version===2){const groups=getChoices(c,p,context,s);for(const g of groups)if(arr(p.choices[g.id]).some(id=>!g.options.some(o=>o.value===id)))return fail(g.id,'Недопустимый повторный выбор.');const before=R.resolveProficiencies(c,derive(c,context,context.baseExtras||{},s)).errors,e=derive(c,context,context.baseExtras||{},next),errors=R.resolveProficiencies(c,e).errors.filter(err=>!before.some(old=>old.id===err.id&&old.message===err.message));if(errors.length)return {errors:errors.map(x=>({...x,field:x.id})),state:s};}
+  return {errors:[],state:next};
+ }
+ function classOptionsFromState(c,context,s,cls){const a=R.finalAbilities(c,context.baseExtras||{}),unmet=[];for(const id of [...Object.keys(s.classStates),cls])for(const alternatives of REQUIREMENTS[id])if(!alternatives.some(ab=>a[ab]>=13))unmet.push(NAMES[id]+': '+alternatives.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13');return unmet;}
+ function inspect(c,context={}){
+  let state=multiState(c);const errors=[],ledger=c.advancement;
+  if(ledger!==undefined&&(!ledger||![1,2].includes(ledger.version)||!Array.isArray(ledger.entries)))return {state,errors:[{field:'advancement',message:'Повреждён журнал повышения.'}]};
+  for(const entry of ledger?.entries||[]){const result=transition(c,entry,context,state);if(result.errors.length){errors.push(...result.errors);break;}state=result.state;}
+  if(c.level!==undefined&&c.level!==state.level)errors.push({field:'level',message:'Уровень не совпадает с последовательным журналом. Повышение не применяется.'});
+  return {state:errors.length?multiState(c):state,errors};
+ }
+ function begin(c,context={}){const res=inspect(c,context);if(res.errors.length)throw new Error(res.errors[0].message);if(res.state.level>=3)throw new Error('Достигнут предел: 3-й уровень.');return {version:2,classId:c.class,from:res.state.level,to:res.state.level+1,foundation:foundation(c),hp:{mode:'average',value:R.CLASSES[c.class].hitDie/2+1},choices:{}};}
+ function selectClass(c,p,classId,context={}){if(!classOptions(c,context).find(o=>o.value===classId)?.eligible)throw new Error('Не выполнены требования мультикласса.');return {...p,version:2,classId,hp:{mode:'average',value:R.CLASSES[classId].hitDie/2+1},choices:{}};}
+ function commit(c,p,context={}){const checked=inspect(c,context);if(checked.errors.length)throw new Error(checked.errors[0].message);const t=transition(c,p,context,checked.state);if(t.errors.length)throw new Error(t.errors[0].message);const next=clone(c);next.level=t.state.level;next.advancement={version:2,entries:t.state.entries};delete next.pendingAdvancement;return next;}
+ function hpGain(c,p,context={}){const cls=p.classId||c.class,con=mod(R.finalAbilities(c,context.baseExtras||{}).constitution),s=inspect(c,context).state,q=s.classStates[cls]?.character||entryCharacter(c,p),bonus=(R.RACES[c.race]?.subraces?.[c.race_sub]?.hpBonus||0)+(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='tough'?2:0)+(cls==='sorcerer'&&q.creation_origin==='draconic'?1:0);return {die:R.CLASSES[cls]?.hitDie,raw:p.hp?.value,constitution:con,bonus,gain:Math.max(1,Number(p.hp?.value||0)+con+bonus)};}
+ function derive(c,context={},base={},providedState){
+  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates)return deriveSingle(c,context,base,s);
+  const primary=s.classStates[c.class],e=deriveSingle(c,context,base,primary.state);
+  e.classes=Object.entries(s.classStates).filter(([id])=>R.CLASSES[id]).map(([id,x])=>({id,label:NAMES[id],level:x.state.level}));e.effectiveLevel=s.level;e.progressionErrors=inspected.errors;
+  e.hitDicePools=Object.entries(e.classes.reduce((pool,x)=>{const die=R.CLASSES[x.id].hitDie;pool[die]=(pool[die]||0)+x.level;return pool;},{})).map(([die,count])=>({die:Number(die),count}));
+  e.hpContributions=s.entries.map(p=>{const cls=p.classId||c.class,q=s.classStates[cls].character;return {classId:cls,die:R.CLASSES[cls].hitDie,raw:p.hp.value,bonus:cls==='sorcerer'&&q.creation_origin==='draconic'?1:0};});
+  e.startingClassHpBonus=c.class==='sorcerer'&&c.creation_origin==='draconic'?1:0;e.hpBonus=(base.hpBonus||0)-e.startingClassHpBonus;
+  e.unarmoredDefense=Object.keys(s.classStates).find(id=>['barbarian','monk'].includes(id));
+  e.subclasses=e.subclass?[{...e.subclass,classId:c.class}]:[];
+  e.spellcastingByClass=e.spellcasting?[{classId:c.class,label:NAMES[c.class],level:primary.state.level,...e.spellcasting}]:[];
+  for(const [cls,x] of Object.entries(s.classStates))if(cls!==c.class&&R.CLASSES[cls]){
+   const seed=entryExtras(c,{classId:cls,choices:x.onboarding},context);seed.armor=e.armor;seed.shield=e.shield;seed.attacks=clone(e.attacks||[]);
+   if(cls==='fighter'){
+    const style=canonicalStyle(x.character.creation_style);if(style==='defense'&&seed.armor)seed.acBonus=(seed.acBonus||0)+1;
+    for(const attack of seed.attacks){const props=attack.properties||[];if(style==='archery'&&props.includes('ranged'))attack.attackBonus+=2;
+     if((style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!['unarmed','natural'].includes(attack.group))||(style==='thrown-weapon-fighting'&&props.includes('thrown')&&props.includes('ranged'))){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
+     if(style==='unarmed-fighting'&&attack.group==='unarmed')attack.damage='1d6'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
+     if(style==='great-weapon-fighting'&&(props.includes('two-handed')||props.includes('versatile')))attack.notes.push('Бой большим оружием: перебрасывайте 1 и 2 на костях урона при атаке двумя руками.');if(style==='two-weapon-fighting')attack.notes.push('Бой двумя оружиями: к урону второго оружия добавляется модификатор характеристики.');
+    }
+   }
+   const part=deriveSingle(x.character,{...context,baseExtras:seed},seed,x.state);Object.assign(part.progressionProficiencyChoices,seed.progressionProficiencyChoices);e.attacks=part.attacks;
+   e.features.push(...part.features.filter(f=>!(['barbarian','monk'].includes(cls)&&e.unarmoredDefense!==cls&&f.description.startsWith('Защита без доспехов'))).map(f=>({...f,classId:cls,sourceClass:NAMES[cls]})));e.spells.push(...part.spells.map(sp=>({...sp,classId:cls})));e.fixedProficiencies.push(...part.fixedProficiencies);e.resources.push(...part.resources.map(r=>({...r,id:cls+':'+r.id,classId:cls})));e.proficiencySlots.push(...part.proficiencySlots);e.notes.push(...part.notes);e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...(part.fixedExpertise||[])]);Object.assign(e.progressionProficiencyChoices,part.progressionProficiencyChoices);
+   if(cls==='bard'&&x.state.level>=2&&R.RACES[c.race]?.initiativeProficiency)part.initiativeBonus=0;
+   for(const key of ['speedBonus','initiativeBonus','acBonus'])e[key]=(e[key]||0)+(part[key]||0);
+   for(const key of ['darkvisionOverride','swimOverride'])e[key]=Math.max(e[key]||0,part[key]||0);
+   e.jackOfAllTrades=!!(e.jackOfAllTrades||part.jackOfAllTrades);e.acOptions.push(...part.acOptions);
+   if(part.subclass)e.subclasses.push({...part.subclass,classId:cls});
+   if(part.spellcasting)e.spellcastingByClass.push({classId:cls,label:NAMES[cls],level:x.state.level,...part.spellcasting});
+  }
+  const ordinary=e.spellcastingByClass.filter(x=>x.classId!=='warlock'),pact=e.spellcastingByClass.find(x=>x.classId==='warlock')?.pactSlots;
+  let tiers=ordinary[0]?.slotTiers||{};
+  if(ordinary.length>1){const casterLevel=ordinary.reduce((sum,x)=>sum+(['paladin','ranger'].includes(x.classId)?Math.floor(x.level/2):x.classId==='artificer'?Math.ceil(x.level/2):x.level),0);tiers=casterLevel>=3?{1:4,2:2}:casterLevel===2?{1:3}:{1:2};}
+  if(e.spellcastingByClass.length)e.spellcasting={...e.spellcastingByClass[0],slotTiers:tiers,pactSlots:pact||null,slots:Object.values(tiers)[0]||pact?.count||0};
+  // Racial level-three spells depend on total level, even when no class is third.
+  if(s.level===3&&primary.state.level<3){const raceView=deriveSingle(c,context,base,{...primary.state,level:3});e.spells.push(...raceView.spells.filter(sp=>sp.status==='racial'&&!e.spells.some(x=>x.id===sp.id&&x.status==='racial')));e.features.push(...raceView.features.filter(f=>f.name==='Преображение аасимара'));}
+  // Martial Arts belongs to the monk class even if it was acquired later.
+  if(s.classStates.monk&&!e.armor&&!e.shield){const martialAbilities=context.abilities||R.finalAbilities(c,base);
+   for(const attack of e.attacks||[]){const props=attack.properties||[],eligible=attack.group==='unarmed'||attack.group==='natural'||attack.id==='shortsword'||(attack.group==='simple'&&!props.includes('two-handed')&&!props.includes('heavy')&&!props.includes('ranged'));if(!eligible)continue;
+    if(mod(martialAbilities.dexterity)>mod(martialAbilities.strength)&&attack.ability!=='dexterity'){const delta=mod(martialAbilities.dexterity)-mod(martialAbilities[attack.ability]);attack.ability='dexterity';attack.attackBonus+=delta;attack.damageBonus+=delta;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
+    if(attack.group==='unarmed'&&!/^1d[468]/.test(attack.damage))attack.damage='1d4'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
+   }
+  }
+  const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;}
+  return e;
+ }
  function setSpellNames(names){for(const [id,name] of Object.entries(names))if(D.spells[id]&&!D.spells[id].label&&/[А-Яа-яЁё]/.test(name))D.spells[id].label=name;for(const [id,s]of Object.entries(D.spells))names[id]=s.label||names[id]||s.name;}
- return {subclasses,subclass,foundation,spellList,automaticSpells,creationChoices:createChoices,creationExtras,getChoices,inspect,transition,begin,commit,reset,derive,magic,label,optionList,eligible,setSpellNames};
+ return {subclasses,subclass,foundation,spellList,automaticSpells,creationChoices:createChoices,creationExtras,getChoices,inspect,transition,begin,selectClass,classOptions,hpGain,commit,reset,derive,magic,label,optionList,eligible,setSpellNames};
 });

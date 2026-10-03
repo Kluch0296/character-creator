@@ -1207,7 +1207,7 @@ function showResult(container) {
   const heroCopy = createElement('div', 'result-hero__copy');
   heroCopy.appendChild(createElement('p', 'result-kicker', `${config.meta.edition} · уровень ${getDerivedCharacter().level || 1}`));
   heroCopy.appendChild(createElement('h2', '', character.name && character.name.trim() ? softHyphenate(character.name.trim()) : 'Безымянный герой'));
-  const subtitleParts = [classOption && classOption.label, race && race.label, subrace && subrace.label].filter(Boolean);
+  const subtitleParts = [classOption && characterClassLabel(character, getCreationExtras()), race && race.label, subrace && subrace.label].filter(Boolean);
   heroCopy.appendChild(createElement('p', 'result-subtitle', subtitleParts.join(' · ')));
   if (background) heroCopy.appendChild(createElement('span', 'result-tag', background.label));
   hero.appendChild(heroCopy);
@@ -1216,7 +1216,7 @@ function showResult(container) {
   const summary = createElement('section', 'result-section');
   summary.appendChild(createElement('h3', '', 'Персонаж'));
   const summaryGrid = createElement('dl', 'summary-grid');
-  appendDefinition(summaryGrid, 'Класс', classOption && classOption.label);
+  appendDefinition(summaryGrid, 'Классы', classOption && characterClassLabel(character, getCreationExtras()));
   appendDefinition(summaryGrid, 'Раса', race && race.label);
   appendDefinition(summaryGrid, 'Подраса', subrace && subrace.label);
   appendDefinition(summaryGrid, 'Предыстория', background && background.label);
@@ -1357,7 +1357,7 @@ function getExportData() {
   if (invalid) throw new Error(`Персонаж не завершён: ${invalid.errors[0].message}`);
   const race = getSelectedRace();
   const labels = {
-    class: getSelectedOption('class', character.class)?.label,
+    class: getCreationExtras().classes?.length > 1 ? characterClassLabel(character, getCreationExtras()) : getSelectedOption('class', character.class)?.label,
     race: race?.label,
     subrace: race?.suboptions?.find(option => option.value === character.race_sub)?.label,
     background: getSelectedOption('background', character.background)?.label,

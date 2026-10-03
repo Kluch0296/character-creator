@@ -490,7 +490,7 @@ function renderMechanicalSummary(container) {
   appendDefinition(list, 'Класс доспеха', stats.armorClass ?? extras.armorClass);
   appendDefinition(list, 'Скорость', typeof stats.speed === 'number' ? `${stats.speed} футов` : stats.speed?.walk);
   appendDefinition(list, 'Инициатива', signedNumber(stats.initiative));
-  appendDefinition(list, 'Кости хитов', `${stats.hitDice||1}к${stats.hitDie}`);
+  appendDefinition(list, 'Кости хитов', characterHitDiceLabel(stats, extras));
   appendDefinition(list, 'Бонус мастерства', '+2');
   appendDefinition(list, 'Пассивное Восприятие', stats.passivePerception);
   for (const [id, label] of [['darkvision','Тёмное зрение'],['fly','Полёт'],['swim','Плавание'],['climb','Лазание']]) if (stats[id]) appendDefinition(list, label, `${stats[id]} футов`);
@@ -521,8 +521,12 @@ function renderMechanicalSummary(container) {
   appendResultList(container, 'Атаки', (extras.attacks || []).map(attack => `${attack.label}: ${signedNumber(attack.attackBonus)} к попаданию, ${attack.damage} урона${attack.notes?.length ? `. ${attack.notes.join(' ')}` : ''}`));
   if (extras.spellcasting) {
     const casting = extras.spellcasting;
-    const tiers=casting.pactSlots?{[casting.pactSlots.level]:casting.pactSlots.count}:casting.slotTiers||{[casting.slotLevel]:casting.slots};
-    appendResultList(container, 'Использование заклинаний', [`Базовая характеристика: ${ABILITY_LABELS.find(a => a.id === casting.ability)?.label}; атака ${signedNumber(casting.attackBonus)}; Сл спасброска ${casting.saveDC}.`, `Ячейки: ${Object.entries(tiers).map(([level,count])=>`${count} × ${level}-й круг`).join(', ')}; восстановление после ${casting.slotRecovery === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`]);
+    const castings=extras.spellcastingByClass?.length ? extras.spellcastingByClass : [casting];
+    const details=castings.map(item=>`${item.label ? `${plainLabel(item.label)} ${item.level}: ` : ''}базовая характеристика ${ABILITY_LABELS.find(a => a.id === item.ability)?.label}; атака ${signedNumber(item.attackBonus)}; Сл спасброска ${item.saveDC}.`);
+    const ordinary=Object.entries(casting.slotTiers||{}).map(([level,count])=>`${count} × ${level}-й круг`).join(', ');
+    if(ordinary) details.push(`Ячейки заклинаний: ${ordinary}; восстановление после долгого отдыха.`);
+    if(casting.pactSlots)details.push(`Магия договора: ${casting.pactSlots.count} × ${casting.pactSlots.level}-й круг; восстановление после короткого или долгого отдыха.`);
+    appendResultList(container, 'Использование заклинаний', details);
   }
   appendResultList(container, 'Заклинания и заговоры', (extras.spells || []).map(spell => `${spell.label || spell.id} · ${spell.level ? `${spell.level}-й уровень` : 'заговор'} · ${spell.source}${spell.status ? ` · ${{prepared:'подготовлено',known:'известно',spellbook:'в книге',racial:'от расы',ritual:'ритуал',feat:'от черты',cantrip:'известно',invocation:'воззвание',feature:'от умения'}[spell.status] || spell.status}` : ''}${spell.usage ? ` · ${spell.usage}` : ''}`));
   appendResultList(container, 'Ресурсы', (extras.resources || []).map(resource => `${resource.name}: максимум ${resource.max}; восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`));
