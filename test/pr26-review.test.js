@@ -79,3 +79,39 @@ test('PR26 Battle Ready permits INT choices when its modifier ties or trails DEX
   assert.ok(exported(c).weaponsList.some(w=>w.name.value===enhanced.label&&w.ability==='int'));
  }
 });
+
+test('PR26 Dueling applies to thrown melee variants',()=>{
+ const ranger=create('ranger',null,{abilities:{strength:10,dexterity:18,constitution:16,intelligence:10,wisdom:16,charisma:10},creation_weapon:'handaxe',creation_second_weapon:'handaxe'});
+ let entry=L.selectClass(ranger,L.begin(ranger,context(ranger)),'fighter',context(ranger));entry.choices['fighter:creation_style']='thrown-weapon-fighting';let c=L.commit(ranger,entry,context(ranger));
+ let third=L.selectClass(c,L.begin(c,context(c)),'ranger',context(c));c=L.commit(c,fill(c,third,{style:'dueling'}),context(c));
+ for(const c2 of [c]){const e=extras(c2),thrown=e.attacks.find(a=>a.id==='handaxe-thrown');assert.ok(thrown);assert.equal(thrown.thrownVariant,true);assert.equal(thrown.damageBonus,2);assert.match(thrown.notes.join(' '),/Бой метательным оружием/);}
+ const held=extras(c).attacks.find(a=>a.id==='handaxe');assert.equal(held.damageBonus,2);assert.match(held.notes.join(' '),/Дуэлянт/);
+});
+
+test('PR26 Chronurgy exposes two long-rest Chronal Shift uses',()=>{
+ const c=advance(create('wizard'),'chronurgy'),e=extras(c),pool=e.resources.find(r=>r.id==='chronal-shift');
+ assert.ok(pool);assert.equal(pool.max,2);assert.equal(pool.rest,'long-rest');
+ assert.ok(!extras(advance(create('wizard'),'graviturgy')).resources.some(r=>r.id==='chronal-shift'));
+});
+
+test('PR26 Dedicated Weapon permits an eligible martial weapon with Dexterity',()=>{
+ const fighter=create('fighter',null,{race:'dwarf',race_sub:'hill-dwarf',abilities:{strength:16,dexterity:18,constitution:16,intelligence:10,wisdom:16,charisma:10},creation_style:'defense'});
+ let entry=L.selectClass(fighter,L.begin(fighter,context(fighter)),'monk',context(fighter));let c=L.commit(fighter,entry,context(fighter));entry=L.selectClass(c,L.begin(c,context(c)),'monk',context(c));c=L.commit(c,fill(c,entry,{'variant_dedicated-weapon':'yes'}),context(c));const e=extras(c),battleaxe=e.attacks.find(a=>a.id==='battleaxe');
+ assert.ok(battleaxe);assert.equal(battleaxe.ability,'dexterity');assert.equal(battleaxe.attackBonus,6);assert.equal(battleaxe.damageBonus,4);assert.match(battleaxe.notes.join(' '),/Специальное оружие/);
+ assert.ok(e.features.some(f=>f.name==='Специальное оружие'));
+});
+
+test('PR26 PHB wizard traditions include Savant summaries and Portent',()=>{
+ const expected={abjuration:'Ограждение: знаток',conjuration:'Вызов: знаток',divination:'Прорицание: знаток',enchantment:'Очарование: знаток',evocation:'Воплощение: знаток',illusion:'Иллюзия: знаток',necromancy:'Некромантия: знаток',transmutation:'Преобразование: знаток'};
+ for(const [id,name] of Object.entries(expected)){const e=extras(advance(create('wizard'),id));assert.ok(e.features.some(f=>f.name===name),id);assert.match(e.features.find(f=>f.name===name).description,/заклинания/i);}
+ const e=extras(advance(create('wizard'),'divination')),portent=e.features.find(f=>f.name==='Предзнаменование');
+ assert.ok(portent);assert.match(portent.description,/два к20/);assert.ok(e.resources.some(r=>r.id==='portent'&&r.max===2&&r.rest==='long-rest'));
+});
+
+test('PR26 Pact of the Tome offers class-list cantrips only',()=>{
+ const warlock=advance(create('warlock')),p=fill(warlock,L.begin(warlock,context(warlock)),{pact:'tome'}),group=L.getChoices(warlock,p,context(warlock)).find(g=>g.id==='tome_cantrips');
+ assert.ok(group);assert.match(group.label,/из списков классов/);
+ for(const id of ['sapping-sting','encode-thoughts'])assert.ok(!group.options.some(o=>o.value===id),id);
+ for(const id of ['minor-illusion','fire-bolt'])assert.ok(group.options.some(o=>o.value===id),id);
+ assert.equal(group.options.length,44);assert.deepEqual(L.transition(warlock,p,context(warlock)).errors,[]);
+});

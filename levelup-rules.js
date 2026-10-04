@@ -365,7 +365,7 @@
    const available=optionList('EI',c,s,knownElsewhere(context));
    if(p.to===2)add('invocations','Два воззвания',available,2);
    else {add('invocation_remove','Заменить одно известное воззвание',[option('none','Оставить прежние'),...old.invocations.map(id=>option(id))]);if(p.choices.invocation_remove&&p.choices.invocation_remove!=='none')add('invocation_add','Новое воззвание',available.filter(o=>!old.invocations.includes(o.value)));}
-   if(p.to===3&&s.choices.pact==='tome')add('tome_cantrips','Гримуар: три заговора любых классов',Object.values(D.spells).filter(x=>x.level===0).map(x=>x.id),3,'spells');
+   if(p.to===3&&s.choices.pact==='tome')add('tome_cantrips','Гримуар: три заговора из списков классов',Object.values(D.spells).filter(x=>x.level===0&&x.classes.some(id=>R.CLASSES[id])&&!x.restrictions).map(x=>x.id),3,'spells');
    const inv= p.to===2?arr(p.choices.invocations):old.invocations.filter(x=>x!==p.choices.invocation_remove).concat(arr(p.choices.invocation_add));
    if(inv.includes('book-of-ancient-secrets')&&!old.invocations.includes('book-of-ancient-secrets'))add('book_rituals','Книга древних тайн: два ритуала 1-го круга',Object.values(D.spells).filter(x=>x.level===1&&x.ritual).map(x=>x.id),2,'spells');
   }
@@ -553,6 +553,18 @@
    if(c.class==='fighter')resource('second-wind','Второе дыхание',1,'short-rest');
    if(c.class==='paladin'){resource('divine-sense','Божественное чувство',Math.max(1,1+mod(a.charisma)));resource('lay-on-hands','Наложение рук',5*s.level);}
   }
+  Object.assign(FEATURE_RULES,{
+   'abjuration-savant':['Ограждение: знаток','Переписывайте заклинания ограждения в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'conjuration-savant':['Вызов: знаток','Переписывайте заклинания вызова в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'divination-savant':['Прорицание: знаток','Переписывайте заклинания прорицания в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'enchantment-savant':['Очарование: знаток','Переписывайте заклинания очарования в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'evocation-savant':['Воплощение: знаток','Переписывайте заклинания воплощения в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'illusion-savant':['Иллюзия: знаток','Переписывайте заклинания иллюзий в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'necromancy-savant':['Некромантия: знаток','Переписывайте заклинания некромантии в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'transmutation-savant':['Преобразование: знаток','Переписывайте заклинания преобразования в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
+   'portent':['Предзнаменование','После долгого отдыха бросьте и запишите два к20. Когда существо в пределах видимости совершает атаку, проверку или спасбросок, можно заменить результат одной неиспользованной костью. Кости нельзя использовать на себя или перебросить свой бросок до завершения отдыха.']
+  });
+
   if(!onlyCreation&&s.level>1){
    // Replace obsolete first-level counters and future-tense hints with current values.
    e.features=e.features.filter(f=>!(f.name==='Умение 1-го уровня'&&/появ|одна ячейка|1к10 \+ 1|запас 5|Ярость: 2|Скрытая атака:/.test(f.description)));
@@ -571,7 +583,9 @@
    if(s.choices['variant_magical-inspiration']==='yes')feature('Магическое вдохновение','Существо с костью вдохновения может добавить её результат к лечению или урону заклинания одной цели.','TCE');
    if(s.choices['variant_harness-divine-power']==='yes'){resource('harness-divine-power','Использование божественной силы',1);feature('Использование божественной силы','Бонусное действие: потратьте Божественный канал и восстановите ячейку 1-го круга; 1 / долгий отдых.','TCE');}
    if(s.choices['variant_wild-companion']==='yes'){spell('find-familiar','feature','Дикий спутник','wisdom',true,'Потратьте Дикий облик: без компонентов, фея, на '+Math.floor(s.level/2)+' час.');}
-   if(s.choices['variant_dedicated-weapon']==='yes')feature('Специальное оружие','После отдыха назначьте монашеским простое/воинское оружие, которым владеете; без тяжёлого/особого свойства.','TCE');
+   if(s.choices['variant_dedicated-weapon']==='yes'){feature('Специальное оружие','После отдыха назначьте монашеским простое/воинское оружие, которым владеете; без тяжёлого/особого свойства.','TCE');
+    for(const attack of e.attacks||[]){const props=attack.properties||[],isMonkWeapon=attack.group==='unarmed'||attack.group==='natural'||attack.id==='shortsword'||(['simple','martial'].includes(attack.group)&&!['two-handed','heavy','special','ranged'].some(x=>props.includes(x)));if(isMonkWeapon&&mod(a.dexterity)>mod(a[attack.ability])){const delta=mod(a.dexterity)-mod(a[attack.ability]);attack.ability='dexterity';attack.attackBonus+=delta;attack.damageBonus+=delta;attack.damage=attack.damage.replace(/[+-][0-9]$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes.push('Специальное оружие: это оружие назначено монашеским и может использовать Ловкость.');}}
+   }
    if(s.choices['variant_ki-fueled-attack']==='yes')feature('Атака за ци','Если потратили ци частью действия, можете бонусным действием атаковать безоружно или монашеским оружием.','TCE');
    if(s.choices['variant_cantrip-formulas']==='yes')feature('Формулы заговоров','После долгого отдыха и изучения формул в книге можно заменить один заговор волшебника другим из его списка. Не даёт свободную замену при повышении.','TCE');
    if(s.choices['variant_primal-awareness']==='yes'){e.features=e.features.filter(f=>f.id!=='primeval-awareness'&&f.name!=='Primeval Awareness'&&f.name!=='Первозданная осведомлённость');spell('speak-with-animals','feature','Первобытная осведомлённость','wisdom',true,'1 раз / долгий отдых; также можно использовать ячейку.');}
@@ -596,6 +610,7 @@
    if(sc?.id==='shepherd')resource('spirit-totem','Тотемный дух',1,'short-rest');
    if(sc?.id==='abjuration'){resource('arcane-ward','Магическая защита: хиты',2*s.level+mod(a.intelligence));feature('Магическая защита','При заклинании ограждения от 1-го круга создаётся защита; максимум '+(2*s.level+mod(a.intelligence))+' хитов. Другие ограждения восстанавливают 2 × круг; создание 1 / долгий отдых.');}
    if(sc?.id==='divination')resource('portent','Предзнаменование: сохранённые к20',2);
+   if(sc?.id==='chronurgy')resource('chronal-shift','Хрональный сдвиг',2);
    if(sc?.id==='stars')resource('guiding-bolt','Направляющий снаряд без ячейки',2);
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
    if(sc?.id==='artillerist')resource('eldritch-cannon','Мистическая пушка без ячейки',1);
@@ -630,7 +645,7 @@
    if(style)feature('Боевой стиль',label(style));
    for(const attack of e.attacks||[]){const props=attack.properties||[];
     if(style==='archery'&&props.includes('ranged'))attack.attackBonus+=2;
-    if(style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!attack.thrownVariant&&attack.group!=='unarmed'&&attack.group!=='natural'){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/, '')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes.push('Дуэлянт: бонус при отсутствии другого оружия в руке; щит допустим.');}
+    if(style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&attack.group!=='unarmed'&&attack.group!=='natural'){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/, '')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes.push('Дуэлянт: бонус при отсутствии другого оружия в руке; щит допустим.');}
     if(style==='great-weapon-fighting'&&(props.includes('two-handed')||props.includes('versatile')))attack.notes.push('При атаке двумя руками перебросьте 1 и 2 на костях урона.');
     if(style==='two-weapon-fighting')attack.notes.push('К урону атаки вторым оружием добавляется модификатор характеристики.');
    }
@@ -772,7 +787,7 @@
    if(cls==='fighter'){
     const style=canonicalStyle(x.character.creation_style);if(style==='defense'&&seed.armor)seed.acBonus=(seed.acBonus||0)+1;
     for(const attack of seed.attacks){const props=attack.properties||[];if(style==='archery'&&props.includes('ranged'))attack.attackBonus+=2;
-     if(style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!attack.thrownVariant&&!['unarmed','natural'].includes(attack.group)){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
+     if(style==='dueling'&&!props.includes('ranged')&&!props.includes('two-handed')&&!['unarmed','natural'].includes(attack.group)){attack.damageBonus+=2;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes=[...(attack.notes||[]),'Дуэлянт: бонус при отсутствии другого оружия в руке; щит допустим.'];}
      if(style==='unarmed-fighting'&&attack.group==='unarmed')attack.damage='1d6'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
      if(style==='great-weapon-fighting'&&(props.includes('two-handed')||props.includes('versatile')))attack.notes.push('Бой большим оружием: перебрасывайте 1 и 2 на костях урона при атаке двумя руками.');if(style==='two-weapon-fighting')attack.notes.push('Бой двумя оружиями: к урону второго оружия добавляется модификатор характеристики.');
     }
