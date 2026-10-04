@@ -124,7 +124,7 @@
   function baseArmor(c) {
     const byClass = {barbarian:['light','medium','shield'],bard:['light'],cleric:['light','medium','shield'],druid:['light','medium','shield'],fighter:['light','medium','heavy','shield'],paladin:['light','medium','heavy','shield'],ranger:['light','medium','shield'],rogue:['light'],warlock:['light'],artificer:['light','medium','shield']};
     const result = [...(byClass[c.class]||[])];
-    if(c.class==='cleric'&&['life','nature','tempest','war'].includes(c.creation_domain)) result.push('heavy');
+    if(c.class==='cleric'&&c.creation_domain&&['life','nature','tempest','war','forge','order','twilight'].includes(c.creation_domain.replace(/^creation_/,''))) result.push('heavy');
     if(c.race==='dwarf'&&c.race_sub==='mountain-dwarf') result.push('light','medium');
     if(c.race==='gith'&&c.race_sub==='githyanki') result.push('light','medium');
     if(c.race==='hobgoblin') result.push('light');
@@ -191,7 +191,7 @@
     }
     for(const [id,label,ids] of equipmentGroups[c.class]||[]) {
       let allowed=ids;
-      if(c.class==='cleric'&&id==='weapon'&&!['tempest','war'].includes(c.creation_domain)&&c.race!=='dwarf') allowed=ids.filter(k=>k!=='warhammer');
+      if(c.class==='cleric'&&id==='weapon'&&!['death','tempest','war','twilight'].includes(c.creation_domain)&&c.race!=='dwarf') allowed=ids.filter(k=>k!=='warhammer');
       if(c.class==='cleric'&&id==='armor'&&!baseArmor(c).includes('heavy')&&activeFeat(c)!=='heavily-armored') allowed=ids.filter(k=>k!=='chain-mail');
       add(id,label,unique(allowed));
     }
@@ -306,8 +306,8 @@
     }
     if(domain&&DOMAINS[domain]) {
       feature('Божественный домен',DOMAINS[domain].label);
-      if(['life','nature','tempest','war'].includes(domain)) grant('armor','heavy','Божественный домен');
-      if(['tempest','war'].includes(domain)) grant('weapon','martial','Божественный домен');
+      if(['life','nature','tempest','war','forge','order','twilight'].includes(domain)) grant('armor','heavy','Божественный домен');
+      if(['death','tempest','war','twilight'].includes(domain)) grant('weapon','martial','Божественный домен');
       if(domain==='knowledge') {slot('knowledge-skill','skill',words('arcana history nature religion'),'Благословение знаний: навык с компетентностью',2,{grantExpertise:true});slot('knowledge-language','language',r.CHOICE_LANGUAGES||[],'Благословение знаний: язык',2);}
       if(domain==='nature') slot('nature-skill','skill',words('animal_handling nature survival'),'Послушник природы: навык');
       const texts={life:'Поборник жизни: заклинания лечения 1-го уровня и выше восстанавливают дополнительно 2 + уровень заклинания.',light:`Защищающая вспышка: реакция, помеха атаке видимого существа в 30 футах; ${Math.max(1,mod(a.wisdom))} / долгий отдых.`,tempest:`Гнев бури: реакция после попадания существа в 5 футах, 2к8 электричеством или звуком (ЛОВ, половина); ${Math.max(1,mod(a.wisdom))} / долгий отдых.`,trickery:'Благословение обманщика: действием касание другого существа — преимущество на Скрытность на 1 час (или до нового применения).',war:`Боевой священник: после действия Атака можно атаковать оружием бонусным действием; ${Math.max(1,mod(a.wisdom))} / долгий отдых.`};

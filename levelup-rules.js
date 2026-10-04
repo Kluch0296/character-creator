@@ -133,8 +133,8 @@
  'tactical-wit':['Тактическая смекалка','Интеллект добавляется к инициативе.'],
  'the-right-tool-for-the-job':['Подходящий инструмент','За 1 час с воровскими или ремесленными инструментами создайте набор ремесленных инструментов по выбору; можно во время короткого/долгого отдыха.'],
  'experimental-elixir':['Экспериментальный эликсир','После долгого отдыха создайте один эликсир со случайным эффектом. Действием и ячейкой можно создать дополнительный с выбранным эффектом.'],
- 'arcane-armor':['Магический доспех','Действием превращайте доспех в магический; он заменяет отсутствующие конечности, снимается/надевается действием и служит фокусировкой.'],
- 'armor-model':['Модель доспеха','После короткого/долгого отдыха выберите Стража или Лазутчика. Модель меняется без переобучения подкласса.'],
+'arcane-armor':['Магический доспех','Действием превращайте доспех в магический; он заменяет отсутствующие конечности, снимается/надевается действием и служит фокусировкой. Модель доспеха можно сменить после короткого или долгого отдыха.'],
+'armor-model':['Модель доспеха','После короткого/долгого отдыха выберите Стража или Лазутчика. Страж: громовые рукавицы наносят гром и мешают атаковать других, а Защитное поле бонусным действием даёт временные хиты 1 / короткий отдых. Лазутчик: электрическая метательная машина стреляет молнией раз за ход, Усиленные шаги дают скорость и прыжок, Подавляющее поле даёт преимущество на Скрытность.'],
  'eldritch-cannon':['Мистическая пушка','Действием создайте Маленькую/Крошечную пушку: огнемёт, силовую баллисту или защитника; 1 час. Бесплатно 1 / долгий отдых, далее за ячейку.'],
  'battle-ready':['Готовность к бою','Владение воинским оружием. Для атак и урона магическим оружием можно использовать Интеллект вместо Силы/Ловкости.'],
  'steel-defender':['Стальной защитник','Создаётся после долгого отдыха; использует опубликованный блок защитника, командуется бонусным действием. Вид тела не меняет механических характеристик.']
@@ -394,7 +394,7 @@
      const known=new Set([...(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='martial-adept'?arr(c.creation_maneuvers):[]),...(c.creation_style==='superior-technique'?arr(c.creation_superior_maneuver):[])].map(id=>aliases[id]||id));
      add('maneuvers','Три боевых приёма',optionList('MV:B',c,s).filter(o=>!known.has(o.value)),3);add('artisan_tool','Ремесленный инструмент',R.ARTISAN_TOOLS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');break;}
     case 'fighter:arcane-archer':add('arcane_shots','Два варианта мистического выстрела',optionList('AS',c,s),2);add('archer_skill','Знания мистического лучника',featureSkills(['arcana','nature'],context),1,'proficiencies');add('archer_cantrip','Заговор мистического лучника',['prestidigitation','druidcraft'],1,'spells');break;
-    case 'fighter:rune-knight':add('runes','Две доступные руны',optionList('RN',c,s),2);break;
+    case 'fighter:rune-knight':add('runes','Две доступные руны',optionList('RN',c,s),2);if((context.proficiencies?.languages||[]).includes('giant'))add('rune_knight_language','Великан уже известен: другой язык',R.CHOICE_LANGUAGES.filter(id=>!(context.proficiencies?.languages||[]).includes(id)),1,'proficiencies');break;
     case 'fighter:cavalier':add('cavalier_proficiency','Дополнительное владение',uniq(['animal_handling','history','insight','performance','persuasion',...R.CHOICE_LANGUAGES]).filter(id=>![...context.proficiencies?.skills||[],...context.proficiencies?.languages||[]].includes(id)),1,'proficiencies');break;
     case 'fighter:samurai':add('samurai_proficiency','Дополнительное владение',uniq(['history','insight','performance','persuasion',...R.CHOICE_LANGUAGES]).filter(id=>![...context.proficiencies?.skills||[],...context.proficiencies?.languages||[]].includes(id)),1,'proficiencies');break;
     case 'monk:four-elements':add('discipline','Одна стихийная дисциплина (Стихийная настройка автоматически)',optionList('ED',c,s).filter(o=>o.value!=='elemental-attunement'));break;
@@ -529,6 +529,7 @@
     if(sc.id==='celestial'){spell('light','cantrip',sc.label,'charisma');spell('sacred-flame','cantrip',sc.label,'charisma');resource('healing-light','Исцеляющий свет (к6)',s.level+1);}
     if(sc.id==='undying')spell('spare-the-dying','cantrip',sc.label,'charisma');
     if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a);}
+    if(sc.id==='genie')resource('bottled-respite','Уединение в сосуде',1,'long-rest');
     if(sc.id==='fathomless'){e.swimOverride=40;resource('tentacle','Щупальце глубин',2);}
     if(sc.id==='undead')resource('form-of-dread','Облик ужаса',2);
    }
@@ -554,15 +555,16 @@
    if(c.class==='paladin'){resource('divine-sense','Божественное чувство',Math.max(1,1+mod(a.charisma)));resource('lay-on-hands','Наложение рук',5*s.level);}
   }
   Object.assign(FEATURE_RULES,{
-   'abjuration-savant':['Ограждение: знаток','Переписывайте заклинания ограждения в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'conjuration-savant':['Вызов: знаток','Переписывайте заклинания вызова в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'divination-savant':['Прорицание: знаток','Переписывайте заклинания прорицания в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'enchantment-savant':['Очарование: знаток','Переписывайте заклинания очарования в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'evocation-savant':['Воплощение: знаток','Переписывайте заклинания воплощения в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'illusion-savant':['Иллюзия: знаток','Переписывайте заклинания иллюзий в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'necromancy-savant':['Некромантия: знаток','Переписывайте заклинания некромантии в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'transmutation-savant':['Преобразование: знаток','Переписывайте заклинания преобразования в книгу быстрее и дешевле; проверки Магии по его правилам используют мастерство.'],
-   'portent':['Предзнаменование','После долгого отдыха бросьте и запишите два к20. Когда существо в пределах видимости совершает атаку, проверку или спасбросок, можно заменить результат одной неиспользованной костью. Кости нельзя использовать на себя или перебросить свой бросок до завершения отдыха.']
+   'abjuration-savant':['Ограждение: знаток','Переписывайте заклинания ограждения в книгу вдвое быстрее и дешевле.'],
+   'conjuration-savant':['Вызов: знаток','Переписывайте заклинания вызова в книгу вдвое быстрее и дешевле.'],
+   'divination-savant':['Прорицание: знаток','Переписывайте заклинания прорицания в книгу вдвое быстрее и дешевле.'],
+   'enchantment-savant':['Очарование: знаток','Переписывайте заклинания очарования в книгу вдвое быстрее и дешевле.'],
+   'evocation-savant':['Воплощение: знаток','Переписывайте заклинания воплощения в книгу вдвое быстрее и дешевле.'],
+   'illusion-savant':['Иллюзия: знаток','Переписывайте заклинания иллюзий в книгу вдвое быстрее и дешевле.'],
+   'necromancy-savant':['Некромантия: знаток','Переписывайте заклинания некромантии в книгу вдвое быстрее и дешевле.'],
+   'transmutation-savant':['Преобразование: знаток','Переписывайте заклинания преобразования в книгу вдвое быстрее и дешевле.'],
+   'portent':['Предзнаменование','После долгого отдыха бросьте и запишите два к20. Когда вы или существо в пределах видимости совершает атаку, проверку или спасбросок, можно заменить результат одной неиспользованной костью. Кость нельзя перебросить; неиспользованные кости исчезают после следующего долгого отдыха.'],
+   'bladesong':['Песнь клинка','Бонусным действием активируется на 1 минуту. Требуется лёгкий доспех и отсутствие щита. Даёт +Интеллект к КД (минимум +1), +10 футов скорости, преимущество на Акробатику и спасброски концентрации; прекращается при недееспособности или нарушении условий доспеха/щита.']
   });
 
   if(!onlyCreation&&s.level>1){
@@ -592,7 +594,14 @@
    for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).forEach(id=>gain(type,id));
    for(const key of ['cavalier_proficiency','samurai_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
    e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...arr(s.choices.expertise)]);
-   if(sc?.id==='rune-knight'){gain('tool','smith');gain('language','giant');resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));}
+   if(sc?.id==='rune-knight'){
+    gain('tool','smith');
+  const replacementLanguage=arr(s.choices.rune_knight_language);
+  if(replacementLanguage.length)e.progressionProficiencyChoices.rune_knight_language=replacementLanguage[0];
+    if((context.proficiencies?.languages||[]).includes('giant')&&replacementLanguage.length)e.proficiencySlots.push({id:'rune_knight_language',type:'language',source:'Rune Knight',label:'Великан уже известен: другой язык',options:replacementLanguage});
+    else gain('language','giant');
+    resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));
+   }
    if(sc?.id==='cavalier'&&s.level>=3)resource('unwavering-mark','Непоколебимая метка: особая бонусная атака',Math.max(1,mod(a.strength)));
    if(sc?.id==='wild-magic'&&s.level>=3)resource('magic-awareness','Чувство магии',2);
    if(sc?.id==='battle-master')resource('superiority-dice','Кости превосходства (к8)',4,'short-rest');
@@ -600,7 +609,7 @@
    if(sc?.id==='samurai')resource('fighting-spirit','Боевой дух',3);
    if(sc?.id==='echo-knight')resource('unleash-incarnation','Высвобождение воплощения',Math.max(1,mod(a.constitution)));
    if(sc?.id==='psi-warrior'||sc?.id==='soulknife')resource('psionic-dice','Псионические кости (к6)',4);
-   if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песнь клинка',2);}
+   if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песня клинка',2,'short-rest');}
    if(sc?.id==='mercy'){gain('skill','insight');gain('skill','medicine');gain('tool','herbalism_kit');}
    if(sc?.id==='drunken-master'){gain('skill','performance');gain('tool','brewer');}
    if(sc?.id==='assassin'||sc?.id==='mastermind'){gain('tool','disguise_kit');gain('tool',sc.id==='assassin'?'poisoner_kit':'forgery_kit');}

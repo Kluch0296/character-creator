@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const R=require('../rules'),L=require('../levelup-rules'),E=require('../lss-export');
+const R=require('../rules'),O=require('../creation-options'),L=require('../levelup-rules'),E=require('../lss-export');
 const {create,advance,fill,context,extras,stats,copy,enter}=require('./fixtures/characters');
 const exported=c=>JSON.parse(E.buildLssExport(c,{},stats(c),extras(c))[0].data);
 
@@ -114,4 +114,54 @@ test('PR26 Pact of the Tome offers class-list cantrips only',()=>{
  for(const id of ['sapping-sting','encode-thoughts'])assert.ok(!group.options.some(o=>o.value===id),id);
  for(const id of ['minor-illusion','fire-bolt'])assert.ok(group.options.some(o=>o.value===id),id);
  assert.equal(group.options.length,44);assert.deepEqual(L.transition(warlock,p,context(warlock)).errors,[]);
+});
+
+test('PR26 wizard school and Portent summaries match PHB rules',()=>{
+ for(const school of ['abjuration','conjuration','divination','enchantment','evocation','illusion','necromancy','transmutation']){
+  const feature=extras(advance(create('wizard'),school)).features.find(f=>f.name.endsWith(': знаток'));
+  assert.ok(feature,school);assert.match(feature.description,/вдвое быстрее и дешевле/);assert.doesNotMatch(feature.description,/мастерство/);
+ }
+ const portent=extras(advance(create('wizard'),'divination')).features.find(f=>f.name==='Предзнаменование');
+ assert.ok(portent);assert.match(portent.description,/вы или существо/);assert.match(portent.description,/нельзя перебросить/);assert.match(portent.description,/исчезают после следующего долгого отдыха/);
+});
+
+test('PR26 Genie and Bladesinging expose complete rest-bound resources',()=>{
+ const genie=extras(create('warlock','genie')),bottled=genie.resources.find(r=>r.id==='bottled-respite');
+ assert.ok(bottled);assert.equal(bottled.max,1);assert.equal(bottled.rest,'long-rest');
+ const bladesinger=extras(advance(create('wizard'),'bladesinging')),song=bladesinger.resources.find(r=>r.id==='bladesong'),text=bladesinger.features.find(f=>f.name==='Песнь клинка')?.description;
+ assert.ok(song);assert.equal(song.max,2);assert.equal(song.rest,'short-rest');assert.ok(text);
+ for(const part of ['Бонусным действием','1 минут','лёгкий доспех','отсутствие щита','+Интеллект','минимум +1','+10 футов','Акробатику','концентрации','недееспособности','доспеха/щита'])assert.ok(text.includes(part),part);
+});
+
+test('PR26 Armorer exports both armor model mechanics',()=>{
+ const armorer=advance(advance(create('artificer')),'armorer');
+ const model=extras(armorer).features.find(f=>f.name==='Модель доспеха')?.description,arcane=extras(armorer).features.find(f=>f.name==='Магический доспех')?.description;
+ assert.ok(model);for(const part of ['Страж','громовые рукавицы','Защитное поле','Лазутчик','электрическая метательная машина','Усиленные шаги','Подавляющее поле'])assert.ok(model.includes(part),part);
+ assert.ok(arcane?.includes('Модель доспеха можно сменить после короткого или долгого отдыха'));
+});
+
+test('PR26 Rune Knight grants a replacement language when Giant is known',()=>{
+ const base=create('fighter',null,{proficiencyChoices:{'race:human:0:0':'giant'}}),seed=advance(base);
+ const p=L.begin(seed,context(seed));p.choices={subclass:'rune-knight'};const group=L.getChoices(seed,p,context(seed)).find(g=>g.id==='rune_knight_language');
+ assert.ok(group);assert.ok(!group.options.some(o=>o.value==='giant'));const chosen=group.options[0].value;p.choices.rune_knight_language=chosen;
+ const runes=L.getChoices(seed,p,context(seed)).find(g=>g.id==='runes');p.choices.runes=runes.options.slice(0,2).map(o=>o.value);
+ const c=L.commit(seed,p,context(seed)),languages=R.resolveProficiencies(c,extras(c)).languages;
+ assert.ok(languages.includes('giant'));assert.ok(languages.includes(chosen));
+ const ordinary=advance(create('fighter'),'rune-knight');assert.ok(R.resolveProficiencies(ordinary,extras(ordinary)).languages.includes('giant'));
+ assert.ok(!L.getChoices(create('fighter','life'),L.begin(create('fighter','life'),context(create('fighter','life'))),context(create('fighter','life'))).some(g=>g.id==='rune_knight_language'));
+});
+
+test('PR26 expanded cleric domains can select their legal starting equipment',()=>{
+ for(const domain of ['forge','order','twilight']){
+  const seed=create('cleric',domain),c={...seed,creation_weapon:'mace',creation_armor:'chain-mail',creation_worn_armor:'chain-mail'};
+  assert.deepEqual(O.validate(c,context(c)),[],domain);
+  assert.ok(O.getChoices(c,context(c)).find(g=>g.id==='creation_armor')?.options.some(o=>o.value==='chain-mail'),domain);
+  assert.ok(O.getChoices(c,context(c)).find(g=>g.id==='creation_worn_armor')?.options.some(o=>o.value==='chain-mail'),domain);
+ }
+ for(const domain of ['death','twilight']){
+  const c=create('cleric',domain,{creation_weapon:'warhammer'});
+  assert.deepEqual(O.validate(c,context(c)),[],domain);
+  assert.ok(O.getChoices(c,context(c)).find(g=>g.id==='creation_weapon')?.options.some(o=>o.value==='warhammer'),domain);
+ }
+ assert.ok(!O.getChoices(create('cleric','life'),context(create('cleric','life'))).find(g=>g.id==='creation_weapon')?.options.some(o=>o.value==='warhammer'));
 });
