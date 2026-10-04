@@ -300,6 +300,16 @@
    attacks.push({...withDamage(attack,attack.damageBonus+shift),id:attack.id+'-hex',label:(attack.label||attack.name||attack.id)+' (Ведьмовской воин)',ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+(attack.proficient?0:2),hexWarrior:true,notes:['Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.',...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
   }
  }
+ function battleReady(attacks,a,infusions){
+  for(const attack of [...attacks]){const shift=mod(a.intelligence)-mod(a[attack.ability]),props=attack.properties||[];
+   if(!['simple','martial'].includes(attack.group)||attack.battleReady)continue;
+   const modes=[null,...infusions.filter(id=>id==='enhanced-weapon'||(id==='repeating-shot'&&props.includes('ammunition'))||(id==='returning-weapon'&&props.includes('thrown')))];
+   for(const mode of modes){const id=attack.id+'-battle-ready'+(mode?'-'+mode:'');if(attacks.some(x=>x.id===id))continue;const bonus=mode?1:0;
+    const note=mode?'Готовность к бою: только при активной инфузии «'+label(mode)+'» на этом оружии; +1 к атаке и урону уже учтён.':'Готовность к бою: только для магического оружия; бонусы самого оружия учитываются отдельно.';
+    attacks.push({...withDamage(attack,attack.damageBonus+shift+bonus),id,label:(attack.label||attack.name||attack.id)+' (ИНТ, '+(mode?label(mode):'магическое оружие')+')',ability:'intelligence',proficient:true,attackBonus:attack.attackBonus+shift+bonus+(attack.proficient?0:2),battleReady:true,notes:[note,...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+   }
+  }
+ }
  function featureSkills(ids,context){const missing=ids.filter(id=>!context.proficiencies?.skills.includes(id));return missing.length?missing:ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
  function createChoices(c,context={}){
@@ -509,10 +519,13 @@
     if(sc.id==='light')spell('light','cantrip',sc.label,'wisdom');
     if(['order','peace'].includes(sc.id))grant('skill',c.creation_domain_skill);
     if(sc.id==='twilight')e.darkvisionOverride=300;
+    const limitedDomains={light:['warding-flare','Защищающая вспышка'],tempest:['wrath-of-the-storm','Гнев бури'],grave:['eyes-of-the-grave','Глаза могилы']};
+    if(limitedDomains[sc.id])resource(...limitedDomains[sc.id],Math.max(1,mod(a.wisdom)));
     if(sc.id==='peace')resource('emboldening-bond','Укрепляющая связь',2);
     if(sc.id==='war')resource('war-priest','Боевой священник',Math.max(1,mod(a.wisdom)));
    }
    if(c.class==='warlock'){
+    if(sc.id==='archfey')resource('fey-presence','Фейское присутствие',1,'short-rest');
     if(sc.id==='celestial'){spell('light','cantrip',sc.label,'charisma');spell('sacred-flame','cantrip',sc.label,'charisma');resource('healing-light','Исцеляющий свет (к6)',s.level+1);}
     if(sc.id==='undying')spell('spare-the-dying','cantrip',sc.label,'charisma');
     if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a);}
@@ -529,6 +542,10 @@
   if(c.class==='ranger'){
    if(c.creation_favored_feature==='favored-foe'){e.features=e.features.filter(f=>f.name!=='Избранный враг'&&f.name!=='Язык избранного врага'&&!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Избранный враг')));e.proficiencySlots=(e.proficiencySlots||[]).filter(x=>!x.id.includes('favored-enemy-language'));resource('favored-foe','Избранный противник',2);feature('Избранный противник','При попадании пометьте цель, концентрация до 1 минуты. Первый урон по ней в каждый ваш ход +1к4; 2 / долгий отдых. Заменяет Избранного врага.','TCE');}
    if(c.creation_explorer_feature==='deft-explorer'){e.features=e.features.filter(f=>f.name!=='Исследователь природы'&&!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Исследователь природы')));e.fixedExpertise=arr(c.creation_canny_skill);arr(c.creation_canny_languages).forEach(id=>grant('language',id));feature('Ловкий исследователь: Искусность','Компетентность: '+label(c.creation_canny_skill)+'; два языка. Заменяет Исследователя природы.','TCE');}
+  }
+  if(c.class==='wizard'){
+   e.features=e.features.filter(f=>!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Магическое восстановление')));
+   const budget=Math.ceil(s.level/2);feature('Магическое восстановление','Один раз в день после короткого отдыха восстановите потраченные ячейки суммарного круга до '+budget+(budget===2?' (одна ячейка 2-го круга или две 1-го).': ' (одна ячейка 1-го круга).')+' Ритуалы из книги не требуется подготавливать.');
   }
   if(!onlyCreation){
    if(c.class==='barbarian')resource('rage','Ярость',s.level===3?3:2);
@@ -583,7 +600,7 @@
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
    if(sc?.id==='artillerist')resource('eldritch-cannon','Мистическая пушка без ячейки',1);
    if(sc?.id==='battle-smith')resource('steel-defender','Стальной защитник: хиты',2+mod(a.intelligence)+5*s.level);
-   if(sc?.id==='armorer')gain('armor','heavy');if(sc?.id==='battle-smith')gain('weapon','martial');
+   if(sc?.id==='armorer')gain('armor','heavy');if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
    if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}
    if(sc?.id==='valor'){gain('armor','medium');gain('armor','shield');gain('weapon','martial');}
    if(sc?.id==='drakewarden')spell('thaumaturgy','cantrip',sc.label,'wisdom');
