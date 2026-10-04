@@ -377,12 +377,13 @@
     proficiencies.expertise=[...new Set([...proficiencies.expertise,...(extra.fixedExpertise||[]).filter(id=>proficiencies.skills.includes(id)||proficiencies.tools.includes(id))])];
     const skills=Object.fromEntries(Object.keys(SKILLS).map(id=>[id,modifiers[SKILL_ABILITIES[id]]+(proficiencies.skills.includes(id)?proficiencyBonus*(proficiencies.expertise.includes(id)?2:1):(extra.jackOfAllTrades?1:0))+(SKILL_ABILITIES[id]==='charisma'?(extra.charismaCheckBonus||0):0)]));
     const speed=Math.max(0,(raceData.speed||30)+(extra.speedBonus||0)-(worn&&worn.type==='heavy'&&worn.strength&&abilities.strength<worn.strength&&character.race!=='dwarf'?10:0));
-    let fly=raceData.fly||0,climb=raceData.climb||0,swim=extra.swimOverride||raceData.swim||0;
+    let fly=raceData.fly||0,climb=raceData.climb||0,swim=raceData.swim||0;
     if(['fairy','owlin'].includes(character.race))fly=speed;
     if(character.race==='hadozee')climb=speed;
     if(character.race==='giff')swim=speed;
     if(character.race==='simic-hybrid'&&character.creation_simic_adaptation==='climb')climb=speed;
     if(character.race==='simic-hybrid'&&character.creation_simic_adaptation==='swim')swim=speed;
+    swim=Math.max(swim,extra.swimOverride||0);
     if(raceData.flightRestriction==='medium-heavy'&&worn&&['medium','heavy'].includes(worn.type))fly=0;
     if(extra.armorClass!==undefined&&Number.isFinite(extra.armorClass))ac=extra.armorClass;
     const size=['harengon','owlin','hadozee','plasmoid','thri-kreen'].includes(character.race)&&['small','medium'].includes(character.creation_size)?character.creation_size:raceData.size||'medium';

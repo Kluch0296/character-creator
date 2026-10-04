@@ -801,12 +801,13 @@ test('a falsey advancement ledger still asks to reset before editing and the res
   assert.equal(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled,false);
 });
 test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
-  for (const cls of ['fighter','bard','warlock']) {
+  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3]]) {
     const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:cls});
     vm.runInContext(`
-      for(let level=2;level<=${cls==='warlock'?3:2};level++){
+      for(let level=2;level<=${lastLevel};level++){
         const p=LevelUpRules.begin(character,getAdvancementContext());
-        if(level===3)p.choices.pact='chain';
+        if(level===3&&'${cls}'==='warlock')p.choices.pact='chain';
+        if(level===3&&${JSON.stringify(branch)})p.choices.subclass=${JSON.stringify(branch)};
         for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);
         character=LevelUpRules.commit(character,p,getAdvancementContext());
       }

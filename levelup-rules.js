@@ -92,7 +92,7 @@
  'giants-might':['Мощь великана','Бонусное действие, 1 минута: Большой размер, преимущество Силы, +1к6 урона оружием/безоружно один раз в ваш ход; мастерство применений за долгий отдых.'],
  'arcane-shot':['Мистический выстрел','Два изученных варианта; два применения за короткий или долгий отдых; один выстрел за ход при попадании стрелой короткого/длинного лука.'],
  'born-to-the-saddle':['Рождённый в седле','Преимущество спасбросков против падения с ездового животного; посадка/спешивание стоят 5 футов движения.'],
- 'unwavering-mark':['Непоколебимая метка','Попадание рукопашным оружием помечает цель до конца вашего следующего хода; есть помеха атакам по другим рядом с вами и ответная бонусная атака при условиях.'],
+ 'unwavering-mark':['Непоколебимая метка','Попадание рукопашным оружием помечает цель до конца вашего следующего хода; цель рядом с вами получает помеху атакам по другим. Если она нанесла урон другому, в свой следующий ход можно ответить особой бонусной атакой. Таких атак — модификатор СИЛ (минимум 1) / долгий отдых; число меток не ограничено.'],
  'fighting-spirit':['Боевой дух','Бонусное действие: преимущество атак оружием до конца хода и 5 временных хитов; 3 / долгий отдых.'],
  'deflect-missiles':['Отражение снарядов','Реакция уменьшает дальнобойный урон оружием на 1к10 + ЛОВ + уровень монаха. Если уменьшили до 0, можно поймать и за 1 ци метнуть снаряд.'],
  'open-hand-technique':['Техника открытой ладони','Попадание Шквалом ударов: выберите сбить с ног, оттолкнуть на 15 футов или лишить реакций; первые два имеют спасброски.'],
@@ -380,7 +380,9 @@
     case 'druid:land':add('bonus_cantrip','Дополнительный заговор',spellList('druid',0,c,s,true).filter(id=>!old.cantrips.includes(id)),1,'spells');break;
     case 'wizard:bladesinging':add('bladesinger_weapon','Одноручное рукопашное оружие',Object.keys(R.WEAPONS).filter(id=>!['simple','martial','firearms','improvised','glaive','greataxe','greatsword','halberd','maul','pike','light_crossbow','dart','shortbow','sling','blowgun','hand_crossbow','heavy_crossbow','longbow','net'].includes(id)),1,'proficiencies');break;
     case 'wizard:illusion':{const known=new Set([...old.cantrips,...knownElsewhere(context)]);add('illusion_cantrip','Улучшенная малая иллюзия',known.has('minor-illusion')?spellList('wizard',0,c,s,true).filter(id=>!known.has(id)):['minor-illusion'],1,'spells');break;}
-    case 'fighter:battle-master':add('maneuvers','Три боевых приёма',optionList('MV:B',c,s),3);add('artisan_tool','Ремесленный инструмент',R.ARTISAN_TOOLS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');break;
+    case 'fighter:battle-master':{const aliases={disarming:'disarming-attack',distracting:'distracting-strike',evasive:'evasive-footwork',feinting:'feinting-attack',goading:'goading-attack',lunging:'lunging-attack',maneuvering:'maneuvering-attack',menacing:'menacing-attack',precision:'precision-attack',pushing:'pushing-attack',sweeping:'sweeping-attack',trip:'trip-attack'};
+     const known=new Set([...(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='martial-adept'?arr(c.creation_maneuvers):[]),...(c.creation_style==='superior-technique'?arr(c.creation_superior_maneuver):[])].map(id=>aliases[id]||id));
+     add('maneuvers','Три боевых приёма',optionList('MV:B',c,s).filter(o=>!known.has(o.value)),3);add('artisan_tool','Ремесленный инструмент',R.ARTISAN_TOOLS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');break;}
     case 'fighter:arcane-archer':add('arcane_shots','Два варианта мистического выстрела',optionList('AS',c,s),2);add('archer_skill','Знания мистического лучника',featureSkills(['arcana','nature'],context),1,'proficiencies');add('archer_cantrip','Заговор мистического лучника',['prestidigitation','druidcraft'],1,'spells');break;
     case 'fighter:rune-knight':add('runes','Две доступные руны',optionList('RN',c,s),2);break;
     case 'fighter:cavalier':add('cavalier_proficiency','Дополнительное владение',uniq(['animal_handling','history','insight','performance','persuasion',...R.CHOICE_LANGUAGES]).filter(id=>![...context.proficiencies?.skills||[],...context.proficiencies?.languages||[]].includes(id)),1,'proficiencies');break;
@@ -560,6 +562,8 @@
    for(const key of ['cavalier_proficiency','samurai_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
    e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...arr(s.choices.expertise)]);
    if(sc?.id==='rune-knight'){gain('tool','smith');gain('language','giant');resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));}
+   if(sc?.id==='cavalier'&&s.level>=3)resource('unwavering-mark','Непоколебимая метка: особая бонусная атака',Math.max(1,mod(a.strength)));
+   if(sc?.id==='wild-magic'&&s.level>=3)resource('magic-awareness','Чувство магии',2);
    if(sc?.id==='battle-master')resource('superiority-dice','Кости превосходства (к8)',4,'short-rest');
    if(sc?.id==='arcane-archer')resource('arcane-shot','Мистический выстрел',2,'short-rest');
    if(sc?.id==='samurai')resource('fighting-spirit','Боевой дух',3);
