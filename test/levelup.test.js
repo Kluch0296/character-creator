@@ -358,3 +358,11 @@ test('level-three racial spells use stored gith and yuan-ti IDs',()=>{
  assert.ok(spells(level3({race:'gith',race_sub:'githyanki'})).some(x=>x.id==='jump'&&x.ability==='intelligence'));
  assert.ok(spells(level3({race:'yuan-ti-pureblood'})).some(x=>x.id==='suggestion'&&x.ability==='charisma'));
 });
+test('cleric creation preparation excludes automatic domain spells of every domain',()=>{
+ for(const domain of ['grave','arcana','order','peace','forge','twilight','life']){
+  const cleric=create('cleric',domain),auto=L.automaticSpells(cleric).filter(id=>id!=='spare-the-dying');
+  const options=O.getChoices(cleric,context(cleric)).find(g=>g.id==='creation_prepared').options.map(o=>o.value);
+  for(const id of auto)assert.ok(!options.includes(id),domain+': '+id);
+  const prepared=extras(cleric).spells.filter(x=>x.status==='prepared'&&!x.limitExempt);assert.equal(prepared.length,[].concat(cleric.creation_prepared).length,domain);
+ }
+});

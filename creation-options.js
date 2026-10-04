@@ -209,7 +209,7 @@
       if(casting[2]==='book') {
         add('spellbook','Книга волшебника: шесть заклинаний 1-го уровня',spellList('wizard',1),6,SPELL_NAMES,'spells');
         add('prepared','Подготовленные заклинания из книги',values(c.creation_spellbook).filter(id=>spellList('wizard',1).includes(id)),prep,SPELL_NAMES,'spells');
-      } else if(casting[2]==='prepared') add('prepared','Подготовленные заклинания 1-го уровня',spellList(c.class,1,c).filter(id=>!(c.class==='cleric'&&(DOMAINS[c.creation_domain]?.spells||[]).includes(id))),prep,SPELL_NAMES,'spells');
+      } else if(casting[2]==='prepared') add('prepared','Подготовленные заклинания 1-го уровня',spellList(c.class,1,c).filter(id=>!levelup()?.automaticSpells(c).includes(id)),prep,SPELL_NAMES,'spells');
       else add('known_spells','Известные заклинания 1-го уровня',spellList(c.class,1,c).filter(id=>!levelup()?.automaticSpells(c).includes(id)),casting[2],SPELL_NAMES,'spells');
     }
     if(c.class==='cleric'&&c.creation_domain==='nature') add('nature_cantrip','Заговор домена Природы',spellList('druid',0),1,SPELL_NAMES,'spells');
@@ -383,7 +383,7 @@
       const known=values(c.creation_known_spells).filter(id=>spellList(c.class,1,c).includes(id));
       const book=c.class==='wizard'?values(c.creation_spellbook).filter(id=>spellList('wizard',1).includes(id)):[];
       const prepared=values(c.creation_prepared).filter(id=>(mode==='book'?book:spellList(c.class,1,c)).includes(id));
-      const alwaysPrepared=domain?(DOMAINS[domain]?.spells||[]):[];
+      const alwaysPrepared=c.class==='cleric'&&domain?(levelup()?.automaticSpells(c).filter(id=>spellList(c.class,1,c).includes(id))||DOMAINS[domain]?.spells||[]):[];
       result.spellcasting={ability,attackBonus:2+mod(a[ability]),saveDC:10+mod(a[ability]),slots: c.class==='warlock'?1:2,slotLevel:1,slotRecovery:c.class==='warlock'?'short-rest':'long-rest',mode,cantrips:unique(cantrips),known:typeof mode==='number'?known:[],spellbook:book,prepared:['prepared','book'].includes(mode)?unique([...prepared,...alwaysPrepared]):[],alwaysPrepared,cantripCount:count,preparedCount:Math.min(c.class==='wizard'?6:Infinity,Math.max(1,mod(a[ability])+(c.class==='artificer'?0:1)))};
       const push=(ids,level,status)=>ids.forEach(id=>result.spells.push({id,label:SPELL_NAMES[id]||id,level,ability,source:CLASSES[c.class],status,limitExempt:alwaysPrepared.includes(id)||(domain==='light'&&id==='light')}));
       push(result.spellcasting.cantrips,0,'cantrip');
