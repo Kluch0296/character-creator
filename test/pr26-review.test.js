@@ -94,11 +94,18 @@ test('PR26 Chronurgy exposes two long-rest Chronal Shift uses',()=>{
  assert.ok(!extras(advance(create('wizard'),'graviturgy')).resources.some(r=>r.id==='chronal-shift'));
 });
 
-test('PR26 Dedicated Weapon permits an eligible martial weapon with Dexterity',()=>{
- const fighter=create('fighter',null,{race:'dwarf',race_sub:'hill-dwarf',abilities:{strength:16,dexterity:18,constitution:16,intelligence:10,wisdom:16,charisma:10},creation_style:'defense'});
- let entry=L.selectClass(fighter,L.begin(fighter,context(fighter)),'monk',context(fighter));let c=L.commit(fighter,entry,context(fighter));entry=L.selectClass(c,L.begin(c,context(c)),'monk',context(c));c=L.commit(c,fill(c,entry,{'variant_dedicated-weapon':'yes'}),context(c));const e=extras(c),battleaxe=e.attacks.find(a=>a.id==='battleaxe');
- assert.ok(battleaxe);assert.equal(battleaxe.ability,'dexterity');assert.equal(battleaxe.attackBonus,6);assert.equal(battleaxe.damageBonus,4);assert.match(battleaxe.notes.join(' '),/Специальное оружие/);
- assert.ok(e.features.some(f=>f.name==='Специальное оружие'));
+test('PR26 Dedicated Weapon retains ordinary attacks and marks each Dexterity option as conditional',()=>{
+ const fighter=create('fighter',null,{race:'dwarf',race_sub:'hill-dwarf',abilities:{strength:16,dexterity:18,constitution:16,intelligence:10,wisdom:16,charisma:10},creation_style:'defense',creation_weapon:'battleaxe',creation_shield_weapon:'longsword'});
+ let entry=L.selectClass(fighter,L.begin(fighter,context(fighter)),'monk',context(fighter));let c=L.commit(fighter,entry,context(fighter));entry=L.selectClass(c,L.begin(c,context(c)),'monk',context(c));c=L.commit(c,fill(c,entry,{'variant_dedicated-weapon':'yes'}),context(c));const e=extras(c);
+ for(const id of ['battleaxe','longsword']){
+  const ordinary=e.attacks.find(a=>a.id===id),dedicated=e.attacks.find(a=>a.id===id+'-dedicated');
+  assert.ok(ordinary);assert.ok(dedicated);assert.equal(ordinary.ability,'strength');assert.equal(dedicated.ability,'dexterity');
+  assert.equal(dedicated.attackBonus,6);assert.equal(dedicated.damageBonus,4);assert.match(dedicated.notes.join(' '),/единственное оружие/);
+  assert.ok(exported(c).weaponsList.some(w=>w.name.value===ordinary.label));
+  assert.ok(exported(c).weaponsList.some(w=>w.name.value===dedicated.label));
+ }
+ assert.match(e.features.find(f=>f.name==='Специальное оружие')?.description,/Только одно оружие/);
+ assert.equal(e.attacks.length,new Set(e.attacks.map(a=>a.id)).size);
 });
 
 test('PR26 PHB wizard traditions include Savant summaries and Portent',()=>{
@@ -350,4 +357,18 @@ test('PR26 net remains zero damage with Thrown Weapon Fighting at creation and a
  const advancedNet=extras(c).attacks.find(a=>a.id==='net');assert.ok(advancedNet);assert.equal(advancedNet.damage,'0');assert.equal(advancedNet.damageBonus,0);
  assert.match(advancedNet.notes.join(' '),/извлечь оружие частью атаки/);
  assert.equal(exported(c).weaponsList.find(w=>w.name.value===advancedNet.label)?.dmg.value,'0');
+});
+
+test('PR26 multiclass weapon training removes obsolete nonproficiency notes from sheet and LSS',()=>{
+ const first=create('sorcerer',null,{creation_weapon:'handaxe'}),before=extras(first).attacks.find(a=>a.id==='handaxe');
+ assert.ok(before);assert.equal(before.proficient,false);assert.match(before.notes.join(' '),/Нет владения/);
+ const c=enter(first,'fighter'),attack=extras(c).attacks.find(a=>a.id==='handaxe');
+ assert.ok(attack);assert.equal(attack.proficient,true);assert.equal(attack.attackBonus,before.attackBonus+2);
+ assert.ok(!attack.notes.some(note=>note.startsWith('Нет владения')));
+ assert.ok(!JSON.stringify(exported(c).text.attacks).includes('Нет владения'));
+});
+
+test('PR26 Way of the Brush keeps the Xanathar choice of calligrapher or painter',()=>{
+ const monk=advance(create('monk')),p=fill(monk,L.begin(monk,context(monk)),{subclass:'kensei'});
+ assert.deepEqual(L.getChoices(monk,p,context(monk)).find(g=>g.id==='kensei_tool').options.map(o=>o.value),['calligrapher','painter']);
 });

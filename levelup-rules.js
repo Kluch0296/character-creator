@@ -343,7 +343,17 @@
      e.attacks.push({id:'radiant-sun-bolt',label:'Луч солнечного света',type:'radiant',group:'spell',properties:['ranged'],ability:'dexterity',proficient:true,attackBonus:2+bonus,damageBonus:bonus,damage:`1d4${bonus>=0?'+':''}${bonus}`,notes:['Дальнобойная атака заклинанием на 30 футов вместо одной атаки действия Атака; дополнительные выстрелы за ци по правилам умения.']});
     }
   }
- function featureSkills(ids,context){const missing=ids.filter(id=>!context.proficiencies?.skills.includes(id));return missing.length?missing:ids;}
+ function dedicatedWeaponAttacks(e,a){
+  if(e.armor||e.shield||!e.attacks)return;
+  for(const attack of [...e.attacks]){
+   const props=attack.properties||[];
+   if(!['simple','martial'].includes(attack.group)||!attack.proficient||attack.ability!=='strength'||attack.thrownVariant||attack.hexWarrior||attack.battleReady||['heavy','special'].some(x=>props.includes(x))||mod(a.dexterity)<=mod(a.strength))continue;
+   const id=attack.id+'-dedicated';if(e.attacks.some(x=>x.id===id))continue;
+   const shift=mod(a.dexterity)-mod(a.strength);
+   e.attacks.push({...withDamage(attack,attack.damageBonus+shift),id,label:(attack.label||attack.name||attack.id)+' (специальное оружие)',ability:'dexterity',attackBonus:attack.attackBonus+shift,dedicatedWeapon:true,notes:['Только если это единственное оружие, назначенное специальным после короткого или долгого отдыха; исходная атака остаётся доступной.',...(attack.notes||[])]});
+  }
+ }
+ function featureSkills(ids,context){const known=context.proficiencies?.skills||[],missing=ids.filter(id=>!known.includes(id));return missing.length?missing:Object.keys(R.SKILLS).filter(id=>!known.includes(id));}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
  function createChoices(c,context={}){
   const result=[],sc=subclass(c),add=(id,name,ids,count=1,section='class',source=sc?.source)=>result.push(group('creation_'+id,name,ids,count,section,source));
@@ -621,9 +631,7 @@
    if(s.choices['variant_magical-inspiration']==='yes')feature('Магическое вдохновение','Существо с костью вдохновения может добавить её результат к лечению или урону заклинания одной цели.','TCE');
    if(s.choices['variant_harness-divine-power']==='yes'){resource('harness-divine-power','Использование божественной силы',1);feature('Использование божественной силы','Бонусное действие: потратьте Божественный канал и восстановите ячейку 1-го круга; 1 / долгий отдых.','TCE');}
    if(s.choices['variant_wild-companion']==='yes'){spell('find-familiar','feature','Дикий спутник','wisdom',true,'Потратьте Дикий облик: без компонентов, фея, на '+Math.floor(s.level/2)+' час.');}
-   if(s.choices['variant_dedicated-weapon']==='yes'){feature('Специальное оружие','После отдыха назначьте монашеским простое/воинское оружие, которым владеете; без тяжёлого/особого свойства.','TCE');
-    for(const attack of e.attacks||[]){const props=attack.properties||[],isMonkWeapon=attack.group==='unarmed'||attack.group==='natural'||attack.id==='shortsword'||(['simple','martial'].includes(attack.group)&&!['two-handed','heavy','special','ranged'].some(x=>props.includes(x)));if(isMonkWeapon&&mod(a.dexterity)>mod(a[attack.ability])){const delta=mod(a.dexterity)-mod(a[attack.ability]);attack.ability='dexterity';attack.attackBonus+=delta;attack.damageBonus+=delta;attack.damage=attack.damage.replace(/[+-][0-9]$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;attack.notes.push('Специальное оружие: это оружие назначено монашеским и может использовать Ловкость.');}}
-   }
+   if(s.choices['variant_dedicated-weapon']==='yes')feature('Специальное оружие','После короткого или долгого отдыха назначьте одно простое или воинское оружие, которым владеете, монашеским до следующего назначения; без тяжёлого и особого свойств. Только одно оружие может быть назначено одновременно.','TCE');
    if(s.choices['variant_ki-fueled-attack']==='yes')feature('Атака за ци','Если потратили ци частью действия, можете бонусным действием атаковать безоружно или монашеским оружием.','TCE');
    if(s.choices['variant_cantrip-formulas']==='yes')feature('Формулы заговоров','После долгого отдыха и изучения формул в книге можно заменить один заговор волшебника другим из его списка. Не даёт свободную замену при повышении.','TCE');
    if(s.choices['variant_primal-awareness']==='yes'){e.features=e.features.filter(f=>f.id!=='primeval-awareness'&&f.name!=='Primeval Awareness'&&f.name!=='Первозданная осведомлённость');spell('speak-with-animals','feature','Первобытная осведомлённость','wisdom',true,'1 раз / долгий отдых; также можно использовать ячейку.');}
@@ -826,7 +834,7 @@
  function commit(c,p,context={}){const checked=inspect(c,context);if(checked.errors.length)throw new Error(checked.errors[0].message);const t=transition(c,p,context,checked.state);if(t.errors.length)throw new Error(t.errors[0].message);const next=clone(c);next.level=t.state.level;next.advancement={version:2,entries:t.state.entries};delete next.pendingAdvancement;return next;}
  function hpGain(c,p,context={}){const cls=p.classId||c.class,con=mod(R.finalAbilities(c,context.baseExtras||{}).constitution),s=inspect(c,context).state,q=s.classStates[cls]?.character||entryCharacter(c,p),bonus=(R.RACES[c.race]?.subraces?.[c.race_sub]?.hpBonus||0)+(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='tough'?2:0)+(cls==='sorcerer'&&q.creation_origin==='draconic'?1:0);return {die:R.CLASSES[cls]?.hitDie,raw:p.hp?.value,constitution:con,bonus,gain:Math.max(1,Number(p.hp?.value||0)+con+bonus)};}
  function derive(c,context={},base={},providedState){
-  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates){const single=deriveSingle(c,context,base,s);subclassAttacks(single,context.abilities||R.finalAbilities(c,base));return single;}
+  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates){const single=deriveSingle(c,context,base,s),abilities=context.abilities||R.finalAbilities(c,base);if(s.choices?.['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(single,abilities);subclassAttacks(single,abilities);return single;}
   const primary=s.classStates[c.class],e=deriveSingle(c,context,base,primary.state);
   e.classes=Object.entries(s.classStates).filter(([id])=>R.CLASSES[id]).map(([id,x])=>({id,label:NAMES[id],level:x.state.level}));e.effectiveLevel=s.level;e.progressionErrors=inspected.errors;
   e.hitDicePools=Object.entries(e.classes.reduce((pool,x)=>{const die=R.CLASSES[x.id].hitDie;pool[die]=(pool[die]||0)+x.level;return pool;},{})).map(([die,count])=>({die:Number(die),count}));
@@ -868,8 +876,10 @@
     if(attack.group==='unarmed'&&!/^1d[468]/.test(attack.damage))attack.damage='1d4'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
    }
   }
-  const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;}
-  subclassAttacks(e,context.abilities||R.finalAbilities(c,base));
+  const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;if(allowed)attack.notes=(attack.notes||[]).filter(note=>!note.startsWith('Нет владения'));}
+  const abilities=context.abilities||R.finalAbilities(c,base);
+  if(s.classStates.monk?.state.choices['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(e,abilities);
+  subclassAttacks(e,abilities);
   return e;
  }
  function setSpellNames(names){for(const [id,name] of Object.entries(names))if(D.spells[id]&&!D.spells[id].label&&/[А-Яа-яЁё]/.test(name))D.spells[id].label=name;for(const [id,s]of Object.entries(D.spells))names[id]=s.label||names[id]||s.name;}

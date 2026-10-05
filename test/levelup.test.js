@@ -285,7 +285,7 @@ test('warlock invocations accept prerequisite cantrips known from any source',()
  const done=L.commit(initiate,p,context(initiate));assert.deepEqual(L.inspect(done,context(done)).errors,[]);
 });
 
-test('subclass skill features never grant skills outside their fixed lists',()=>{
+test('subclass skill features use their lists and replace Arcane Archer Lore when both skills are known',()=>{
  const monk=advance(advance(create('monk')),'ascendant-dragon'),before=stats(advance(create('monk'))).proficiencies.skills;
  assert.ok(!Object.hasOwn(monk.advancement.entries[1].choices,'dragon_proficiency'));
  assert.deepEqual(stats(monk).proficiencies.skills.slice().sort(),before.slice().sort());
@@ -293,8 +293,11 @@ test('subclass skill features never grant skills outside their fixed lists',()=>
  const fighter=create('fighter',undefined,{human_feature:'human_alt',proficiencyChoices:{'human-alt:0:0':'nature'}});
  assert.ok(['arcana','nature'].every(id=>stats(fighter).proficiencies.skills.includes(id)));
  const two=advance(fighter),p=fill(two,L.begin(two,context(two)),{subclass:'arcane-archer'});
- assert.deepEqual(L.getChoices(two,p,context(two)).find(g=>g.id==='archer_skill').options.map(o=>o.value),['arcana','nature']);
- const archer=L.commit(two,p,context(two));assert.deepEqual(stats(archer).proficiencies.skills.slice().sort(),stats(two).proficiencies.skills.slice().sort());
+ const options=L.getChoices(two,p,context(two)).find(g=>g.id==='archer_skill').options.map(o=>o.value);
+ assert.ok(options.includes('athletics'));assert.ok(!options.includes('arcana'));assert.ok(!options.includes('nature'));
+ p.choices.archer_skill='athletics';assert.deepEqual(L.transition(two,p,context(two)).errors,[]);
+ const archer=L.commit(two,p,context(two));assert.ok(stats(archer).proficiencies.skills.includes('athletics'));
+ assert.equal(stats(archer).proficiencies.skills.length,stats(two).proficiencies.skills.length+1);
  assert.deepEqual(R.resolveProficiencies(archer,extras(archer)).errors,[]);
 });
 
