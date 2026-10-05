@@ -801,9 +801,9 @@ test('a falsey advancement ledger still asks to reset before editing and the res
   assert.equal(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled,false);
 });
 test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
-  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['artificer','battle-smith',3]]) {
+  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['sorcerer','wild',1],['artificer','battle-smith',3]]) {
     const dom=createDOM(),context=loadScript(dom,readConfig());await flush();
-    const overrides={class:cls};if(cls==='cleric')overrides.creation_domain=branch;if(cls==='warlock'&&branch)overrides.creation_patron=branch;
+    const overrides={class:cls};if(cls==='cleric')overrides.creation_domain=branch;if(cls==='warlock'&&branch)overrides.creation_patron=branch;if(cls==='sorcerer'&&branch)overrides.creation_origin=branch;
     if(cls==='artificer')overrides.abilities={strength:8,dexterity:10,constitution:14,intelligence:15,wisdom:13,charisma:12};fillWizard(context,overrides);
     vm.runInContext(`
       for(let pass=0;pass<5;pass++)for(const g of CreationOptions.getChoices(character,getCreationContext())){const chosen=[].concat(character[g.id]||[]);if(chosen.length!==g.count||chosen.some(id=>!g.options.some(o=>o.value===id)))character[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);}
@@ -824,7 +824,7 @@ test('both final sheets show exact resource maxima and recovery; Chain spell sur
     if(cls==='warlock'&&!branch){
       const spell=result.extras.spells.find(x=>x.id==='find-familiar');assert.ok(spell&&spell.ability==='charisma');assert.ok(result.left.includes(spell.label));assert.ok(result.right.includes(spell.label));assert.ok(result.export[0].spells.slotless.includes(context.LssExport.SPELL_IDS['find-familiar']));
     } else {
-      for(const r of result.extras.resources){const text=`${r.name}: максимум ${r.max}; восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха.`;assert.ok(result.left.includes(text),cls+':left:'+r.id);assert.ok(result.right.includes(text),cls+':right:'+r.id);}
+      for(const r of result.extras.resources){const text=`${r.name}: максимум ${r.max}; ${r.recovery||`восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха`}.`;assert.ok(result.left.includes(text),cls+':left:'+r.id);assert.ok(result.right.includes(text),cls+':right:'+r.id);}
     }
   }
 });
@@ -870,4 +870,12 @@ test('multiclass advancement selects class, explains +7 HP and renders independe
   assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before);
   const commit=dom.root.querySelectorAll('button').find(button=>button.textContent==='Применить повышение');assert.equal(commit.disabled,false);commit.click();
   assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before+7);assert.ok(dom.root.textContent.includes('Волшебник 1 / Колдун 1'));
+});
+
+test('advancement confirmation preserves daily and conditional resource recovery',async()=>{
+ for(const overrides of [{class:'wizard'},{class:'sorcerer',creation_origin:'wild'}]){
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,overrides);
+  vm.runInContext(`for(let pass=0;pass<5;pass++)for(const g of CreationOptions.getChoices(character,getCreationContext())){const chosen=[].concat(character[g.id]||[]);if(chosen.length!==g.count||chosen.some(id=>!g.options.some(o=>o.value===id)))character[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);}currentPageIndex=config.pages.length;startAdvancement();const p=character.pendingAdvancement;for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);p.step=4;renderPage();resourceProbe=getCreationExtras().resources.filter(r=>r.recovery);`,context);
+  const resources=JSON.parse(vm.runInContext('JSON.stringify(resourceProbe)',context));assert.equal(resources.length,1);for(const r of resources)assert.ok(dom.root.textContent.includes(`${r.name}: ${r.max}, ${r.recovery}`));assert.equal(vm.runInContext('character.level',context),1);
+ }
 });

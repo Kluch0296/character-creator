@@ -529,7 +529,7 @@ function renderMechanicalSummary(container) {
     appendResultList(container, 'Использование заклинаний', details);
   }
   appendResultList(container, 'Заклинания и заговоры', (extras.spells || []).map(spell => `${spell.label || spell.id} · ${spell.level ? `${spell.level}-й уровень` : 'заговор'} · ${spell.source}${spell.status ? ` · ${{prepared:'подготовлено',known:'известно',spellbook:'в книге',racial:'от расы',ritual:'ритуал',feat:'от черты',cantrip:'известно',invocation:'воззвание',feature:'от умения'}[spell.status] || spell.status}` : ''}${spell.usage ? ` · ${spell.usage}` : ''}`));
-  appendResultList(container, 'Ресурсы', (extras.resources || []).map(resource => `${resource.name}: максимум ${resource.max}; восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`));
+  appendResultList(container, 'Ресурсы', (extras.resources || []).map(resource => `${resource.name}: максимум ${resource.max}; ${resource.recovery || `восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха`}.`));
   appendResultList(container, 'Особенности и примечания', [...new Set([...(stats.notes || []), ...(extras.features || []).map(feature => `${feature.name}: ${feature.description}`)])]);
 }
 

@@ -358,7 +358,7 @@
     }
     const martialArts=c.class==='monk'&&!result.armor&&!result.shield;
     const unarmedAbility=martialArts&&mod(a.dexterity)>mod(a.strength)?'dexterity':'strength';
-    const unarmedDie=c.class==='fighter'&&c.creation_style==='unarmed-fighting'?(result.shield||result.attacks.length?'1d6':'1d8'):martialArts||featId==='tavern-brawler'?'1d4':'1';
+    const unarmedDie=c.class==='fighter'&&c.creation_style==='unarmed-fighting'?'1d6':martialArts||featId==='tavern-brawler'?'1d4':'1';
     result.attacks.push({id:'unarmed',label:'Безоружный удар',type:'bludgeoning',group:'unarmed',properties:[],ability:unarmedAbility,proficient:true,attackBonus:2+mod(a[unarmedAbility]),damageBonus:mod(a[unarmedAbility]),damage:`${unarmedDie}${mod(a[unarmedAbility])>=0?'+':''}${mod(a[unarmedAbility])}`,notes:c.class==='fighter'&&c.creation_style==='unarmed-fighting'?['Без оружия и щита в руках кость урона становится к8. В начале хода 1к4 дробящего урона одному захваченному существу.']:[]});
     const natural={aarakocra:['Когти','1d4','slashing'],tabaxi:['Когти','1d4','slashing'],tortle:['Когти','1d4','slashing'],leonin:['Когти','1d4','slashing'],lizardfolk:['Укус','1d6','piercing'],minotaur:['Рога','1d6','piercing'],centaur:['Копыта','1d4','bludgeoning'],satyr:['Таран','1d4','bludgeoning']};
     if(c.race==='shifter'&&c.race_sub==='longtooth-shifter') natural.shifter=['Укус (только во время смены облика)','1d6','piercing'];

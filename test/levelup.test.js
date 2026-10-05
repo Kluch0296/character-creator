@@ -344,7 +344,9 @@ test('Hex Warrior adds a Charisma line for eligible weapons',()=>{
  assert.ok(dagger&&hex);assert.equal(hex.ability,'charisma');assert.equal(hex.attackBonus,2+m.charisma);assert.equal(hex.damageBonus,m.charisma);
  assert.ok(!e.attacks.some(x=>x.hexWarrior&&x.properties.includes('two-handed')));
  const native=JSON.parse(E.buildLssExport(hexblade,{},stats(hexblade),e)[0].data);assert.ok(native.weaponsList.some(w=>w.ability==='cha'));
- const strong=create('warlock','hexblade');assert.ok(!extras(strong).attacks.some(x=>x.hexWarrior));
+ const strong=create('warlock','hexblade',{abilities:{strength:16,dexterity:14,constitution:14,intelligence:10,wisdom:12,charisma:10}}),strongExtras=extras(strong);
+ const weakHex=strongExtras.attacks.find(x=>x.id==='dagger-hex');assert.ok(weakHex);assert.equal(weakHex.attackBonus,2);assert.equal(weakHex.damageBonus,0);
+ assert.ok(strongExtras.attacks.some(x=>x.id==='dagger'&&!x.hexWarrior));
 });
 
 test('manual feature summaries replace catalogue duplicates',()=>{

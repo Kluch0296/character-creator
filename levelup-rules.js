@@ -294,9 +294,13 @@
    else if(!attacks.some(x=>x.id===attack.id+'-thrown'))attacks.push({...withDamage(attack,attack.damageBonus+2),id:attack.id+'-thrown',label:(attack.label||attack.name||attack.id)+' (метание)',thrownVariant:true,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(attack.notes||[]).filter(x=>x.startsWith('Нет владения'))]});
   }
  }
+ function unarmedStyle(attacks){
+  const base=attacks?.find(x=>x.id==='unarmed');if(!base||attacks.some(x=>x.id==='unarmed-d8'))return;
+  attacks.push({...base,id:'unarmed-d8',label:'Безоружный удар (свободные руки, к8)',damage:base.damage.replace(/^1d6/,'1d8'),notes:['Только если в руках нет ни оружия, ни щита; владение предметами не означает, что они в руках.',...(base.notes||[])]});
+ }
  function hexWarrior(attacks,a){
   for(const attack of [...attacks]){const props=attack.properties||[],shift=mod(a.charisma)-mod(a[attack.ability]);
-   if(!['simple','martial'].includes(attack.group)||props.includes('two-handed')||attack.hexWarrior||shift<=0||attacks.some(x=>x.id===attack.id+'-hex'))continue;
+   if(!['simple','martial'].includes(attack.group)||props.includes('two-handed')||attack.hexWarrior||attacks.some(x=>x.id===attack.id+'-hex'))continue;
    attacks.push({...withDamage(attack,attack.damageBonus+shift),id:attack.id+'-hex',label:(attack.label||attack.name||attack.id)+' (Ведьмовской воин)',ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+(attack.proficient?0:2),hexWarrior:true,notes:['Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.',...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
   }
  }
@@ -547,9 +551,9 @@
   const grant=(type,id,noReplacement=false)=>{const source=sc?.name||'Повышение уровня';if(id&&!e.fixedProficiencies.some(g=>g.type===type&&g.id===id&&g.source===source))e.fixedProficiencies.push({type,id,source,...(noReplacement?{noReplacement:true}:{})});};
   // Advancement features grant a proficiency only if it is missing; they never open a free replacement.
   const gain=(type,id)=>grant(type,id,true);
-  const resource=(id,name,max,rest='long-rest')=>e.resources.push({id,name,max,rest});
+  const resource=(id,name,max,rest='long-rest',recovery)=>e.resources.push({id,name,max,rest,...(recovery?{recovery}:{})});
   const spell=(id,status,source=sc?.label||sc?.name||NAMES[c.class],ability,exempt=true,usage,slotless=['racial','ritual','feature','invocation'].includes(status))=>{const x=D.spells[id];if(x)e.spells.push({id,label:label(id),level:x.level,ability:ability||magic(c,s,a)?.ability||'wisdom',source,status,limitExempt:exempt,usage,slotless});};
-  if(c.class==='fighter'&&c.creation_style==='superior-technique'){resource('superior-technique','Превосходная техника: кость превосходства (к6)',1,'short-rest');e.features=e.features.filter(f=>f.name!=='Превосходная техника');feature('Превосходная техника',label(c.creation_superior_maneuver)+': '+(OPTION_RULES[c.creation_superior_maneuver]||'')+' Одна кость к6; восстановление после короткого или долгого отдыха.','TCE',1);}
+  if(c.class==='fighter'&&c.creation_style==='superior-technique'){resource('superior-technique','Превосходная техника: кость превосходства (к6)',1,'short-rest');e.features=e.features.filter(f=>f.name!=='Превосходная техника');feature('Превосходная техника',label(c.creation_superior_maneuver)+': '+(OPTION_RULES[c.creation_superior_maneuver]||'')+' Сл спасброска: '+(10+mod(a.strength))+' от Силы или '+(10+mod(a.dexterity))+' от Ловкости (8 + бонус мастерства + модификатор Силы или Ловкости, на ваш выбор). Одна кость к6; восстановление после короткого или долгого отдыха.','TCE',1);}
   if(FIELD[c.class]&&sc){
    for(const f of D.features.filter(f=>f.class===c.class&&f.subclass===sc.id&&f.level===1&&f.source!=='PHB'))if(FEATURE_RULES[f.id]&&!e.features.some(x=>x.name===FEATURE_RULES[f.id][0]))feature(f.name,'Умение '+sc.label+'. Описание и условия: '+sc.url,f.source,1);
    if(c.class==='cleric'){
@@ -577,6 +581,7 @@
     if(sc.id==='undead')resource('form-of-dread','Облик ужаса',2);
    }
    if(c.class==='sorcerer'){
+    if(sc.id==='wild')resource('tides-of-chaos','Поток хаоса',1,'long-rest','восстановление после долгого отдыха или после броска по таблице дикой магии по решению Мастера сразу после заклинания чародея 1-го круга или выше');
     if(sc.id==='storm')grant('language','primordial');if(sc.id==='shadow'){e.darkvisionOverride=120;resource('strength-of-the-grave','Сила могилы',1,'long-rest');}
     if(sc.id==='clockwork-soul')resource('restore-balance','Восстановление баланса',2);
     if(sc.id==='divine-soul')resource('favored-by-gods','Любимец богов',1,'short-rest');
@@ -588,6 +593,7 @@
    if(c.creation_explorer_feature==='deft-explorer'){e.features=e.features.filter(f=>f.name!=='Исследователь природы'&&!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Исследователь природы')));e.fixedExpertise=arr(c.creation_canny_skill);arr(c.creation_canny_languages).forEach(id=>grant('language',id));feature('Ловкий исследователь: Искусность','Компетентность: '+label(c.creation_canny_skill)+'; два языка. Заменяет Исследователя природы.','TCE');}
   }
   if(c.class==='wizard'){
+   resource('arcane-recovery','Магическое восстановление',1,'daily','одно применение раз в день, в конце короткого отдыха');
    e.features=e.features.filter(f=>!(f.name==='Умение 1-го уровня'&&f.description.startsWith('Магическое восстановление')));
    const budget=Math.ceil(s.level/2);feature('Магическое восстановление','Один раз в день после короткого отдыха восстановите потраченные ячейки суммарного круга до '+budget+(budget===2?' (одна ячейка 2-го круга или две 1-го).': ' (одна ячейка 1-го круга).')+' Ритуалы из книги не требуется подготавливать.');
   }
@@ -647,6 +653,8 @@
      resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));
      if(arr(s.choices.runes).includes('stone-rune'))e.darkvisionOverride=Math.max(e.darkvisionOverride||0,120);
    }
+   if(sc?.id==='astral-self'&&c.class==='monk')feature('Руки астрального Я',FEATURE_RULES['arms-of-the-astral-self'][1]+' При активации выбранные видимые существа в пределах 10 футов проходят спасбросок Ловкости Сл '+(10+mod(a.wisdom))+' (8 + бонус мастерства + модификатор Мудрости): 2к4 урона силовым полем при провале, при успехе урона нет.');
+   if(sc?.id==='storm-herald')feature('Аура бури',FEATURE_RULES['storm-aura'][1]+' Море: одно другое видимое существо в пределах 10 футов проходит спасбросок Ловкости Сл '+(10+mod(a.constitution))+' (8 + бонус мастерства + модификатор Телосложения), получает 1к6 урона молнией при провале или половину при успехе. Полное укрытие блокирует ауру.');
    if(sc?.id==='cavalier'&&s.level>=3)resource('unwavering-mark','Непоколебимая метка: особая бонусная атака',Math.max(1,mod(a.strength)));
    if(sc?.id==='wild-magic'&&s.level>=3)resource('magic-awareness','Чувство магии',2);
    if(sc?.id==='battle-master')resource('superiority-dice','Кости превосходства (к8)',4,'short-rest');
@@ -735,6 +743,7 @@
    if(c.race==='gith')racial(c.race_sub==='gitzerai'?'shield':'jump',c.race_sub==='gitzerai'?'wisdom':'intelligence');if(c.race==='yuan-ti-pureblood')racial('suggestion','charisma');
    if(c.race==='aasimar'){const forms={'aasimar-guardian':'Во время формы скорость полёта 30 футов; при нанесении урона одной цели раз за ход дополнительно '+s.level+' излучением.','aasimar-punisher':'Свет 10 футов и тусклый свет ещё 10; в конце каждого хода вы и существа в 10 футах получаете '+Math.ceil(s.level/2)+' излучением; одна цель раз за ход дополнительно '+s.level+' излучением.','fallen-aasimar':'При активации существа в 10 футах, видящие вас, проходят спасбросок Харизмы (Сл '+(10+mod(a.charisma))+') или испуганы до конца вашего следующего хода; одна цель раз за ход дополнительно '+s.level+' некротической энергией.'};feature('Преображение аасимара','Действие, 1 минута, 1 / долгий отдых. '+(forms[c.race_sub]||''),'VGM');e.features.at(-1).url='https://dnd.su/race/161-aasimar/';}
   }
+  if(c.class==='fighter'&&c.creation_style==='unarmed-fighting')unarmedStyle(e.attacks);
   e.spells=Array.from(new Map(e.spells.map(x=>[x.id+'|'+x.source+'|'+x.status,x])).values());
   e.notes=e.notes.filter(text=>!(s.level>1&&/появ|одна ячейка|1к10 \+ 1|запас 5|Ярость: 2|Скрытая атака:/.test(text)));
   return e;
@@ -872,7 +881,7 @@
   // Martial Arts belongs to the monk class even if it was acquired later.
   if(s.classStates.monk&&!e.armor&&!e.shield){const martialAbilities=context.abilities||R.finalAbilities(c,base);
    for(const attack of e.attacks||[]){const props=attack.properties||[],eligible=attack.group==='unarmed'||attack.group==='natural'||attack.id==='shortsword'||(attack.group==='simple'&&!props.includes('two-handed')&&!props.includes('heavy')&&!props.includes('ranged'));if(!eligible)continue;
-    if(mod(martialAbilities.dexterity)>mod(martialAbilities.strength)&&attack.ability!=='dexterity'){const delta=mod(martialAbilities.dexterity)-mod(martialAbilities[attack.ability]);attack.ability='dexterity';attack.attackBonus+=delta;attack.damageBonus+=delta;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
+    if(!attack.hexWarrior&&mod(martialAbilities.dexterity)>mod(martialAbilities.strength)&&attack.ability!=='dexterity'){const delta=mod(martialAbilities.dexterity)-mod(martialAbilities[attack.ability]);attack.ability='dexterity';attack.attackBonus+=delta;attack.damageBonus+=delta;attack.damage=attack.damage.replace(/[+-]\d+$/,'')+(attack.damageBonus>=0?'+':'')+attack.damageBonus;}
     if(attack.group==='unarmed'&&!/^1d[468]/.test(attack.damage))attack.damage='1d4'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
    }
   }

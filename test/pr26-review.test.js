@@ -405,3 +405,35 @@ test('PR26 newest feedback: Bladesong and Armor Model summaries retain exact TCE
  const c=advance(create('wizard'),'bladesinging'),song=extras(c).features.find(f=>f.name==='Песнь клинка').description;assert.match(song,/без доспеха или в лёгком/);assert.match(song,/к спасброскам Телосложения.*концентрации/);assert.match(song,/атаки оружием двумя руками/);assert.ok(!song.includes('преимущество на Акробатику и спасброски'));assert.ok(JSON.stringify(exported(c).text.traits).includes(song));
  const armorer=advance(advance(create('artificer')),'armorer'),model=extras(armorer).features.find(f=>f.name==='Модель доспеха').description;for(const rule of [/1к8.*звуком/,/помехой.*до начала вашего следующего хода/,/1к6.*молнией/,/90\/300/,/дополнительн.*1к6.*раз в.*ход/,/\+5 футов.*ходьбы/,/Интеллект.*атаки и урона/,/отменяет помеху от доспеха/]){assert.match(model,rule);}assert.ok(!model.includes('прыжок'));assert.ok(JSON.stringify(exported(armorer).text.traits).includes(model));
 });
+
+test('PR26 round eight: Astral activation and Sea Aura export the actual saving throws',()=>{
+ for(const value of [10,18]){
+  const monk=advance(advance(create('monk',null,{abilities:{strength:10,dexterity:14,constitution:14,intelligence:10,wisdom:value,charisma:10}})),'astral-self'),arms=extras(monk).features.find(f=>f.name==='Руки астрального Я').description;for(const text of ['10 футов','Ловкости','Сл '+(10+stats(monk).modifiers.wisdom),'2к4','силовым','при успехе урона нет'])assert.ok(arms.includes(text),text);assert.ok(JSON.stringify(exported(monk).text.traits).includes(arms));
+  const barbarian=advance(advance(create('barbarian',null,{abilities:{strength:14,dexterity:14,constitution:value,intelligence:10,wisdom:10,charisma:10}})),'storm-herald',{storm_environment:'sea'}),aura=extras(barbarian).features.find(f=>f.name==='Аура бури').description;for(const text of ['Ловкости','Сл '+(10+stats(barbarian).modifiers.constitution),'1к6','половину','видимое','10 футов'])assert.ok(aura.includes(text),text);assert.ok(JSON.stringify(exported(barbarian).text.traits).includes(aura));
+ }
+});
+test('PR26 round eight: Unarmed Fighting retains d6 and exports a conditional d8',()=>{
+ const first=create('fighter',null,{creation_style:'unarmed-fighting'}),multi=enter(create('sorcerer'),'fighter',{'fighter:creation_style':'unarmed-fighting'});
+ for(const c of [first,advance(first),advance(advance(first)),multi]){const e=extras(c),ordinary=e.attacks.find(a=>a.id==='unarmed'),variant=e.attacks.find(a=>a.id==='unarmed-d8');assert.ok(variant);assert.match(ordinary.damage,/^1d6/);assert.equal(variant.damage,ordinary.damage.replace('1d6','1d8'));assert.equal(variant.attackBonus,ordinary.attackBonus);assert.match(variant.notes.join(' '),/ни оружия, ни щита/);assert.ok(e.attacks.some(a=>a.group==='martial'||a.group==='simple'));assert.equal(e.attacks.length,new Set(e.attacks.map(a=>a.id)).size);assert.ok(exported(c).weaponsList.some(w=>w.name.value===variant.label&&w.dmg.value===variant.damage));}
+ assert.ok(!extras(create('fighter')).attacks.some(a=>a.id==='unarmed-d8'));
+});
+test('PR26 round eight: daily Arcane Recovery and DM-restorable Tides have precise counters',()=>{
+ const wizard=create('wizard'),wild=create('sorcerer','wild');
+ for(const c of [wizard,advance(wizard),advance(advance(wizard)),enter(create('fighter'),'wizard')]){const pools=extras(c).resources.filter(r=>r.id.endsWith('arcane-recovery'));assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.equal(pools[0].rest,'daily');assert.match(pools[0].recovery,/раз в день/);assert.ok(JSON.stringify(exported(c).text.traits).includes(pools[0].recovery));}
+ for(const c of [wild,advance(wild),advance(advance(wild)),enter(create('fighter'),'sorcerer',{'sorcerer:creation_origin':'wild'})]){const pools=extras(c).resources.filter(r=>r.id.endsWith('tides-of-chaos'));assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.equal(pools[0].rest,'long-rest');assert.match(pools[0].recovery,/долгого отдыха/);assert.match(pools[0].recovery,/решению Мастера/);assert.ok(JSON.stringify(exported(c).text.traits).includes(pools[0].recovery));}
+ assert.ok(!extras(create('sorcerer','draconic')).resources.some(r=>r.id==='tides-of-chaos'));
+});
+test('PR26 round eight: Superior Technique gives both Strength and Dexterity save DCs',()=>{
+ const first=create('fighter',null,{creation_style:'superior-technique',creation_superior_maneuver:'trip-attack',abilities:{strength:16,dexterity:12,constitution:14,intelligence:10,wisdom:10,charisma:10}});
+ for(const c of [first,advance(first),enter(create('sorcerer'),'fighter',{'fighter:creation_style':'superior-technique','fighter:creation_superior_maneuver':'trip-attack'})]){const e=extras(c),text=e.features.find(f=>f.name==='Превосходная техника').description;assert.ok(text.includes((10+stats(c).modifiers.strength)+' от Силы'));assert.ok(text.includes((10+stats(c).modifiers.dexterity)+' от Ловкости'));assert.match(text,/8 \+ бонус мастерства/);assert.ok(JSON.stringify(exported(c).text.traits).includes(text));}
+});
+test('PR26 round eight: Hex Warrior preserves lower, tied and higher Charisma choices',()=>{
+ for(const charisma of [10,14,18]){const c=create('warlock','hexblade',{creation_weapon:'handaxe',abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma}}),e=extras(c),base=e.attacks.find(a=>a.id==='handaxe'),hex=e.attacks.find(a=>a.id==='handaxe-hex');assert.ok(hex);assert.equal(base.ability,'strength');assert.equal(hex.ability,'charisma');assert.equal(hex.attackBonus,2+stats(c).modifiers.charisma);assert.equal(hex.damageBonus,stats(c).modifiers.charisma);assert.match(hex.notes.join(' '),/выбрано после долгого отдыха/);assert.ok(!e.attacks.some(a=>a.hexWarrior&&(a.group==='unarmed'||a.properties.includes('two-handed'))));assert.ok(exported(c).weaponsList.some(w=>w.name.value===hex.label&&w.ability==='cha'));}
+});
+
+test('PR26 round eight: Martial Arts preserves explicit Hex Warrior ability in multiclass',()=>{
+ for(const charisma of [13,16,18]){
+  const monk=create('monk',null,{creation_weapon:'handaxe',abilities:{strength:13,dexterity:16,constitution:14,intelligence:10,wisdom:13,charisma}}),multi=enter(monk,'warlock',{'warlock:creation_patron':'hexblade'});
+  for(const c of [multi,advance(multi)]){const e=extras(c),m=stats(c).modifiers,base=e.attacks.find(a=>a.id==='handaxe'),hex=e.attacks.find(a=>a.id==='handaxe-hex');assert.equal(base.ability,'dexterity');assert.equal(base.attackBonus,2+m.dexterity);assert.equal(hex.ability,'charisma');assert.equal(hex.attackBonus,2+m.charisma);assert.equal(hex.damageBonus,m.charisma);assert.equal(hex.damage,'1d6+'+m.charisma);assert.ok(exported(c).weaponsList.some(w=>w.name.value===hex.label&&w.ability==='cha'&&w.dmg.value===hex.damage));}
+ }
+});

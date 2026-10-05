@@ -656,7 +656,7 @@ function renderCharacterSheet(aside, steps, view = {}) {
   const spells = extras && extras.spells || [];
   if (extras && extras.resources && extras.resources.length) {
     const section = sheetSection(details, 'Ресурсы');
-    for (const resource of extras.resources) section.appendChild(createElement('p', 'sheet-note', `${resource.name}: максимум ${resource.max}; восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`));
+    for (const resource of extras.resources) section.appendChild(createElement('p', 'sheet-note', `${resource.name}: максимум ${resource.max}; ${resource.recovery || `восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха`}.`));
   }
   const cantrips = spells.filter(spell => !spell.level);
   const classSpells = spells.filter(spell => spell.level && ['prepared', 'known'].includes(spell.status));

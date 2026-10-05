@@ -98,7 +98,7 @@
     data.text.prof=richText(proficiencyText(p));
     data.text.traits=richText([
       ...list(options.features).map(f=>typeof f==='string'?f:`${f.name || f.label}: ${f.description || ''}`),
-      ...list(options.resources).map(r=>`${r.name}: ${r.max}; восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха.`),
+      ...list(options.resources).map(r=>`${r.name}: ${r.max}; ${r.recovery||`восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха`}.`),
       ...list(derived.notes),
       multiclass?`Классы: ${classText}.`:null,
       pools.length>1?`Кости хитов: ${diceText}.`:null,
