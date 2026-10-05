@@ -1,4 +1,4 @@
-﻿const test=require('node:test'),assert=require('node:assert/strict');
+const test=require('node:test'),assert=require('node:assert/strict');
 const R=require('../rules'),O=require('../creation-options'),L=require('../levelup-rules'),E=require('../lss-export');
 const {create,advance,fill,context,extras,stats,copy,enter}=require('./fixtures/characters');
 const exported=c=>JSON.parse(E.buildLssExport(c,{},stats(c),extras(c))[0].data);
@@ -120,7 +120,7 @@ test('PR26 Pact of the Tome offers class-list cantrips only',()=>{
  assert.ok(group);assert.match(group.label,/из списков классов/);
  for(const id of ['sapping-sting','encode-thoughts'])assert.ok(!group.options.some(o=>o.value===id),id);
  for(const id of ['minor-illusion','fire-bolt'])assert.ok(group.options.some(o=>o.value===id),id);
- assert.equal(group.options.length,44);assert.deepEqual(L.transition(warlock,p,context(warlock)).errors,[]);
+ assert.equal(group.options.length,44-new Set(extras(warlock).spells.filter(x=>x.level===0).map(x=>x.id)).size);assert.deepEqual(L.transition(warlock,p,context(warlock)).errors,[]);
 });
 
 test('PR26 wizard school and Portent summaries match PHB rules',()=>{
@@ -137,7 +137,7 @@ test('PR26 Genie and Bladesinging expose complete rest-bound resources',()=>{
  assert.ok(bottled);assert.equal(bottled.max,1);assert.equal(bottled.rest,'long-rest');
  const bladesinger=extras(advance(create('wizard'),'bladesinging')),song=bladesinger.resources.find(r=>r.id==='bladesong'),text=bladesinger.features.find(f=>f.name==='Песнь клинка')?.description;
  assert.ok(song);assert.equal(song.max,2);assert.equal(song.rest,'long-rest');assert.ok(text);
- for(const part of ['Бонусным действием','1 минут','лёгкий доспех','отсутствие щита','+Интеллект','минимум +1','+10 футов','Акробатику','концентрации','недееспособности','доспеха/щита'])assert.ok(text.includes(part),part);
+ for(const part of ['Бонусным действием','1 минут','лёгком доспехе','отсутствие щита','+Интеллект','минимум +1','+10 футов','Акробатику','концентрации','недееспособности','доспеха/щита'])assert.ok(text.includes(part),part);
 });
 
 test('PR26 latest Codex review findings are covered',()=>{
@@ -159,7 +159,7 @@ test('PR26 latest Codex review findings are covered',()=>{
 test('PR26 Armorer exports both armor model mechanics',()=>{
  const armorer=advance(advance(create('artificer')),'armorer');
  const model=extras(armorer).features.find(f=>f.name==='Модель доспеха')?.description,arcane=extras(armorer).features.find(f=>f.name==='Магический доспех')?.description;
- assert.ok(model);for(const part of ['Страж','громовые рукавицы','Защитное поле','Лазутчик','электрическая метательная машина','Усиленные шаги','Подавляющее поле'])assert.ok(model.includes(part),part);
+ assert.ok(model);for(const part of ['Страж','громовые рукавицы','Защитное поле','Лазутчик','метатель молний','Усиленные шаги','Подавляющее поле'])assert.ok(model.includes(part),part);
  assert.ok(arcane?.includes('Модель доспеха можно сменить после короткого или долгого отдыха'));
 });
 
@@ -371,4 +371,37 @@ test('PR26 multiclass weapon training removes obsolete nonproficiency notes from
 test('PR26 Way of the Brush keeps the Xanathar choice of calligrapher or painter',()=>{
  const monk=advance(create('monk')),p=fill(monk,L.begin(monk,context(monk)),{subclass:'kensei'});
  assert.deepEqual(L.getChoices(monk,p,context(monk)).find(g=>g.id==='kensei_tool').options.map(o=>o.value),['calligrapher','painter']);
+});
+
+test('PR26 newest feedback: Astral Arms always export force attacks with a permitted ability',()=>{
+ for(const wisdom of [10,14,18]){
+  const first=create('monk',null,{abilities:{strength:10,dexterity:14,constitution:14,intelligence:10,wisdom,charisma:10}}),second=advance(first),c=advance(second,'astral-self'),e=extras(c),ordinary=e.attacks.find(a=>a.id==='unarmed'),arms=e.attacks.find(a=>a.id==='unarmed-astral-arms');
+  assert.ok(arms);assert.equal(ordinary.type,'bludgeoning');assert.equal(arms.type,'force');const ability=stats(c).modifiers.wisdom>stats(c).modifiers.dexterity?'wisdom':'dexterity';assert.equal(arms.ability,ability);assert.equal(arms.attackBonus,2+stats(c).modifiers[ability]);assert.equal(arms.damage,`1d4+${stats(c).modifiers[ability]}`);assert.match(arms.notes.join(' '),/активных руках.*досягаемость \+5/);
+  const data=exported(c),weapon=data.weaponsList.find(w=>w.name.value===arms.label);assert.ok(weapon);assert.equal(weapon.dmgType.value,'force');assert.equal(weapon.ability,ability==='wisdom'?'wis':'dex');assert.ok(JSON.stringify(data.text.attacks).includes(arms.notes.at(-1)));
+  assert.ok(!extras(second).attacks.some(a=>a.astralArms));assert.ok(!extras(advance(second,'open-hand')).attacks.some(a=>a.astralArms));
+ }
+});
+test('PR26 newest feedback: Tome excludes every existing cantrip but keeps pending choices',()=>{
+ for(const overrides of [{},{race:'tiefling'},{human_feature:'human_alt',creation_feat:'magic-initiate',creation_feat_class:'wizard',creation_feat_cantrips:['fire-bolt','mage-hand'],creation_feat_spells:['shield']}]){
+  const second=advance(create('warlock','celestial',overrides)),known=new Set(extras(second).spells.filter(x=>x.level===0).map(x=>x.id)),p=fill(second,L.begin(second,context(second)),{pact:'tome'}),group=L.getChoices(second,p,context(second)).find(g=>g.id==='tome_cantrips');
+  for(const id of known)assert.ok(!group.options.some(o=>o.value===id),id);assert.equal(p.choices.tome_cantrips.length,3);assert.deepEqual(L.transition(second,p,context(second)).errors,[]);assert.deepEqual(L.getChoices(second,p,context(second)).find(g=>g.id==='tome_cantrips').options,group.options);
+  const c=L.commit(second,p,context(second)),all=new Set(extras(c).spells.filter(x=>x.level===0).map(x=>x.id));assert.equal(all.size,known.size+3);
+  const bad=copy(p);bad.choices.tome_cantrips[0]=second.creation_cantrips[0];assert.ok(L.transition(second,bad,context(second)).errors.some(x=>x.field==='tome_cantrips'));
+ }
+});
+test('PR26 newest feedback: Arcane Shot exports its actual Intelligence save DC',()=>{
+ for(const intelligence of [6,10,18]){
+  const c=advance(advance(create('fighter',null,{abilities:{strength:14,dexterity:14,constitution:14,intelligence,wisdom:10,charisma:10}})),'arcane-archer'),e=extras(c),feature=e.features.find(f=>f.name==='Мистический выстрел'),dc=10+stats(c).modifiers.intelligence;
+  assert.ok(feature);assert.ok(feature.description.includes('Сл спасброска '+dc));assert.match(feature.description,/8 \+ бонус мастерства \+ модификатор Интеллекта/);assert.match(feature.description,/два применения/i);assert.ok(JSON.stringify(exported(c).text.traits).includes(feature.description));assert.ok(e.resources.some(r=>r.id==='arcane-shot'&&r.max===2&&r.rest==='short-rest'));
+ }
+ assert.ok(!extras(advance(advance(create('fighter')),'champion')).features.some(f=>f.name==='Мистический выстрел'));
+});
+test('PR26 newest feedback: Ritual Caster cleric can choose and export Ceremony',()=>{
+ const c=create('fighter',null,{human_feature:'human_alt',creation_feat:'ritual-caster',creation_feat_class:'cleric',creation_feat_spells:['ceremony','detect-magic']}),e=extras(c),spell=e.spells.find(x=>x.id==='ceremony');assert.ok(spell);assert.equal(spell.status,'ritual');assert.equal(e.spellcasting,null);
+ assert.ok(O.getChoices(c,context(c)).find(g=>g.id==='creation_feat_spells').options.some(x=>x.value==='ceremony'));assert.deepEqual(O.validate(c,context(c)),[]);const exportData=E.buildLssExport(c,{},stats(c),e)[0];assert.ok(exportData.spells.slotless.includes(E.SPELL_IDS['detect-magic']));assert.match(JSON.stringify(exported(c).text.attacks),/Церемония.*ритуал.*Только ритуал/);assert.deepEqual(exported(c).spells,{});
+ for(const invalid of ['cure-wounds','alarm']){const bad={...c,creation_feat_spells:[invalid,'detect-magic']};assert.ok(O.validate(bad,context(bad)).some(x=>x.field==='creation_feat_spells'));}
+});
+test('PR26 newest feedback: Bladesong and Armor Model summaries retain exact TCE benefits',()=>{
+ const c=advance(create('wizard'),'bladesinging'),song=extras(c).features.find(f=>f.name==='Песнь клинка').description;assert.match(song,/без доспеха или в лёгком/);assert.match(song,/к спасброскам Телосложения.*концентрации/);assert.match(song,/атаки оружием двумя руками/);assert.ok(!song.includes('преимущество на Акробатику и спасброски'));assert.ok(JSON.stringify(exported(c).text.traits).includes(song));
+ const armorer=advance(advance(create('artificer')),'armorer'),model=extras(armorer).features.find(f=>f.name==='Модель доспеха').description;for(const rule of [/1к8.*звуком/,/помехой.*до начала вашего следующего хода/,/1к6.*молнией/,/90\/300/,/дополнительн.*1к6.*раз в.*ход/,/\+5 футов.*ходьбы/,/Интеллект.*атаки и урона/,/отменяет помеху от доспеха/]){assert.match(model,rule);}assert.ok(!model.includes('прыжок'));assert.ok(JSON.stringify(exported(armorer).text.traits).includes(model));
 });
