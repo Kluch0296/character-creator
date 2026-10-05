@@ -34,7 +34,7 @@
  'cutting-words':['Острое словцо','Реакция: потратьте вдохновение, чтобы уменьшить атаку, проверку или урон видимого существа в 60 футах; нужна слышимость, есть иммунитеты.'],
  'combat-inspiration':['Боевое вдохновение','Получатель вдохновения может добавить кость к урону оружием или реакцией к КД против атаки.'],
  'mote-of-potential':['Частица потенциала','Вдохновение Созидания даёт дополнительные эффекты проверке, атаке или спасброску по правилам коллегии.'],
- 'performance-of-creation':['Представление созидания','Действие: создайте немагический предмет размера Средний или меньше, стоимость до 20 × уровень барда зм; длительность — бонус мастерства часов.'],
+ 'performance-of-creation':['Представление созидания','Действие: создайте немагический предмет размера Средний или меньше, стоимость до 20 × уровень барда зм; длительность — бонус мастерства часов. Одно бесплатное применение за долгий отдых; повторное применение — потратив ячейку 2-го круга или выше. Одновременно может существовать только один созданный этим умением предмет.'],
  'silver-tongue':['Серебряный язык','При Убеждении и Обмане результат к20 от 1 до 9 считается 10.'],
  'unsettling-words':['Тревожащие слова','Бонусное действие: потратьте вдохновение, цель в 60 футах вычитает результат кости из следующего спасброска до начала вашего следующего хода.'],
  'guiding-whispers':['Направляющий шёпот','Изучаете Указание, дальность для вас 60 футов.'],
@@ -134,7 +134,7 @@
  'the-right-tool-for-the-job':['Подходящий инструмент','За 1 час с воровскими или ремесленными инструментами создайте набор ремесленных инструментов по выбору; можно во время короткого/долгого отдыха.'],
  'experimental-elixir':['Экспериментальный эликсир','После долгого отдыха создайте один эликсир со случайным эффектом. Действием и ячейкой можно создать дополнительный с выбранным эффектом.'],
 'arcane-armor':['Магический доспех','Действием превращайте доспех в магический; он заменяет отсутствующие конечности, снимается/надевается действием и служит фокусировкой. Модель доспеха можно сменить после короткого или долгого отдыха.'],
-'armor-model':['Модель доспеха','После короткого/долгого отдыха выберите Стража или Лазутчика. Страж: громовые рукавицы наносят гром и мешают атаковать других, а Защитное поле бонусным действием даёт временные хиты 1 / короткий отдых. Лазутчик: электрическая метательная машина стреляет молнией раз за ход, Усиленные шаги дают скорость и прыжок, Подавляющее поле даёт преимущество на Скрытность.'],
+'armor-model':['Модель доспеха','После короткого/долгого отдыха выберите Стража или Лазутчика. Страж: громовые рукавицы наносят гром и мешают атаковать других, а Защитное поле бонусным действием даёт временные хиты, равные уровню изобретателя; использований — бонус мастерства за долгий отдых. Лазутчик: электрическая метательная машина стреляет молнией раз за ход, Усиленные шаги дают скорость и прыжок, Подавляющее поле даёт преимущество на Скрытность.'],
  'eldritch-cannon':['Мистическая пушка','Действием создайте Маленькую/Крошечную пушку: огнемёт, силовую баллисту или защитника; 1 час. Бесплатно 1 / долгий отдых, далее за ячейку.'],
  'battle-ready':['Готовность к бою','Владение воинским оружием. Для атак и урона магическим оружием можно использовать Интеллект вместо Силы/Ловкости.'],
  'steel-defender':['Стальной защитник','Создаётся после долгого отдыха; использует опубликованный блок защитника, командуется бонусным действием. Вид тела не меняет механических характеристик.']
@@ -291,7 +291,7 @@
  function thrownStyle(attacks,a){
   for(const attack of [...attacks]){const props=attack.properties||[];if(!props.includes('thrown')||attack.thrownVariant)continue;
    if(props.includes('ranged')){Object.assign(attack,withDamage(attack,attack.damageBonus+2));attack.notes=[...(attack.notes||[]),'Бой метательным оружием: +2 к урону.'];}
-   else if(!attacks.some(x=>x.id===attack.id+'-thrown'))attacks.push({...withDamage(attack,mod(a[attack.ability])+2),id:attack.id+'-thrown',label:(attack.label||attack.name||attack.id)+' (метание)',thrownVariant:true,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(attack.notes||[]).filter(x=>x.startsWith('Нет владения'))]});
+   else if(!attacks.some(x=>x.id===attack.id+'-thrown'))attacks.push({...withDamage(attack,attack.damageBonus+2),id:attack.id+'-thrown',label:(attack.label||attack.name||attack.id)+' (метание)',thrownVariant:true,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(attack.notes||[]).filter(x=>x.startsWith('Нет владения'))]});
   }
  }
  function hexWarrior(attacks,a){
@@ -319,8 +319,8 @@
   if(c.class==='sorcerer'&&sc?.id==='divine-soul')add('affinity','Божественное родство',['good','evil','law','chaos','neutrality']);
   if(c.class==='warlock'&&sc?.id==='genie')add('genie','Вид гения',['dao','djinni','efreeti','marid']);
   if(c.class==='fighter'&&c.creation_style==='superior-technique')add('superior_maneuver','Превосходная техника: один приём',optionList('MV:B',c,firstState(c)),1,'class','TCE');
-  if(c.class==='cleric'&&sc?.id==='arcana')add('domain_cantrips','Заговоры домена Магии',spellList('wizard',0,c,firstState(c),true),2,'spells');
-  if(c.class==='cleric'&&sc?.id==='death')add('domain_cantrips','Жнец: заговор некромантии',Object.values(D.spells).filter(s=>s.level===0&&s.school==='N').map(s=>s.id),1,'spells');
+  if(c.class==='cleric'&&sc?.id==='arcana')add('domain_cantrips','Заговоры домена Магии',spellList('wizard',0,c,firstState(c),true).filter(id=>!arr(c.creation_cantrips).includes(id)),2,'spells');
+  if(c.class==='cleric'&&sc?.id==='death')add('domain_cantrips','Жнец: заговор некромантии',Object.values(D.spells).filter(s=>s.level===0&&s.school==='N').map(s=>s.id).filter(id=>!arr(c.creation_cantrips).includes(id)),1,'spells');
   if(c.class==='cleric'&&['order','peace'].includes(sc?.id))add('domain_skill','Навык домена',{order:['intimidation','persuasion'],peace:['insight','performance','persuasion']}[sc.id]);
   if(c.class==='ranger'){
    add('favored_feature','Избранный враг или его замена TCE',['favored-enemy','favored-foe']);result[result.length-1].optional=true;
@@ -609,7 +609,8 @@
    if(sc?.id==='samurai')resource('fighting-spirit','Боевой дух',3);
    if(sc?.id==='echo-knight')resource('unleash-incarnation','Высвобождение воплощения',Math.max(1,mod(a.constitution)));
    if(sc?.id==='psi-warrior'||sc?.id==='soulknife')resource('psionic-dice','Псионические кости (к6)',4);
-   if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песня клинка',2,'short-rest');}
+   if(sc?.id==='phantom'&&s.level>=3)resource('wails-from-the-grave','Стенания из могилы',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');
+   if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песнь клинка',2,'long-rest');}
    if(sc?.id==='mercy'){gain('skill','insight');gain('skill','medicine');gain('tool','herbalism_kit');}
    if(sc?.id==='drunken-master'){gain('skill','performance');gain('tool','brewer');}
    if(sc?.id==='assassin'||sc?.id==='mastermind'){gain('tool','disguise_kit');gain('tool',sc.id==='assassin'?'poisoner_kit':'forgery_kit');}
@@ -624,7 +625,7 @@
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
    if(sc?.id==='artillerist')resource('eldritch-cannon','Мистическая пушка без ячейки',1);
    if(sc?.id==='battle-smith')resource('steel-defender','Стальной защитник: хиты',2+mod(a.intelligence)+5*s.level);
-   if(sc?.id==='armorer')gain('armor','heavy');if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
+   if(sc?.id==='armorer'){gain('armor','heavy');resource('defensive-field','Защитное поле',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');}if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
    if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}
    if(sc?.id==='valor'){gain('armor','medium');gain('armor','shield');gain('weapon','martial');}
    if(sc?.id==='drakewarden')spell('thaumaturgy','cantrip',sc.label,'wisdom');

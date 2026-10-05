@@ -204,6 +204,7 @@
     if(casting) {
       let cantrips=spellList(c.class,0,c).filter(id=>!levelup()?.automaticSpells(c).includes(id));
       if(c.class==='cleric'&&c.creation_domain==='light') cantrips=cantrips.filter(id=>id!=='light');
+      if(c.class==='cleric'&&['arcana','death'].includes(c.creation_domain)) cantrips=cantrips.filter(id=>!values(c.creation_domain_cantrips).includes(id));
       add('cantrips','Заговоры класса',cantrips,casting[1],SPELL_NAMES,'spells');
       const prep=Math.min(c.class==='wizard'?6:Infinity,Math.max(1,mod(a[casting[0]])+(c.class==='artificer'?0:1)));
       if(casting[2]==='book') {

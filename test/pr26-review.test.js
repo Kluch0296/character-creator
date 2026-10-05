@@ -1,4 +1,4 @@
-const test=require('node:test'),assert=require('node:assert/strict');
+﻿const test=require('node:test'),assert=require('node:assert/strict');
 const R=require('../rules'),O=require('../creation-options'),L=require('../levelup-rules'),E=require('../lss-export');
 const {create,advance,fill,context,extras,stats,copy,enter}=require('./fixtures/characters');
 const exported=c=>JSON.parse(E.buildLssExport(c,{},stats(c),extras(c))[0].data);
@@ -84,7 +84,7 @@ test('PR26 Dueling applies to thrown melee variants',()=>{
  const ranger=create('ranger',null,{abilities:{strength:10,dexterity:18,constitution:16,intelligence:10,wisdom:16,charisma:10},creation_weapon:'handaxe',creation_second_weapon:'handaxe'});
  let entry=L.selectClass(ranger,L.begin(ranger,context(ranger)),'fighter',context(ranger));entry.choices['fighter:creation_style']='thrown-weapon-fighting';let c=L.commit(ranger,entry,context(ranger));
  let third=L.selectClass(c,L.begin(c,context(c)),'ranger',context(c));c=L.commit(c,fill(c,third,{style:'dueling'}),context(c));
- for(const c2 of [c]){const e=extras(c2),thrown=e.attacks.find(a=>a.id==='handaxe-thrown');assert.ok(thrown);assert.equal(thrown.thrownVariant,true);assert.equal(thrown.damageBonus,2);assert.match(thrown.notes.join(' '),/Бой метательным оружием/);}
+ for(const c2 of [c]){const e=extras(c2),thrown=e.attacks.find(a=>a.id==='handaxe-thrown');assert.ok(thrown);assert.equal(thrown.thrownVariant,true);assert.equal(thrown.damageBonus,4);assert.match(thrown.notes.join(' '),/Бой метательным оружием/);}
  const held=extras(c).attacks.find(a=>a.id==='handaxe');assert.equal(held.damageBonus,2);assert.match(held.notes.join(' '),/Дуэлянт/);
 });
 
@@ -129,10 +129,26 @@ test('PR26 Genie and Bladesinging expose complete rest-bound resources',()=>{
  const genie=extras(create('warlock','genie')),bottled=genie.resources.find(r=>r.id==='bottled-respite');
  assert.ok(bottled);assert.equal(bottled.max,1);assert.equal(bottled.rest,'long-rest');
  const bladesinger=extras(advance(create('wizard'),'bladesinging')),song=bladesinger.resources.find(r=>r.id==='bladesong'),text=bladesinger.features.find(f=>f.name==='Песнь клинка')?.description;
- assert.ok(song);assert.equal(song.max,2);assert.equal(song.rest,'short-rest');assert.ok(text);
+ assert.ok(song);assert.equal(song.max,2);assert.equal(song.rest,'long-rest');assert.ok(text);
  for(const part of ['Бонусным действием','1 минут','лёгкий доспех','отсутствие щита','+Интеллект','минимум +1','+10 футов','Акробатику','концентрации','недееспособности','доспеха/щита'])assert.ok(text.includes(part),part);
 });
 
+test('PR26 latest Codex review findings are covered',()=>{
+ const armorer=advance(advance(create('artificer')),'armorer'),armorerExtras=extras(armorer),field=armorerExtras.resources.find(r=>r.id==='defensive-field'),model=armorerExtras.features.find(f=>f.name==='Модель доспеха')?.description;
+ assert.ok(field);assert.equal(field.max,2);assert.equal(field.rest,'long-rest');assert.match(model,/временные хиты, равные уровню изобретателя/);assert.match(model,/бонус мастерства за долгий отдых/);
+ const creation=extras(advance(advance(create('bard')),'creation')),creationText=creation.features.find(f=>f.name==='Представление созидания')?.description;
+ assert.ok(creationText);assert.match(creationText,/Одно бесплатное применение за долгий отдых/);assert.match(creationText,/ячейку 2-го круга или выше/);assert.match(creationText,/только один созданный .*предмет/);
+ const phantom=extras(advance(advance(create('rogue')),'phantom')),wails=phantom.resources.find(r=>r.id==='wails-from-the-grave');
+ assert.ok(wails);assert.equal(wails.max,2);assert.equal(wails.rest,'long-rest');
+ const normalSelected=c=>Array.isArray(c.creation_cantrips)?c.creation_cantrips:[c.creation_cantrips].filter(Boolean);
+ for(const domain of ['arcana','death']){
+  const c=create('cleric',domain),groups=O.getChoices(c,context(c)),normal=groups.find(g=>g.id==='creation_cantrips'),bonus=groups.find(g=>g.id==='creation_domain_cantrips');
+  assert.ok(normal&&bonus,domain);assert.ok(!bonus.options.some(o=>normalSelected(c).includes(o.value)),domain);
+  const fresh=bonus.options.find(o=>!normalSelected(c).includes(o.value))?.value;assert.ok(fresh,domain);const second=bonus.options.find(o=>![...normalSelected(c),fresh].includes(o.value))?.value;c.creation_domain_cantrips=domain==='arcana'?[fresh,second]:[fresh];
+  assert.deepEqual(O.validate(c,context(c)),[],domain);
+  assert.ok(!O.getChoices(c,context(c)).find(g=>g.id==='creation_cantrips').options.some(o=>o.value===fresh),domain);
+ }
+});
 test('PR26 Armorer exports both armor model mechanics',()=>{
  const armorer=advance(advance(create('artificer')),'armorer');
  const model=extras(armorer).features.find(f=>f.name==='Модель доспеха')?.description,arcane=extras(armorer).features.find(f=>f.name==='Магический доспех')?.description;
