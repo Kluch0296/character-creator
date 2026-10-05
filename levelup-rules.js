@@ -326,6 +326,10 @@
      ['psychic-blade-bonus','Психический клинок (бонусное действие)','1d4','Только после атаки первым психическим клинком и при свободной второй руке; рукопашная атака или метание на 60 футов без дальней дистанции.']
     ])e.attacks.push({id,label,type:'psychic',group:'simple',properties:['finesse','thrown'],ability,proficient:true,attackBonus:2+bonus,damageBonus:bonus,damage:`${die}${bonus>=0?'+':''}${bonus}`,notes:[note],psychicBlade:true});
    }
+    if(has('monk','sun-soul')&&e.attacks){
+     const bonus=mod(a.dexterity);
+     e.attacks.push({id:'radiant-sun-bolt',label:'Луч солнечного света',type:'radiant',group:'spell',properties:['ranged'],ability:'dexterity',proficient:true,attackBonus:2+bonus,damageBonus:bonus,damage:`1d4${bonus>=0?'+':''}${bonus}`,notes:['Дальнобойная атака заклинанием на 30 футов вместо одной атаки действия Атака; дополнительные выстрелы за ци по правилам умения.']});
+    }
   }
  function featureSkills(ids,context){const missing=ids.filter(id=>!context.proficiencies?.skills.includes(id));return missing.length?missing:ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
@@ -590,8 +594,11 @@
    for(const f of D.features.filter(f=>f.class===c.class&&f.level>1&&f.level<=s.level&&(!f.subclass||f.subclass===sc?.id)&&(f.subclass||f.source!=='TCE'||c.class==='artificer'))) if(FEATURE_RULES[f.id]&&!e.features.some(x=>x.name===FEATURE_RULES[f.id][0]))feature(f.name,FEATURE_RULES[f.id][1],f.source,f.level);
    if(c.class==='barbarian'){feature('Ярость','+2 к урону рукопашным оружием от Силы; сопротивление физическому урону без тяжёлого доспеха.');}
    if(c.class==='bard'){e.jackOfAllTrades=true;feature('Мастер на все руки','+1 к проверкам характеристик без владения, в том числе инициативе без владения.');if(!R.RACES[c.race]?.initiativeProficiency)e.initiativeBonus=(e.initiativeBonus||0)+1;}
+   if(sc?.id==='glamour')resource('enthralling-performance','Завораживающее представление',1,'short-rest');
+   if(sc?.id==='whispers')resource('words-of-terror','Слова ужаса',1,'short-rest');
    if(c.class==='cleric'){resource('channel-divinity','Божественный канал',1,'short-rest');}
    if(c.class==='druid'){resource('wild-shape','Дикий облик',2,'short-rest');feature('Дикий облик',sc?.id==='moon'?'Форма зверя до ПО 1, без плавания/полёта; бонусное действие.':'Форма зверя до ПО 1/4, без плавания/полёта; действие.');}
+   if(sc?.id==='land')resource('natural-recovery','Естественное восстановление',1,'long-rest');
    if(c.class==='fighter'){resource('action-surge','Всплеск действий',1,'short-rest');feature('Второе дыхание','Бонусное действие: восстановите 1к10 + '+s.level+' хитов.');}
    if(c.class==='monk'){resource('ki','Ци',s.level,'short-rest');if(!e.armor&&!e.shield)e.speedBonus=(e.speedBonus||0)+10;feature('Ци','Сл '+(10+mod(a.wisdom))+'; передвижение без доспеха/щита +10 футов; формы и оружие выбираются при применении.');}
    if(c.class==='paladin'){feature('Божественная кара','После попадания рукопашным оружием: ячейка 1-го круга даёт +2к8 излучения, +1к8 против нежити/исчадий.');if(s.level===3)resource('channel-divinity','Божественный канал',1,'short-rest');}
@@ -617,7 +624,8 @@
   if(replacementLanguage.length)e.progressionProficiencyChoices.rune_knight_language=replacementLanguage[0];
     if((context.proficiencies?.languages||[]).includes('giant')&&replacementLanguage.length)e.proficiencySlots.push({id:'rune_knight_language',type:'language',source:'Rune Knight',label:'Великан уже известен: другой язык',options:replacementLanguage});
     else gain('language','giant');
-    resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));
+     resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));
+     if(arr(s.choices.runes).includes('stone-rune'))e.darkvisionOverride=Math.max(e.darkvisionOverride||0,120);
    }
    if(sc?.id==='cavalier'&&s.level>=3)resource('unwavering-mark','Непоколебимая метка: особая бонусная атака',Math.max(1,mod(a.strength)));
    if(sc?.id==='wild-magic'&&s.level>=3)resource('magic-awareness','Чувство магии',2);
@@ -627,6 +635,8 @@
    if(sc?.id==='echo-knight')resource('unleash-incarnation','Высвобождение воплощения',Math.max(1,mod(a.constitution)));
    if(sc?.id==='psi-warrior'||sc?.id==='soulknife')resource('psionic-dice','Псионические кости (к6)',4);
    if(sc?.id==='phantom'&&s.level>=3)resource('wails-from-the-grave','Стенания из могилы',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');
+   if(sc?.id==='horizon-walker')resource('detect-portal','Обнаружение портала',1,'short-rest');
+   if(sc?.id==='monster-slayer')resource('hunters-sense','Чутьё охотника',Math.max(1,mod(a.wisdom)),'long-rest');
    if(sc?.id==='bladesinging'){gain('armor','light');gain('skill','performance');resource('bladesong','Песнь клинка',2,'long-rest');}
    if(sc?.id==='mercy'){gain('skill','insight');gain('skill','medicine');gain('tool','herbalism_kit');}
    if(sc?.id==='drunken-master'){gain('skill','performance');gain('tool','brewer');}
@@ -707,7 +717,7 @@
  }
  const ABILITY_NAMES={strength:'Сила',dexterity:'Ловкость',constitution:'Телосложение',intelligence:'Интеллект',wisdom:'Мудрость',charisma:'Харизма'};
  const REQUIREMENTS={barbarian:[['strength']],bard:[['charisma']],cleric:[['wisdom']],druid:[['wisdom']],fighter:[['strength','dexterity']],monk:[['dexterity'],['wisdom']],paladin:[['strength'],['charisma']],ranger:[['dexterity'],['wisdom']],rogue:[['dexterity']],sorcerer:[['charisma']],warlock:[['charisma']],wizard:[['intelligence']],artificer:[['intelligence']]};
- const SECONDARY={barbarian:{armor:['shield'],weapon:['simple','martial']},bard:{armor:['light']},cleric:{armor:['light','medium','shield']},druid:{armor:['light','medium','shield']},fighter:{armor:['light','medium','shield'],weapon:['simple','martial']},monk:{weapon:['simple','shortsword']},paladin:{armor:['light','medium','shield'],weapon:['simple','martial']},ranger:{armor:['light','medium','shield'],weapon:['simple','martial']},rogue:{armor:['light'],tool:['thieves_tools']},sorcerer:{},warlock:{armor:['light'],weapon:['simple']},wizard:{},artificer:{armor:['light','medium','shield'],tool:['thieves_tools','tinker']}};
+ const SECONDARY={barbarian:{armor:['light','medium','shield'],weapon:['simple','martial']},bard:{armor:['light']},cleric:{armor:['light','medium','shield']},druid:{armor:['light','medium','shield']},fighter:{armor:['light','medium','shield'],weapon:['simple','martial']},monk:{weapon:['simple','shortsword']},paladin:{armor:['light','medium','shield'],weapon:['simple','martial']},ranger:{armor:['light','medium','shield'],weapon:['simple','martial']},rogue:{armor:['light'],tool:['thieves_tools']},sorcerer:{},warlock:{armor:['light'],weapon:['simple']},wizard:{},artificer:{armor:['light','medium','shield'],tool:['thieves_tools','tinker']}};
  const canonicalStyle=id=>({great_weapon:'great-weapon-fighting',two_weapon:'two-weapon-fighting'}[id]||id);
  const optionsAPI=()=>typeof module==='object'&&module.exports?require('./creation-options'):rootOptions();
  function rootOptions(){return globalThis.CreationOptions;}

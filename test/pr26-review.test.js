@@ -229,3 +229,60 @@ test('PR26 Death domain Reaper excludes restricted or classless cantrips',()=>{
  assert.ok(group.options.some(o=>o.value==='chill-touch'));
  c.creation_domain_cantrips='sapping-sting';assert.ok(O.validate(c,context(c)).some(e=>e.field==='creation_domain_cantrips'));
 });
+
+test('PR26 multiclass barbarian grants light and medium armor and shields',()=>{
+ const wizard=create('wizard'),c=enter(wizard,'barbarian'),armor=stats(c).proficiencies.armor;
+ assert.ok(!stats(wizard).proficiencies.armor.includes('light'));
+ for(const id of ['light','medium','shield'])assert.ok(armor.includes(id),id);
+ const prof=JSON.stringify(exported(c).text.prof);
+ for(const label of ['Лёгкие доспехи','Средние доспехи','Щиты'])assert.ok(prof.includes(label),label);
+});
+
+test('PR26 Glamour and Whispers bards track their short-rest abilities',()=>{
+ const second=advance(create('bard'));
+ for(const [subclass,id,name] of [['glamour','enthralling-performance','Завораживающее представление'],['whispers','words-of-terror','Слова ужаса']]){
+  const c=advance(second,subclass),pool=extras(c).resources.find(r=>r.id===id);
+  assert.ok(pool,subclass);assert.equal(pool.max,1);assert.equal(pool.rest,'short-rest');
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(`${name}: 1; восстановление после короткого или долгого отдыха.`));
+ }
+ assert.ok(!extras(second).resources.some(r=>['enthralling-performance','words-of-terror'].includes(r.id)));
+});
+
+test('PR26 Land druids track Natural Recovery at levels two and three',()=>{
+ const first=create('druid'),second=advance(first,'land'),third=advance(second);
+ for(const c of [second,third]){
+  const pool=extras(c).resources.find(r=>r.id==='natural-recovery');
+  assert.ok(pool);assert.equal(pool.max,1);assert.equal(pool.rest,'long-rest');
+  assert.ok(JSON.stringify(exported(c).text.traits).includes('Естественное восстановление: 1; восстановление после долгого отдыха.'));
+ }
+ assert.ok(!extras(first).resources.some(r=>r.id==='natural-recovery'));
+ assert.ok(!extras(advance(first,'moon')).resources.some(r=>r.id==='natural-recovery'));
+});
+
+test('PR26 ranger portal and hunter-sense uses match their subclasses',()=>{
+ const second=advance(create('ranger')),portal=advance(second,'horizon-walker'),portalPool=extras(portal).resources.find(r=>r.id==='detect-portal');
+ assert.ok(portalPool);assert.equal(portalPool.max,1);assert.equal(portalPool.rest,'short-rest');
+ assert.ok(JSON.stringify(exported(portal).text.traits).includes('Обнаружение портала: 1; восстановление после короткого или долгого отдыха.'));
+ for(const wisdom of [6,10,18]){
+  const ranger=create('ranger',null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence:16,wisdom,charisma:16}}),c=advance(advance(ranger),'monster-slayer'),pool=extras(c).resources.find(r=>r.id==='hunters-sense');
+  assert.ok(pool);assert.equal(pool.max,Math.max(1,stats(c).modifiers.wisdom));assert.equal(pool.rest,'long-rest');
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(`Чутьё охотника: ${pool.max}; восстановление после долгого отдыха.`));
+ }
+ assert.ok(!extras(advance(second,'hunter')).resources.some(r=>['detect-portal','hunters-sense'].includes(r.id)));
+});
+
+test('PR26 Stone Rune grants passive 120-foot darkvision',()=>{
+ const second=advance(create('fighter')),stone=advance(second,'rune-knight',{runes:['stone-rune','cloud-rune']}),ordinary=advance(second,'rune-knight',{runes:['cloud-rune','fire-rune']});
+ assert.equal(stats(stone).darkvision,120);assert.equal(exported(stone).vitality.darkvision.value,120);
+ assert.equal(stats(ordinary).darkvision,0);
+});
+
+test('PR26 Sun Soul exports its Dexterity-based Radiant Sun Bolt',()=>{
+ const second=advance(create('monk')),c=advance(second,'sun-soul'),attack=extras(c).attacks.find(a=>a.id==='radiant-sun-bolt');
+ assert.ok(attack);assert.equal(attack.type,'radiant');assert.equal(attack.ability,'dexterity');
+ assert.equal(attack.attackBonus,2+stats(c).modifiers.dexterity);assert.equal(attack.damage,`1d4+${stats(c).modifiers.dexterity}`);
+ assert.match(attack.notes.join(' '),/30 футов/);
+ const weapon=exported(c).weaponsList.find(w=>w.name.value===attack.label);
+ assert.ok(weapon);assert.equal(weapon.ability,'dex');assert.equal(weapon.dmg.value,attack.damage);
+ assert.ok(!extras(advance(second,'open-hand')).attacks.some(a=>a.id==='radiant-sun-bolt'));
+});
