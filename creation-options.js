@@ -339,17 +339,18 @@
       const proficient=grantedWeapons.includes(w.id.replaceAll('-','_'))||grantedWeapons.includes(w.group);
       const style=c.class==='fighter'?c.creation_style:null;
       const bonus=mod(a[ability])+(proficient?2:0)+(style==='archery'&&p.includes('ranged')?2:0);
-      let damageBonus=mod(a[ability]);
+      const dealsDamage=w.damage!=='0';
+      let damageBonus=dealsDamage?mod(a[ability]):0;
       if(style==='dueling'&&!p.includes('ranged')&&!p.includes('two-handed'))damageBonus+=2;
-      if(style==='thrown-weapon-fighting'&&p.includes('thrown')&&p.includes('ranged'))damageBonus+=2;
+      if(dealsDamage&&style==='thrown-weapon-fighting'&&p.includes('thrown')&&p.includes('ranged'))damageBonus+=2;
       const notes=[];
       if(style==='dueling'&&!p.includes('ranged')&&!p.includes('two-handed')) notes.push('Дуэлянт: +2 урона, когда в другой руке нет оружия (щит допустим).');
       if(style==='great_weapon'&&(p.includes('two-handed')||p.includes('versatile'))) notes.push('При атаке двумя руками перебросьте 1 и 2 на костях урона.');
-      if(style==='thrown-weapon-fighting'&&p.includes('thrown')&&p.includes('ranged'))notes.push('Дальнобойная атака метательным оружием: +2 к урону; можно извлечь оружие частью атаки.');
+      if(style==='thrown-weapon-fighting'&&p.includes('thrown')&&p.includes('ranged'))notes.push(dealsDamage?'Дальнобойная атака метательным оружием: +2 к урону; можно извлечь оружие частью атаки.':'Бой метательным оружием: можно извлечь оружие частью атаки; сеть не наносит урон.');
       if(result.shield&&p.includes('two-handed')) notes.push('Перед атакой необходимо снять щит.');
       if(!proficient) notes.push('Нет владения: бонус мастерства к атаке не добавлен.');
       if(p.includes('versatile')) notes.push(`Двумя руками: ${w.damage==='1d6'?'1d8':'1d10'}.`);
-      result.attacks.push({...w,ability,proficient,attackBonus:bonus,damageBonus,notes,damage:`${w.damage}${damageBonus>=0?'+':''}${damageBonus}`});
+      result.attacks.push({...w,ability,proficient,attackBonus:bonus,damageBonus,notes,damage:dealsDamage?`${w.damage}${damageBonus>=0?'+':''}${damageBonus}`:'0'});
       if(style==='thrown-weapon-fighting'&&p.includes('thrown')&&!p.includes('ranged')) {
         const thrownBonus=mod(a[ability])+2;
         result.attacks.push({...w,id:`${w.id}-thrown`,label:`${w.label} (метание)`,thrownVariant:true,ability,proficient,attackBonus:mod(a[ability])+(proficient?2:0),damageBonus:thrownBonus,damage:`${w.damage}${thrownBonus>=0?'+':''}${thrownBonus}`,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(proficient?[]:['Нет владения: бонус мастерства к атаке не добавлен.'])]});

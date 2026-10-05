@@ -286,3 +286,68 @@ test('PR26 Sun Soul exports its Dexterity-based Radiant Sun Bolt',()=>{
  assert.ok(weapon);assert.equal(weapon.ability,'dex');assert.equal(weapon.dmg.value,attack.damage);
  assert.ok(!extras(advance(second,'open-hand')).attacks.some(a=>a.id==='radiant-sun-bolt'));
 });
+
+test('PR26 Beast rage exports all three conditional natural weapons and their rules',()=>{
+ const second=advance(create('barbarian')),c=advance(second,'beast'),e=extras(c);
+ const summary=e.features.find(f=>f.name==='Звериный облик')?.description;
+ for(const rule of [/укус/i,/когти/i,/хвост/i,/половины/i,/ещё одну атаку/i,/реакцией/i])assert.match(summary,rule);
+ for(const [id,die,type] of [['bite','1d8','piercing'],['claws','1d6','slashing'],['tail','1d8','piercing']]){
+  const attack=e.attacks.find(a=>a.id==='beast-'+id);assert.ok(attack,id);assert.equal(attack.type,type);
+  assert.equal(attack.ability,'strength');assert.equal(attack.damage,`${die}+${stats(c).modifiers.strength+2}`);
+  assert.match(attack.notes.join(' '),/только во время ярости/i);
+  assert.ok(exported(c).weaponsList.some(w=>w.name.value===attack.label&&w.dmg.value===attack.damage));
+ }
+ assert.ok(JSON.stringify(exported(c).text.traits).includes(summary));
+ assert.ok(!extras(advance(second,'berserker')).attacks.some(a=>a.id.startsWith('beast-')));
+});
+
+test('PR26 Starry Form exports every constellation and the conditional Archer attack',()=>{
+ const first=create('druid'),c=advance(first,'stars'),e=extras(c),summary=e.features.find(f=>f.name==='Звёздный облик')?.description;
+ for(const rule of [/Лучник/i,/Чаша/i,/Дракон/i,/60 футов/i,/1к8 \+ МДР/i,/концентрации/i])assert.match(summary,rule);
+ const attack=e.attacks.find(a=>a.id==='starry-archer');assert.ok(attack);
+ assert.equal(attack.attackBonus,2+stats(c).modifiers.wisdom);assert.equal(attack.damage,`1d8+${stats(c).modifiers.wisdom}`);
+ assert.ok(exported(c).weaponsList.some(w=>w.name.value===attack.label&&w.dmg.value===attack.damage));
+ assert.ok(JSON.stringify(exported(c).text.traits).includes(summary));
+ assert.ok(!extras(advance(first,'land')).attacks.some(a=>a.id==='starry-archer'));
+});
+
+test('PR26 Twilight Eyes of Night tracks its free sharing separately from slot uses',()=>{
+ const first=create('cleric','twilight');
+ for(const c of [first,advance(first),advance(advance(first))]){
+  const e=extras(c),pool=e.resources.find(r=>r.id==='eyes-of-night');assert.ok(pool);
+  assert.equal(pool.max,1);assert.equal(pool.rest,'long-rest');
+  assert.match(e.features.find(f=>f.name==='Глаза ночи')?.description,/повторное применение требует ячейку/);
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(pool.name+': 1; восстановление после долгого отдыха.'));
+ }
+ assert.ok(!extras(create('cleric','life')).resources.some(r=>r.id==='eyes-of-night'));
+});
+
+test('PR26 Breath and Drake summon track free long-rest uses',()=>{
+ for(const [cls,subclass,id,max] of [['monk','ascendant-dragon','breath-of-the-dragon',2],['ranger','drakewarden','drake-companion',1]]){
+  const second=advance(create(cls)),c=advance(second,subclass),e=extras(c),pool=e.resources.find(r=>r.id===id);
+  assert.ok(pool);assert.equal(pool.max,max);assert.equal(pool.rest,'long-rest');
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(`${pool.name}: ${max}; восстановление после долгого отдыха.`));
+  assert.ok(!extras(second).resources.some(r=>r.id===id));
+ }
+});
+
+test('PR26 psionic dice retain long-rest recovery with one short-rest replenishment',()=>{
+ for(const [cls,subclass] of [['fighter','psi-warrior'],['rogue','soulknife']]){
+  const c=advance(advance(create(cls)),subclass),e=extras(c),dice=e.resources.find(r=>r.id==='psionic-dice'),replenishment=e.resources.find(r=>r.id==='psi-replenishment');
+  assert.ok(dice);assert.equal(dice.max,4);assert.equal(dice.rest,'long-rest');
+  assert.ok(replenishment);assert.equal(replenishment.max,1);assert.equal(replenishment.rest,'short-rest');
+  assert.match(e.features.find(f=>f.name==='Восполнение псионической энергии')?.description,/одну израсходованную псионическую кость/);
+  const text=JSON.stringify(exported(c).text.traits);assert.ok(text.includes(replenishment.name+': 1; восстановление после короткого или долгого отдыха.'));
+ }
+});
+
+test('PR26 net remains zero damage with Thrown Weapon Fighting at creation and advancement',()=>{
+ const first=create('fighter',null,{creation_weapon:'net',creation_style:'thrown-weapon-fighting'}),net=extras(first).attacks.find(a=>a.id==='net');
+ assert.ok(net);assert.equal(net.damage,'0');assert.equal(net.damageBonus,0);assert.match(net.notes.join(' '),/извлечь оружие частью атаки/);
+ assert.equal(exported(first).weaponsList.find(w=>w.name.value===net.label)?.dmg.value,'0');
+ const fighter=create('fighter',null,{creation_weapon:'net',creation_style:'archery'});
+ let c=enter(fighter,'ranger');c=enter(c,'ranger',{style:'thrown-weapon-fighting'});
+ const advancedNet=extras(c).attacks.find(a=>a.id==='net');assert.ok(advancedNet);assert.equal(advancedNet.damage,'0');assert.equal(advancedNet.damageBonus,0);
+ assert.match(advancedNet.notes.join(' '),/извлечь оружие частью атаки/);
+ assert.equal(exported(c).weaponsList.find(w=>w.name.value===advancedNet.label)?.dmg.value,'0');
+});

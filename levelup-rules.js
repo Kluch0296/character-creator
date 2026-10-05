@@ -21,7 +21,7 @@
  'reckless-attack':['Безрассудная атака','В начале первой атаки хода можно получить преимущество рукопашных атак от Силы; атаки против вас до следующего хода тоже с преимуществом.'],
  'frenzy':['Бешенство','В ярости можно выбрать бешенство: начиная со следующего хода атака бонусным действием; после ярости одна степень истощения.'],
  'battlerager-armor':['Доспех бушующего','В ярости шипованный доспех даёт атаку бонусным действием, 1к4 + СИЛ; успешный захват причиняет 3 колющего урона.'],
- 'form-of-the-beast':['Звериный облик','При начале ярости выберите укус, когти или хвост. Выбор меняется при каждой ярости; естественное оружие использует Силу.'],
+ 'form-of-the-beast':['Звериный облик','При начале каждой ярости выберите одно естественное оружие; оно считается простым рукопашным оружием. Укус: 1к8 колющего урона; один раз в свой ход при попадании, если хитов меньше половины максимума, восстановите хиты в размере бонуса мастерства. Когти: 1к6 рубящего урона; один раз в свой ход при атаке когтем действием Атака совершите ещё одну атаку когтем тем же действием. Хвост: 1к8 колющего урона, досягаемость 10 футов; реакцией при попадании атаки видимого существа в 10 футах добавьте 1к8 к КД против неё. Оружие действует только во время ярости; выбор меняется при каждой ярости.'],
  'magic-awareness':['Чувство магии','Действие: до конца следующего хода ощущайте магию в 60 футах; использований равно бонусу мастерства за долгий отдых.'],
  'wild-surge':['Дикий всплеск','При начале ярости бросьте к8 по таблице пути; результат действует по указанным условиям. Эффект не является постоянным выбором.'],
  'ancestral-protectors':['Защитники предков','В ярости первая поражённая атаками цель получает помеху атакам по другим; остальные имеют сопротивление урону её атак.'],
@@ -63,7 +63,7 @@
  'channel-divinity-path-to-the-grave':['Божественный канал: Путь к могиле','Действие: проклятие существа в 30 футах; следующая попавшая атака до конца вашего следующего хода наносит ему удвоенный урон.'],
  'voice-of-authority':['Голос власти','После заклинания от 1-го круга, нацеленного на союзника, один такой союзник может реакцией атаковать оружием выбранную вами цель.'],
  'emboldening-bond':['Укрепляющая связь','Действие: свяжите до бонуса мастерства существ на 10 минут; в 30 футах друг от друга они раз в ход добавляют к4 к атаке, проверке или спасброску.'],
- 'eyes-of-night':['Глаза ночи','Тёмное зрение 300 футов. Действием можно поделиться на час с числом существ до модификатора Мудрости, минимум одним.'],
+ 'eyes-of-night':['Глаза ночи','Тёмное зрение 300 футов. Действием можно поделиться на час с согласными существами в 10 футах числом до модификатора Мудрости, минимум одним. Один раз бесплатно за долгий отдых; повторное применение требует ячейку заклинания любого круга.'],
  'vigilant-blessing':['Благословение бдительности','Действием касание существа: преимущество на следующую инициативу; одновременно действует на одно существо.'],
  'blessing-of-the-forge':['Благословение кузницы','После долгого отдыха один немагический доспех или оружие становится магическим и получает +1 до следующего долгого отдыха.'],
  'circle-of-mortality':['Круг смертности','Лечение существа с 0 хитов заклинанием использует максимум костей. Уход за умирающим изучается отдельно, бонусное действие и 30 футов.'],
@@ -74,7 +74,7 @@
  'halo-of-spores':['Ореол спор','Реакция: цель в 10 футах при начале своего хода или входе получает 1к4 некротического урона при провале Телосложения.'],
  'symbiotic-entity':['Симбиотическая сущность','Действие и применение Дикого облика: 4 × уровень друида временных хитов, удвоенные кости Ореола и +1к6 некротического урона рукопашным оружием.'],
  'star-map':['Звёздная карта','Указание и всегда подготовленный Направляющий снаряд; снаряд без ячейки можно применять бонус мастерства раз за долгий отдых.'],
- 'starry-form':['Звёздный облик','Бонусное действие и применение Дикого облика: на 10 минут выберите Лучника, Чашу или Дракона; выбор делается при каждом применении.'],
+ 'starry-form':['Звёздный облик','Бонусное действие и применение Дикого облика: на 10 минут выберите одно созвездие. Лучник: при активации и бонусным действием в следующие ходы дальнобойная атака заклинанием на 60 футов, 1к8 + МДР урона излучением. Чаша: после заклинания с расходом ячейки, восстанавливающего хиты, дополнительно восстановите 1к8 + МДР хитов себе или существу в 30 футах. Дракон: результат к20 ниже 10 при проверках Интеллекта и Мудрости, а также спасбросках Телосложения для концентрации считается 10. Выбор меняется при каждом применении.'],
  'summon-wildfire-spirit':['Призыв духа дикого огня','Действием потратьте Дикий облик на духа на 1 час; используйте опубликованный блок, командуйте бонусным действием.'],
  'balm-of-the-summer-court':['Бальзам Летнего двора','Запас к6 равен уровню друида; бонусное действие, цель в 120 футах, тратится до половины уровня вверх костей; лечение и 1 временный хит за кость.'],
  'speech-of-the-woods':['Речь леса','Изучаете Сильван. Звери понимают вашу речь; вы понимаете их звуки и движения.'],
@@ -192,7 +192,7 @@
  'otherworldly-glamour':['Потустороннее очарование','Один дополнительный социальный навык; к проверкам Харизмы добавляется Мудрость, минимум +1.'],
  'gathered-swarm':['Собранный рой','Раз в каждый свой ход после попадания атакой выберите +1к6 колющего урона, сдвиг цели на 15 футов при провале Силы или своё перемещение на 5 футов.'],
  'draconic-gift':['Драконий дар','Изучаете Тауматургию и Драконий либо другой разрешённый язык.'],
- 'drake-companion':['Драконий спутник','Действием призовите дракончика по опубликованному блоку; вид эссенции выбирается при призыве. Бесплатно раз за долгий отдых, далее за ячейку.'],
+ 'drake-companion':['Драконий спутник','Действием призовите дракончика по опубликованному блоку; вид эссенции выбирается при призыве. Бесплатно раз за долгий отдых, далее за ячейку заклинания 1-го круга или выше.'],
  'rangers-companion':['Спутник следопыта','Зверь размера Средний или меньше, ПО до 1/4; бонус мастерства к ряду показателей, максимум хитов не меньше 4 × уровень следопыта.'],
  'ear-for-deceit':['Чутьё на обман','При Проницательности для выявления лжи к20 ниже 8 считается 8.'],
  'eye-for-detail':['Внимание к деталям','Бонусным действием можно Восприятием заметить спрятавшееся существо или Анализом изучить подсказки.'],
@@ -286,11 +286,11 @@
  function group(id,name,ids,count=1,section='class',source='PHB',optional=false){return {id,label:name,count,section,source,optional,options:ids.map(x=>typeof x==='string'?option(x,null,source):x)};}
  function eligible(o,c,s,known=[]){return !o.prerequisite.length||o.prerequisite.some(p=>(!p.level||Number(p.level.level||p.level)<=s.level)&&(!p.pact||s.choices.pact===p.pact.toLowerCase())&&(!p.spell||p.spell.every(x=>[...s.cantrips,...s.known,...known].includes(slug(x))))&&(!p.feature||p.feature.every(x=>[...s.invocations,...s.infusions].includes(slug(x)))));}
  function optionList(type,c,s,known){return uniq(D.options.filter(o=>o.types.includes(type)&&eligible(o,c,s,known)).map(o=>o.id)).map(id=>{const o=D.options.find(o=>o.id===id);return option(id,OPTION_NAMES[id]||o.name,o.source);});}
- function withDamage(attack,bonus){return {...attack,damageBonus:bonus,damage:attack.damage.replace(/[+-]\d+$/,'')+(bonus>=0?'+':'')+bonus};}
+ function withDamage(attack,bonus){return attack.damage==='0'?{...attack,damageBonus:0,damage:'0'}:{...attack,damageBonus:bonus,damage:attack.damage.replace(/[+-]\d+$/,'')+(bonus>=0?'+':'')+bonus};}
  // Melee thrown weapons get the style bonus only when thrown, so it is a separate attack line.
  function thrownStyle(attacks,a){
   for(const attack of [...attacks]){const props=attack.properties||[];if(!props.includes('thrown')||attack.thrownVariant)continue;
-   if(props.includes('ranged')){Object.assign(attack,withDamage(attack,attack.damageBonus+2));attack.notes=[...(attack.notes||[]),'Бой метательным оружием: +2 к урону.'];}
+   if(props.includes('ranged')){if(attack.damage!=='0')Object.assign(attack,withDamage(attack,attack.damageBonus+2));attack.notes=[...(attack.notes||[]),attack.damage==='0'?'Бой метательным оружием: можно извлечь оружие частью атаки; сеть не наносит урон.':'Бой метательным оружием: +2 к урону; можно извлечь оружие частью атаки.'];}
    else if(!attacks.some(x=>x.id===attack.id+'-thrown'))attacks.push({...withDamage(attack,attack.damageBonus+2),id:attack.id+'-thrown',label:(attack.label||attack.name||attack.id)+' (метание)',thrownVariant:true,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(attack.notes||[]).filter(x=>x.startsWith('Нет владения'))]});
   }
  }
@@ -312,6 +312,18 @@
   }
   function subclassAttacks(e,a){
    const has=(cls,id)=>(e.subclasses||[e.subclass]).some(s=>s?.id===id&&(s.classId||s.class)===cls);
+   if(has('barbarian','beast')&&e.attacks){
+    const bonus=mod(a.strength)+2;
+    for(const [id,label,die,type,note] of [
+     ['bite','Укус','1d8','piercing','Один раз в свой ход при попадании, если хитов меньше половины максимума: восстановите бонус мастерства хитов.'],
+     ['claws','Когти','1d6','slashing','Один раз в свой ход при атаке когтем действием Атака: ещё одна атака когтем тем же действием.'],
+     ['tail','Хвост','1d8','piercing','Досягаемость 10 футов. Реакцией против попавшей атаки видимого существа в 10 футах добавьте 1к8 к КД против неё.']
+    ])e.attacks.push({id:'beast-'+id,label:label+' (звериный облик)',type,group:'simple',properties:['natural'],ability:'strength',proficient:true,attackBonus:2+mod(a.strength),damageBonus:bonus,damage:`${die}${bonus>=0?'+':''}${bonus}`,notes:['Только во время ярости при выборе этой формы; бонус ярости +2 к урону уже учтён.',note]});
+   }
+   if(has('druid','stars')&&e.attacks){
+    const bonus=mod(a.wisdom);
+    e.attacks.push({id:'starry-archer',label:'Звёздный луч (Лучник)',type:'radiant',group:'spell',properties:['ranged'],ability:'wisdom',proficient:true,attackBonus:2+bonus,damageBonus:bonus,damage:`1d8${bonus>=0?'+':''}${bonus}`,notes:['Только в звёздном облике Лучника: дальнобойная атака заклинанием на 60 футов бонусным действием при активации и в следующие ходы.']});
+   }
    if(has('monk','astral-self')){
     const unarmed=e.attacks?.find(x=>x.id==='unarmed');
     if(unarmed&&mod(a.wisdom)>mod(a[unarmed.ability])){
@@ -539,7 +551,7 @@
     if(sc.id==='grave')spell('spare-the-dying','cantrip',sc.label,'wisdom',true,'Бонусное действие, 30 футов');
     if(sc.id==='light')spell('light','cantrip',sc.label,'wisdom');
     if(['order','peace'].includes(sc.id))grant('skill',c.creation_domain_skill);
-    if(sc.id==='twilight')e.darkvisionOverride=300;
+    if(sc.id==='twilight'){e.darkvisionOverride=300;resource('eyes-of-night','Глаза ночи: бесплатная передача',1,'long-rest');}
     const limitedDomains={light:['warding-flare','Защищающая вспышка'],tempest:['wrath-of-the-storm','Гнев бури'],grave:['eyes-of-the-grave','Глаза могилы']};
     if(limitedDomains[sc.id])resource(...limitedDomains[sc.id],Math.max(1,mod(a.wisdom)));
     if(sc.id==='peace')resource('emboldening-bond','Укрепляющая связь',2);
@@ -633,7 +645,11 @@
    if(sc?.id==='arcane-archer')resource('arcane-shot','Мистический выстрел',2,'short-rest');
    if(sc?.id==='samurai')resource('fighting-spirit','Боевой дух',3);
    if(sc?.id==='echo-knight')resource('unleash-incarnation','Высвобождение воплощения',Math.max(1,mod(a.constitution)));
-   if(sc?.id==='psi-warrior'||sc?.id==='soulknife')resource('psionic-dice','Псионические кости (к6)',4);
+   if(sc?.id==='psi-warrior'||sc?.id==='soulknife'){
+    resource('psionic-dice','Псионические кости (к6)',4);
+    resource('psi-replenishment','Восполнение псионической энергии',1,'short-rest');
+    feature('Восполнение псионической энергии','Бонусным действием восстановите одну израсходованную псионическую кость; один раз за короткий или долгий отдых. Весь запас костей восстанавливается после долгого отдыха.','TCE');
+   }
    if(sc?.id==='phantom'&&s.level>=3)resource('wails-from-the-grave','Стенания из могилы',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');
    if(sc?.id==='horizon-walker')resource('detect-portal','Обнаружение портала',1,'short-rest');
    if(sc?.id==='monster-slayer')resource('hunters-sense','Чутьё охотника',Math.max(1,mod(a.wisdom)),'long-rest');
@@ -655,8 +671,8 @@
    if(sc?.id==='armorer'){gain('armor','heavy');resource('defensive-field','Защитное поле',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');}if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
    if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}
    if(sc?.id==='valor'){gain('armor','medium');gain('armor','shield');gain('weapon','martial');}
-   if(sc?.id==='drakewarden')spell('thaumaturgy','cantrip',sc.label,'wisdom');
-   if(sc?.id==='ascendant-dragon')resource('draconic-presence','Драконье присутствие: переброс',1);
+   if(sc?.id==='drakewarden'){spell('thaumaturgy','cantrip',sc.label,'wisdom');resource('drake-companion','Драконий спутник: бесплатный призыв',1,'long-rest');}
+   if(sc?.id==='ascendant-dragon'){resource('draconic-presence','Драконье присутствие: переброс',1);resource('breath-of-the-dragon','Дыхание дракона: бесплатные применения',2,'long-rest');}
    if(sc?.id==='four-elements')feature(label('elemental-attunement'),OPTION_RULES['elemental-attunement'],sc.source);
    if(sc?.id==='beast-master'&&s.choices.companion_rules==='primal-companion'){
     e.features=e.features.filter(f=>f.name!==FEATURE_RULES['rangers-companion'][0]);
