@@ -181,3 +181,51 @@ test('PR26 expanded cleric domains can select their legal starting equipment',()
  }
  assert.ok(!O.getChoices(create('cleric','life'),context(create('cleric','life'))).find(g=>g.id==='creation_weapon')?.options.some(o=>o.value==='warhammer'));
 });
+
+test('PR26 Shadow sorcerers track Strength of the Grave from level one',()=>{
+ const first=create('sorcerer','shadow');
+ for(const c of [first,advance(first),advance(advance(first))]){
+  const pool=extras(c).resources.find(r=>r.id==='strength-of-the-grave');assert.ok(pool);
+  assert.equal(pool.max,1);assert.equal(pool.rest,'long-rest');
+  assert.ok(JSON.stringify(exported(c).text.traits).includes('Сила могилы: 1; восстановление после долгого отдыха.'));
+ }
+ const multi=enter(create('fighter'),'sorcerer',{'sorcerer:creation_origin':'shadow'});
+ assert.ok(extras(multi).resources.some(r=>r.id==='sorcerer:strength-of-the-grave'&&r.max===1));
+ assert.ok(!extras(create('sorcerer','draconic')).resources.some(r=>r.id==='strength-of-the-grave'));
+});
+
+test('PR26 Divine Sense allows zero uses without displaying a negative count',()=>{
+ for(const charisma of [6,8,10,16]){
+  const c=create('paladin',null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence:16,wisdom:16,charisma}});
+  const uses=Math.max(0,1+stats(c).modifiers.charisma),pool=extras(c).resources.find(r=>r.id==='divine-sense');
+  assert.ok(pool);assert.equal(pool.max,uses);assert.ok(extras(c).features.some(f=>f.description.includes(`Божественное чувство: ${uses} / долгий отдых`)));
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(`Божественное чувство: ${uses}; восстановление после долгого отдыха.`));
+ }
+});
+
+test('PR26 Astral Self exposes the Wisdom unarmed strike only with active arms',()=>{
+ const first=create('monk',null,{abilities:{strength:10,dexterity:14,constitution:16,intelligence:10,wisdom:18,charisma:10}}),second=advance(first),c=advance(second,'astral-self'),e=extras(c);
+ const ordinary=e.attacks.find(a=>a.id==='unarmed'),astral=e.attacks.find(a=>a.id==='unarmed-astral-arms');
+ assert.ok(ordinary&&astral);assert.equal(ordinary.ability,'dexterity');assert.equal(astral.ability,'wisdom');
+ assert.equal(astral.attackBonus,6);assert.equal(astral.damage,'1d4+4');assert.match(astral.notes.join(' '),/активных руках.*досягаемость \+5/);
+ assert.ok(exported(c).weaponsList.some(w=>w.name.value===astral.label&&w.ability==='wis'));
+ assert.ok(!extras(advance(second,'open-hand')).attacks.some(a=>a.id==='unarmed-astral-arms'));
+});
+
+test('PR26 Soulknife exports both conditional psychic blade attacks',()=>{
+ const c=advance(advance(create('rogue',null,{abilities:{strength:10,dexterity:18,constitution:14,intelligence:12,wisdom:14,charisma:12}})),'soulknife'),e=extras(c),out=exported(c);
+ const primary=e.attacks.find(a=>a.id==='psychic-blade'),bonus=e.attacks.find(a=>a.id==='psychic-blade-bonus');
+ assert.ok(primary&&bonus);assert.equal(primary.type,'psychic');assert.equal(primary.ability,'dexterity');
+ assert.equal(primary.attackBonus,6);assert.equal(primary.damage,'1d6+4');assert.equal(bonus.attackBonus,6);assert.equal(bonus.damage,'1d4+4');
+ assert.match(primary.notes.join(' '),/при действии Атака/);assert.match(bonus.notes.join(' '),/после атаки первым.*свободной второй руке/);
+ assert.ok(out.weaponsList.some(w=>w.name.value===primary.label&&w.ability==='dex'));
+ assert.ok(out.weaponsList.some(w=>w.name.value===bonus.label&&w.dmg.value==='1d4+4'));
+ assert.ok(!extras(advance(advance(create('rogue')),'phantom')).attacks.some(a=>a.psychicBlade));
+});
+
+test('PR26 Death domain Reaper excludes restricted or classless cantrips',()=>{
+ const c=create('cleric','death'),group=O.getChoices(c,context(c)).find(g=>g.id==='creation_domain_cantrips');
+ assert.ok(group);assert.ok(!group.options.some(o=>o.value==='sapping-sting'));
+ assert.ok(group.options.some(o=>o.value==='chill-touch'));
+ c.creation_domain_cantrips='sapping-sting';assert.ok(O.validate(c,context(c)).some(e=>e.field==='creation_domain_cantrips'));
+});

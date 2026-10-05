@@ -221,7 +221,7 @@ test('first-level class resources exist before level 2, including a newly entere
   for(const [id,max,rest] of resources){const r=e.resources.find(x=>x.id===id);assert.ok(r,cls+':'+id);assert.equal(r.max,max,cls+':'+id);assert.equal(r.rest,rest,cls+':'+id);}
   assert.ok(JSON.parse(E.buildLssExport(c,{},stats(c),e)[0].data).text.traits.value.data.content.some(p=>p.content?.[0]?.text.startsWith(e.resources[0].name+': '+e.resources[0].max)),cls);
  }
- const paladin=create('paladin');paladin.abilities.charisma=6;assert.equal(extras(paladin).resources.find(x=>x.id==='divine-sense')?.max,1);
+ const paladin=create('paladin');paladin.abilities.charisma=6;assert.equal(extras(paladin).resources.find(x=>x.id==='divine-sense')?.max,0);
  const multi=enter(create('wizard'),'barbarian'),rage=extras(multi).resources.find(x=>x.id==='barbarian:rage');assert.ok(rage);assert.equal(rage.max,2);
  const three=advance(advance(create('barbarian')),'berserker');assert.equal(extras(three).resources.filter(x=>x.id==='rage').length,1);assert.equal(extras(three).resources.find(x=>x.id==='rage').max,3);
 });
@@ -322,7 +322,7 @@ test('Deft Explorer keeps its own Canny languages selectable after derivation',(
 
 test('class resources follow published counts and pools',()=>{
  const paladin=create('paladin',undefined,{abilities:{strength:16,dexterity:10,constitution:14,intelligence:10,wisdom:12,charisma:8}});
- assert.equal(stats(paladin).modifiers.charisma,-1);assert.equal(extras(paladin).resources.find(r=>r.id==='divine-sense')?.max,1);
+ assert.equal(stats(paladin).modifiers.charisma,-1);assert.equal(extras(paladin).resources.find(r=>r.id==='divine-sense')?.max,0);
  const soulknife=extras(advance(advance(create('rogue')),'soulknife'));assert.equal(soulknife.resources.find(r=>r.id==='psionic-dice')?.max,4);
  const wildfire=extras(advance(create('druid'),'wildfire'));assert.ok(wildfire.resources.some(r=>r.id==='wild-shape'));assert.ok(!wildfire.resources.some(r=>r.id==='wildfire-spirit'));
 });

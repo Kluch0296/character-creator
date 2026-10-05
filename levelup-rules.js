@@ -307,9 +307,26 @@
    for(const mode of modes){const id=attack.id+'-battle-ready'+(mode?'-'+mode:'');if(attacks.some(x=>x.id===id))continue;const bonus=mode?1:0;
     const note=mode?'Готовность к бою: только при активной инфузии «'+label(mode)+'» на этом оружии; +1 к атаке и урону уже учтён.':'Готовность к бою: только для магического оружия; бонусы самого оружия учитываются отдельно.';
     attacks.push({...withDamage(attack,attack.damageBonus+shift+bonus),id,label:(attack.label||attack.name||attack.id)+' (ИНТ, '+(mode?label(mode):'магическое оружие')+')',ability:'intelligence',proficient:true,attackBonus:attack.attackBonus+shift+bonus+(attack.proficient?0:2),battleReady:true,notes:[note,...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+    }
    }
   }
- }
+  function subclassAttacks(e,a){
+   const has=(cls,id)=>(e.subclasses||[e.subclass]).some(s=>s?.id===id&&(s.classId||s.class)===cls);
+   if(has('monk','astral-self')){
+    const unarmed=e.attacks?.find(x=>x.id==='unarmed');
+    if(unarmed&&mod(a.wisdom)>mod(a[unarmed.ability])){
+     const shift=mod(a.wisdom)-mod(a[unarmed.ability]);
+     e.attacks.push({...withDamage(unarmed,unarmed.damageBonus+shift),id:'unarmed-astral-arms',label:'Безоружный удар (руки астрального Я)',ability:'wisdom',attackBonus:unarmed.attackBonus+shift,astralArms:true,notes:[...(unarmed.notes||[]),'Только при активных руках астрального Я: Мудрость для атаки и урона; в свой ход досягаемость +5 футов.']});
+    }
+   }
+   if(has('rogue','soulknife')&&e.attacks){
+    const ability=mod(a.dexterity)>mod(a.strength)?'dexterity':'strength',bonus=mod(a[ability]);
+    for(const [id,label,die,note] of [
+     ['psychic-blade','Психический клинок','1d6','Создаётся в свободной руке при действии Атака; рукопашная атака или метание на 60 футов без дальней дистанции. После попадания или промаха клинок исчезает.'],
+     ['psychic-blade-bonus','Психический клинок (бонусное действие)','1d4','Только после атаки первым психическим клинком и при свободной второй руке; рукопашная атака или метание на 60 футов без дальней дистанции.']
+    ])e.attacks.push({id,label,type:'psychic',group:'simple',properties:['finesse','thrown'],ability,proficient:true,attackBonus:2+bonus,damageBonus:bonus,damage:`${die}${bonus>=0?'+':''}${bonus}`,notes:[note],psychicBlade:true});
+   }
+  }
  function featureSkills(ids,context){const missing=ids.filter(id=>!context.proficiencies?.skills.includes(id));return missing.length?missing:ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
  function createChoices(c,context={}){
@@ -320,7 +337,7 @@
   if(c.class==='warlock'&&sc?.id==='genie')add('genie','Вид гения',['dao','djinni','efreeti','marid']);
   if(c.class==='fighter'&&c.creation_style==='superior-technique')add('superior_maneuver','Превосходная техника: один приём',optionList('MV:B',c,firstState(c)),1,'class','TCE');
   if(c.class==='cleric'&&sc?.id==='arcana')add('domain_cantrips','Заговоры домена Магии',spellList('wizard',0,c,firstState(c),true).filter(id=>!arr(c.creation_cantrips).includes(id)),2,'spells');
-  if(c.class==='cleric'&&sc?.id==='death')add('domain_cantrips','Жнец: заговор некромантии',Object.values(D.spells).filter(s=>s.level===0&&s.school==='N').map(s=>s.id).filter(id=>!arr(c.creation_cantrips).includes(id)),1,'spells');
+  if(c.class==='cleric'&&sc?.id==='death')add('domain_cantrips','Жнец: заговор некромантии',Object.values(D.spells).filter(s=>s.level===0&&s.school==='N'&&s.classes?.length&&!s.restrictions).map(s=>s.id).filter(id=>!arr(c.creation_cantrips).includes(id)),1,'spells');
   if(c.class==='cleric'&&['order','peace'].includes(sc?.id))add('domain_skill','Навык домена',{order:['intimidation','persuasion'],peace:['insight','performance','persuasion']}[sc.id]);
   if(c.class==='ranger'){
    add('favored_feature','Избранный враг или его замена TCE',['favored-enemy','favored-foe']);result[result.length-1].optional=true;
@@ -534,7 +551,7 @@
     if(sc.id==='undead')resource('form-of-dread','Облик ужаса',2);
    }
    if(c.class==='sorcerer'){
-    if(sc.id==='storm')grant('language','primordial');if(sc.id==='shadow')e.darkvisionOverride=120;
+    if(sc.id==='storm')grant('language','primordial');if(sc.id==='shadow'){e.darkvisionOverride=120;resource('strength-of-the-grave','Сила могилы',1,'long-rest');}
     if(sc.id==='clockwork-soul')resource('restore-balance','Восстановление баланса',2);
     if(sc.id==='divine-soul')resource('favored-by-gods','Любимец богов',1,'short-rest');
     if(sc.id==='lunar'){spell('sacred-flame','cantrip',sc.label,'charisma',true,'Две соседние цели; текущая лунная фаза выбирается после долгого отдыха.');resource('lunar-embodiment','Воплощение луны: заклинание текущей фазы',1);}
@@ -552,7 +569,7 @@
    if(c.class==='barbarian')resource('rage','Ярость',s.level===3?3:2);
    if(c.class==='bard')resource('bardic-inspiration','Бардовское вдохновение (к6)',Math.max(1,mod(a.charisma)));
    if(c.class==='fighter')resource('second-wind','Второе дыхание',1,'short-rest');
-   if(c.class==='paladin'){resource('divine-sense','Божественное чувство',Math.max(1,1+mod(a.charisma)));resource('lay-on-hands','Наложение рук',5*s.level);}
+   if(c.class==='paladin'){resource('divine-sense','Божественное чувство',Math.max(0,1+mod(a.charisma)));resource('lay-on-hands','Наложение рук',5*s.level);}
   }
   Object.assign(FEATURE_RULES,{
    'abjuration-savant':['Ограждение: знаток','Переписывайте заклинания ограждения в книгу вдвое быстрее и дешевле.'],
@@ -783,7 +800,7 @@
  function commit(c,p,context={}){const checked=inspect(c,context);if(checked.errors.length)throw new Error(checked.errors[0].message);const t=transition(c,p,context,checked.state);if(t.errors.length)throw new Error(t.errors[0].message);const next=clone(c);next.level=t.state.level;next.advancement={version:2,entries:t.state.entries};delete next.pendingAdvancement;return next;}
  function hpGain(c,p,context={}){const cls=p.classId||c.class,con=mod(R.finalAbilities(c,context.baseExtras||{}).constitution),s=inspect(c,context).state,q=s.classStates[cls]?.character||entryCharacter(c,p),bonus=(R.RACES[c.race]?.subraces?.[c.race_sub]?.hpBonus||0)+(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='tough'?2:0)+(cls==='sorcerer'&&q.creation_origin==='draconic'?1:0);return {die:R.CLASSES[cls]?.hitDie,raw:p.hp?.value,constitution:con,bonus,gain:Math.max(1,Number(p.hp?.value||0)+con+bonus)};}
  function derive(c,context={},base={},providedState){
-  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates)return deriveSingle(c,context,base,s);
+  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates){const single=deriveSingle(c,context,base,s);subclassAttacks(single,context.abilities||R.finalAbilities(c,base));return single;}
   const primary=s.classStates[c.class],e=deriveSingle(c,context,base,primary.state);
   e.classes=Object.entries(s.classStates).filter(([id])=>R.CLASSES[id]).map(([id,x])=>({id,label:NAMES[id],level:x.state.level}));e.effectiveLevel=s.level;e.progressionErrors=inspected.errors;
   e.hitDicePools=Object.entries(e.classes.reduce((pool,x)=>{const die=R.CLASSES[x.id].hitDie;pool[die]=(pool[die]||0)+x.level;return pool;},{})).map(([die,count])=>({die:Number(die),count}));
@@ -826,6 +843,7 @@
    }
   }
   const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;}
+  subclassAttacks(e,context.abilities||R.finalAbilities(c,base));
   return e;
  }
  function setSpellNames(names){for(const [id,name] of Object.entries(names))if(D.spells[id]&&!D.spells[id].label&&/[А-Яа-яЁё]/.test(name))D.spells[id].label=name;for(const [id,s]of Object.entries(D.spells))names[id]=s.label||names[id]||s.name;}
