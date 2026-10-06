@@ -42,7 +42,7 @@
  'tales-from-beyond':['Истории из-за пределов','Бонусным действием потратьте вдохновение на случайную историю; действием передайте её эффект цели по таблице коллегии.'],
  'enthralling-performance':['Завораживающее представление','После минуты выступления можете очаровать слушателей (спасбросок Мудрости); использований 1 за короткий или долгий отдых.'],
  'mantle-of-inspiration':['Мантия вдохновения','Бонусным действием потратьте вдохновение: союзники получают 5 временных хитов и могут реакцией переместиться без провоцированных атак.'],
- 'blade-flourish':['Росчерк клинка','После попадания оружием в свой ход можно потратить вдохновение на защитный, мобильный или рубящий росчерк; ходьба при действии Атака +10 футов.'],
+ 'blade-flourish':['Росчерк клинка','При действии Атака в свой ход скорость ходьбы +10 футов до конца хода. Если атака оружием частью этого действия попала по существу, можно потратить одно вдохновение барда (к6): только один росчерк за ход. Оборонительный: результат к6 добавляется к урону попадания и КД до начала вашего следующего хода. Режущий: результат к6 добавляется к урону по цели и одному другому видимому существу в пределах 5 футов от вас. Мобильный: результат к6 добавляется к урону попадания, цель можно оттолкнуть на расстояние до 5 футов + результат к6; затем немедленно реакцией переместиться не дальше своей скорости в незанятое место в пределах 5 футов от цели.'],
  'psychic-blades':['Психические клинки','При попадании оружием потратьте вдохновение: +2к6 психического урона; один раз за ход.'],
  'words-of-terror':['Слова ужаса','После минуты разговора можно вызвать страх в цели (спасбросок Мудрости); один раз за короткий или долгий отдых.'],
  'channel-divinity':['Божественный канал','Одно применение между короткими или долгими отдыхами; выбирайте один доступный эффект при использовании.'],
@@ -76,7 +76,7 @@
  'star-map':['Звёздная карта','Указание и всегда подготовленный Направляющий снаряд; снаряд без ячейки можно применять бонус мастерства раз за долгий отдых.'],
  'starry-form':['Звёздный облик','Бонусное действие и применение Дикого облика: на 10 минут выберите одно созвездие. Лучник: при активации и бонусным действием в следующие ходы дальнобойная атака заклинанием на 60 футов, 1к8 + МДР урона излучением. Чаша: после заклинания с расходом ячейки, восстанавливающего хиты, дополнительно восстановите 1к8 + МДР хитов себе или существу в 30 футах. Дракон: результат к20 ниже 10 при проверках Интеллекта и Мудрости, а также спасбросках Телосложения для концентрации считается 10. Выбор меняется при каждом применении.'],
  'summon-wildfire-spirit':['Призыв духа дикого огня','Действием потратьте Дикий облик на духа на 1 час; используйте опубликованный блок, командуйте бонусным действием.'],
- 'balm-of-the-summer-court':['Бальзам Летнего двора','Запас к6 равен уровню друида; бонусное действие, цель в 120 футах, тратится до половины уровня вверх костей; лечение и 1 временный хит за кость.'],
+ 'balm-of-the-summer-court':['Бальзам Летнего двора','Запас к6 равен уровню друида; бонусное действие, цель в 120 футах, тратится до половины уровня костей с округлением вниз; лечение и 1 временный хит за кость.'],
  'speech-of-the-woods':['Речь леса','Изучаете Сильван. Звери понимают вашу речь; вы понимаете их звуки и движения.'],
  'spirit-totem':['Тотемный дух','Бонусное действие: дух Медведя, Ястреба или Единорога, аура 30 футов на 1 минуту; один раз за короткий или долгий отдых.'],
  'action-surge':['Всплеск действий','В свой ход получите одно дополнительное действие; один раз за короткий или долгий отдых.'],
@@ -92,7 +92,7 @@
  'giants-might':['Мощь великана','Бонусное действие, 1 минута: Большой размер, преимущество Силы, +1к6 урона оружием/безоружно один раз в ваш ход; мастерство применений за долгий отдых.'],
  'arcane-shot':['Мистический выстрел','Два изученных варианта; два применения за короткий или долгий отдых; один выстрел за ход при попадании стрелой короткого/длинного лука.'],
  'born-to-the-saddle':['Рождённый в седле','Преимущество спасбросков против падения с ездового животного; посадка/спешивание стоят 5 футов движения.'],
- 'unwavering-mark':['Непоколебимая метка','Попадание рукопашным оружием помечает цель до конца вашего следующего хода; цель рядом с вами получает помеху атакам по другим. Если она нанесла урон другому, в свой следующий ход можно ответить особой бонусной атакой. Таких атак — модификатор СИЛ (минимум 1) / долгий отдых; число меток не ограничено.'],
+ 'unwavering-mark':['Непоколебимая метка','Попадание рукопашной атакой оружием позволяет пометить существо до конца вашего следующего хода. В пределах 5 футов от вас оно получает помеху атакам по другим. Метка заканчивается при вашей недееспособности, смерти или метке другого кавалериста. Если помеченное существо нанесло урон кому-либо кроме вас, в свой следующий ход можно бонусным действием совершить против него особую рукопашную атаку оружием с преимуществом; при попадании +1 к урону (половина уровня воина с округлением вниз). Таких атак — модификатор СИЛ (минимум 1) / долгий отдых; число меток не ограничено.'],
  'fighting-spirit':['Боевой дух','Бонусное действие: преимущество атак оружием до конца хода и 5 временных хитов; 3 / долгий отдых.'],
  'deflect-missiles':['Отражение снарядов','Реакция уменьшает дальнобойный урон оружием на 1к10 + ЛОВ + уровень монаха. Если уменьшили до 0, можно поймать и за 1 ци метнуть снаряд.'],
  'open-hand-technique':['Техника открытой ладони','Попадание Шквалом ударов: выберите сбить с ног, оттолкнуть на 15 футов или лишить реакций; первые два имеют спасброски.'],
@@ -281,7 +281,7 @@
   if(cls==='wizard'&&['chronurgy','graviturgy'].includes(s.subclass))ids.push(...Object.values(D.spells).filter(x=>x.source==='EGW'&&(exact?x.level===max:x.level>0&&x.level<=max)).map(x=>x.id));
   return uniq(ids);
  }
- function automaticSpells(c,s=firstState(c)){return uniq([...additional(c,s,'known'),...additional(c,s,'prepared')].flatMap(id=>[id,s.bonusReplacements[id]||id]));}
+ function automaticSpells(c,s=firstState(c)){return uniq([...additional(c,s,'known'),...additional(c,s,'prepared')].map(id=>s.bonusReplacements[id]||id));}
  function option(id,name,source='PHB'){return {value:id,label:name||label(id),source:D.spells[id]?.source||source,level:D.spells[id]?.level,url:D.spells[id]?.url||D.referenceLinks?.[id.replace(/^replicate:/,'')],description:OPTION_RULES[id]};}
  function group(id,name,ids,count=1,section='class',source='PHB',optional=false){return {id,label:name,count,section,source,optional,options:ids.map(x=>typeof x==='string'?option(x,null,source):x)};}
  function eligible(o,c,s,known=[]){return !o.prerequisite.length||o.prerequisite.some(p=>(!p.level||Number(p.level.level||p.level)<=s.level)&&(!p.pact||s.choices.pact===p.pact.toLowerCase())&&(!p.spell||p.spell.every(x=>[...s.cantrips,...s.known,...known].includes(slug(x))))&&(!p.feature||p.feature.every(x=>[...s.invocations,...s.infusions].includes(slug(x)))));}
@@ -475,7 +475,13 @@
    const cls=m.third?'wizard':c.class;
    // Delayed casters (ranger) decide on the TCE list when their spellcasting starts.
    if(!c.creation_expanded_spells&&!magic(c,old,a)&&Object.values(D.spells).some(x=>x.optionalClasses?.includes(cls)&&x.level>0&&x.level<=m.max))add('expanded_spells','Дополнительный список заклинаний TCE (с разрешения Мастера)',['no','yes'],1,'spells','TCE',true);
-   const automatic=automaticSpells(c,s),allowed=spellList(cls,m.max,c,s).filter(id=>!automatic.includes(id));
+   // Use the pending replacement for learning, but keep original state for its picker and replay.
+   const spellState=clone(s),divine=c.creation_origin==='divine-soul',remove=divine?p.choices.spell_remove:p.choices.bonus_remove,replace=divine?p.choices.spell_add:p.choices.bonus_add;
+   if(c.class==='sorcerer'&&replace&&((['aberrant-mind','clockwork-soul'].includes(c.creation_origin)&&p.choices.bonus_remove&&p.choices.bonus_remove!=='none')||c.creation_origin==='divine-soul')){
+    const original=additional(c,s,'known').find(id=>(s.bonusReplacements[id]||id)===remove);
+    if(original)spellState.bonusReplacements[original]=replace;
+   }
+   const automatic=automaticSpells(c,spellState),allowed=spellList(cls,m.max,c,s).filter(id=>!automatic.includes(id));
    if(m.third&&p.to===3){add('third_cantrips','Заговоры подкласса',spellList('wizard',0,c,s,true).filter(id=>sc.id!=='arcane-trickster'||id!=='mage-hand'),2,'spells');add('third_restricted','Два заклинания ограниченных школ',allowed.filter(id=>(sc.id==='eldritch-knight'?['A','V']:['E','I']).includes(D.spells[id].school)),2,'spells');add('third_free','Одно заклинание любой школы',allowed.filter(id=>!arr(p.choices.third_restricted).includes(id)),1,'spells');}
    else if(c.class==='wizard'){add('book_add','Два новых заклинания в книгу',allowed.filter(id=>!old.book.includes(id)),2,'spells');const book=uniq([...old.book,...arr(p.choices.book_add)]);add('prepared','Подготовка из книги',book,Math.min(book.length,m.prepareCount),'spells');}
    else if(m.prepareCount){add('prepared','Подготовленные заклинания (бонусные отдельно)',allowed.filter(id=>!additional(c,s,'prepared').includes(id)),m.prepareCount,'spells');}
@@ -483,7 +489,7 @@
     const divine=c.class==='sorcerer'&&c.creation_origin==='divine-soul';
     const bonus=divine?additional(c,old,'known').filter(id=>D.spells[id]?.level>0).map(id=>old.bonusReplacements[id]||id):[];
     const delta=m.knownQuota-old.known.length;
-    if(delta>0)add('learn','Новые известные заклинания',allowed.filter(id=>!old.known.includes(id)&&!bonus.includes(id)),delta,'spells');
+    if(delta>0)add('learn','Новые известные заклинания',allowed.filter(id=>!old.known.includes(id)),delta,'spells');
     if(old.known.length){add('spell_remove','Заменить одно известное заклинание',[option('none','Оставить прежние'),...uniq([...old.known,...bonus]).map(id=>option(id))],1,'spells');
      if(p.choices.spell_remove&&p.choices.spell_remove!=='none'){const pool=bonus.includes(p.choices.spell_remove)?spellList('cleric',m.max,c,s):allowed;
       add('spell_add',bonus.includes(p.choices.spell_remove)?'Замена божественного заклинания: только список жреца':'Новое заклинание взамен',pool.filter(id=>!old.known.includes(id)&&!bonus.includes(id)&&!arr(p.choices.learn).includes(id)),1,'spells');}
@@ -495,7 +501,7 @@
    add('bonus_remove','Заменить одно заклинание происхождения',[option('none','Оставить прежние'),...granted.map(id=>option(s.bonusReplacements[id]||id))],1,'spells','TCE');
    if(p.choices.bonus_remove&&p.choices.bonus_remove!=='none'){
     const level=D.spells[p.choices.bonus_remove]?.level,schools=c.creation_origin==='aberrant-mind'?['D','E']:['A','T'];
-    add('bonus_add','Замена той же степени: разрешённые школы и классы',Object.values(D.spells).filter(x=>x.level===level&&schools.includes(x.school)&&x.classes.some(cls=>['sorcerer','warlock','wizard'].includes(cls))&&!granted.includes(x.id)&&!Object.values(old.bonusReplacements).includes(x.id)&&!old.known.includes(x.id)&&!old.cantrips.includes(x.id)&&!arr(p.choices.learn).includes(x.id)).map(x=>x.id),1,'spells','TCE');
+    add('bonus_add','Замена той же степени: разрешённые школы и классы',Object.values(D.spells).filter(x=>x.level===level&&schools.includes(x.school)&&x.classes.some(cls=>['sorcerer','warlock','wizard'].includes(cls))&&!automaticSpells(c,s).includes(x.id)&&!old.known.includes(x.id)&&!old.cantrips.includes(x.id)&&!arr(p.choices.learn).includes(x.id)).map(x=>x.id),1,'spells','TCE');
    }
   }
   const candidate=clone(s);
@@ -658,6 +664,7 @@
     if((context.proficiencies?.languages||[]).includes('giant')&&replacementLanguage.length)e.proficiencySlots.push({id:'rune_knight_language',type:'language',source:'Rune Knight',label:'Великан уже известен: другой язык',options:replacementLanguage});
     else gain('language','giant');
      resource('giants-might','Мощь великана',2);arr(s.choices.runes).forEach(id=>resource(id,label(id),1,'short-rest'));
+     feature('Резчик рун',FEATURE_RULES['rune-carver'][1]+' Сл спасброска '+(10+mod(a.constitution))+' (8 + бонус мастерства + модификатор Телосложения) для огненной и каменной рун.');
      if(arr(s.choices.runes).includes('stone-rune'))e.darkvisionOverride=Math.max(e.darkvisionOverride||0,120);
    }
    if(sc?.id==='astral-self'&&c.class==='monk')feature('Руки астрального Я',FEATURE_RULES['arms-of-the-astral-self'][1]+' При активации выбранные видимые существа в пределах 10 футов проходят спасбросок Ловкости Сл '+(10+mod(a.wisdom))+' (8 + бонус мастерства + модификатор Мудрости): 2к4 урона силовым полем при провале, при успехе урона нет.');
@@ -684,14 +691,14 @@
    if(sc?.id==='assassin'||sc?.id==='mastermind'){gain('tool','disguise_kit');gain('tool',sc.id==='assassin'?'poisoner_kit':'forgery_kit');}
    if(sc?.id==='scout'){gain('skill','nature');gain('skill','survival');e.fixedExpertise.push('nature','survival');}
    if(sc?.id==='shepherd')gain('language','sylvan');
-   if(sc?.id==='dreams')resource('balm-of-summer-court','Бальзам Летнего двора (к6)',s.level);
-   if(sc?.id==='shepherd')resource('spirit-totem','Тотемный дух',1,'short-rest');
+   if(sc?.id==='dreams'){resource('balm-of-summer-court','Бальзам Летнего двора (к6)',s.level);feature('Бальзам Летнего двора','Запас '+s.level+'к6 / долгий отдых. Бонусное действие: видимое существо в пределах 120 футов; потратьте до '+Math.floor(s.level/2)+' костей (половина уровня друида с округлением вниз). Цель восстанавливает хиты по сумме бросков и получает 1 временный хит за каждую потраченную кость.');}
+   if(sc?.id==='shepherd'){resource('spirit-totem','Тотемный дух',1,'short-rest');feature('Тотемный дух','Бонусным действием призовите дух в видимой точке в пределах 60 футов; аура 30 футов, длительность 1 минута или до вашей недееспособности. Бонусным действием дух можно переместить до 60 футов в видимую точку; одно применение / короткий или долгий отдых. Тип выбирается при призыве. Медведь: выбранные существа в ауре при появлении получают '+(5+s.level)+' временных хитов (5 + уровень друида); у вас и союзников в ауре преимущество на проверки Силы и спасброски Силы. Ястреб: реакцией дайте преимущество одному броску атаки по цели в ауре; у вас и союзников в ауре преимущество на Восприятие. Единорог: у вас и союзников преимущество на проверки обнаружения существ в ауре; если ваше заклинание с тратой ячейки лечит существо внутри или вне ауры, выбранные существа в ауре восстанавливают '+s.level+' хитов (уровень друида).');}
    if(sc?.id==='abjuration'){resource('arcane-ward','Магическая защита: хиты',2*s.level+mod(a.intelligence));feature('Магическая защита','При заклинании ограждения от 1-го круга создаётся защита; максимум '+(2*s.level+mod(a.intelligence))+' хитов. Другие ограждения восстанавливают 2 × круг; создание 1 / долгий отдых.');}
    if(sc?.id==='divination')resource('portent','Предзнаменование: сохранённые к20',2);
    if(sc?.id==='chronurgy')resource('chronal-shift','Хрональный сдвиг',2);
    if(sc?.id==='stars')resource('guiding-bolt','Направляющий снаряд без ячейки',2);
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
-   if(sc?.id==='artillerist')resource('eldritch-cannon','Мистическая пушка без ячейки',1);
+   if(sc?.id==='artillerist'){resource('eldritch-cannon','Мистическая пушка без ячейки',1);feature('Мистическая пушка',FEATURE_RULES['eldritch-cannon'][1]+' Одновременно одна пушка; тип выбирается при создании. КД 18, '+(5*s.level)+' хитов. В каждый свой ход можно бонусным действием активировать пушку в пределах 60 футов от вас; этим же действием пушка с ногами перемещается или взбирается до 15 футов. Огнемёт: конус 15 футов от пушки; спасбросок Ловкости Сл '+(10+mod(a.intelligence))+' (Сл заклинаний изобретателя), 2к8 урона огнём при провале, половина при успехе; поджигает ничейные горючие предметы. Силовая баллиста: дальнобойная атака заклинанием из пушки по существу или предмету до 120 футов, бонус атаки '+(2+mod(a.intelligence)>=0?'+':'')+(2+mod(a.intelligence))+'; при попадании 2к8 урона силовым полем, отталкивает существо на 5 футов от пушки. Защитник: выбранным существам в пределах 10 футов от пушки и самой пушке — 1к8'+(mod(a.intelligence)>=0?'+':'')+mod(a.intelligence)+' временных хитов (модификатор Интеллекта; минимум 1 временный хит по сумме).');}
    if(sc?.id==='battle-smith')resource('steel-defender','Стальной защитник: хиты',2+mod(a.intelligence)+5*s.level);
    if(sc?.id==='armorer'){gain('armor','heavy');resource('defensive-field','Защитное поле',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');}if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
    if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}

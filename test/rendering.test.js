@@ -801,7 +801,7 @@ test('a falsey advancement ledger still asks to reset before editing and the res
   assert.equal(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled,false);
 });
 test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
-  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['sorcerer','wild',1],['artificer','battle-smith',3],['artificer','armorer',3],['bard','creation',3],['fighter','psi-warrior',3],['rogue','soulknife',3],['warlock','talisman',3]]) {
+  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['sorcerer','wild',1],['artificer','battle-smith',3],['artificer','armorer',3],['bard','creation',3],['fighter','psi-warrior',3],['rogue','soulknife',3],['warlock','talisman',3],['druid','shepherd',2],['druid','shepherd',3],['druid','dreams',3],['fighter','rune-knight',3],['artificer','artillerist',3],['bard','swords',3]]) {
     const dom=createDOM(),context=loadScript(dom,readConfig());await flush();
     const overrides={class:cls};if(cls==='cleric')overrides.creation_domain=branch;if(cls==='warlock'&&branch)overrides.creation_patron=branch;if(cls==='sorcerer'&&branch)overrides.creation_origin=branch;
     if(cls==='artificer')overrides.abilities={strength:8,dexterity:10,constitution:14,intelligence:15,wisdom:13,charisma:12};fillWizard(context,overrides);
@@ -810,7 +810,7 @@ test('both final sheets show exact resource maxima and recovery; Chain spell sur
       for(let level=2;level<=${lastLevel};level++){
         const p=LevelUpRules.begin(character,getAdvancementContext());
         if(level===3&&'${cls}'==='warlock')p.choices.pact=${JSON.stringify(branch==='talisman'?'talisman':'chain')};
-        if(level===3&&'${cls}'!=='warlock'&&${JSON.stringify(branch)})p.choices.subclass=${JSON.stringify(branch)};
+        if('${cls}'!=='warlock'&&LevelUpRules.subclasses(character.class).some(s=>s.id===${JSON.stringify(branch)}&&s.level===level))p.choices.subclass=${JSON.stringify(branch)};
         for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);
         character=LevelUpRules.commit(character,p,getAdvancementContext());
       }
@@ -822,6 +822,7 @@ test('both final sheets show exact resource maxima and recovery; Chain spell sur
     if(cls==='wizard'){const recovery=result.extras.features.find(f=>f.name==='Магическое восстановление').description;assert.ok(recovery.includes('суммарного круга до 2'));assert.ok(result.left.includes(recovery));}
     if(cls==='artificer'&&branch==='battle-smith'){const magic=result.extras.attacks.find(a=>a.id==='light-crossbow-battle-ready');assert.ok(magic);assert.ok(result.left.includes(magic.label));assert.equal(result.extras.attacks.length,new Set(result.extras.attacks.map(a=>a.id)).size);}
     if(cls==='artificer'&&branch==='armorer'){for(const attack of result.extras.attacks.filter(a=>a.armorerWeapon)){assert.ok(result.left.includes(attack.label));assert.ok(JSON.parse(result.export[0].data).weaponsList.some(w=>w.name.value===attack.label&&w.dmg.value===attack.damage));}}
+    for(const name of ['Тотемный дух','Бальзам Летнего двора','Резчик рун','Непоколебимая метка','Мистическая пушка','Росчерк клинка']){const f=result.extras.features.find(f=>f.name===name);if(f){assert.ok(result.left.includes(f.description),name+': sheet');assert.ok(JSON.stringify(JSON.parse(result.export[0].data).text.traits).includes(f.description),name+': export');}}
     if(cls==='warlock'&&!branch){
       const spell=result.extras.spells.find(x=>x.id==='find-familiar');assert.ok(spell&&spell.ability==='charisma');assert.ok(result.left.includes(spell.label));assert.ok(result.right.includes(spell.label));assert.ok(result.export[0].spells.slotless.includes(context.LssExport.SPELL_IDS['find-familiar']));
     } else {

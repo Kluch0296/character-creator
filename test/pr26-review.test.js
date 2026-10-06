@@ -484,3 +484,40 @@ test('PR26 round nine: Spell Sniper also permits Primal Savagery from Xanathar',
 test('PR26 round nine: Knowledge expertise can reuse a replacement proficiency',()=>{
  const c=create('cleric','knowledge',{race:'half-orc',background:'soldier'});c.proficiencyChoices['replacement:skill:intimidation:1']='nature';c.proficiencyChoices['creation:knowledge-skill:0']='nature';c.proficiencyChoices['creation:knowledge-skill:1']='arcana';const derived=stats(c);assert.deepEqual(derived.proficiencies.errors,[]);assert.equal(derived.proficiencies.skills.filter(id=>id==='nature').length,1);assert.ok(derived.proficiencies.expertise.includes('nature'));assert.equal(derived.skills.nature,derived.modifiers.intelligence+2*derived.proficiencyBonus);const bad=copy(c);bad.proficiencyChoices['replacement:skill:intimidation:1']=c.proficiencyChoices['class:cleric:0:0'];assert.ok(stats(bad).proficiencies.errors.some(e=>e.id==='replacement:skill:intimidation:1'));
 });
+
+test('PR26 round ten: Shepherd totem exports all mutable spirits with class-level healing',()=>{
+ const second=advance(create('druid'),'shepherd');
+ for(const c of [second,advance(second),enter(second,'fighter')]){const e=extras(c),level=e.classes.find(x=>x.id==='druid').level,text=e.features.find(f=>f.name==='Тотемный дух').description;
+  for(const pattern of [/Медведь/,/Ястреб/,/Единорог/,/30 футов/,/60 футов/,/реакци.*преимущество/,/Восприятие/,/проверки Силы и спасброски Силы/,/внутри или вне ауры/,/ячейк/])assert.match(text,pattern);
+  assert.ok(text.includes((5+level)+' временных хитов'));assert.ok(text.includes('восстанавливают '+level+' хитов'));assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(e.resources.find(r=>r.id.endsWith('spirit-totem')).max,1);assert.ok(!Object.hasOwn(c.advancement.entries.at(-1).choices,'spirit'));
+ }
+});
+test('PR26 round ten: Rune Knight gives CON save DC alongside selected rune effects',()=>{
+ for(const constitution of [8,14,18]){const c=advance(advance(create('fighter',null,{abilities:{strength:16,dexterity:16,constitution,intelligence:16,wisdom:16,charisma:16}})),'rune-knight',{runes:['fire-rune','stone-rune']}),e=extras(c),text=e.features.find(f=>f.name==='Резчик рун').description;
+  assert.ok(text.includes('Сл спасброска '+(10+stats(c).modifiers.constitution)));assert.match(text,/8 \+ бонус мастерства \+ модификатор Телосложения/);assert.match(e.features.find(f=>f.name==='Руны').description,/СИЛ.*МДР|МДР.*СИЛ/);for(const id of ['fire-rune','stone-rune'])assert.equal(e.resources.find(r=>r.id===id).rest,'short-rest');assert.ok(JSON.stringify(exported(c).text.traits).includes(text));
+ }
+});
+test('PR26 round ten: Cavalier retaliation keeps advantage, extra damage and mark conditions',()=>{
+ const c=advance(advance(create('fighter')),'cavalier'),text=extras(c).features.find(f=>f.name==='Непоколебимая метка').description;
+ for(const pattern of [/5 футов/,/следующий ход/,/с преимуществом/,/\+1.*урон/,/половин.*уровня воина/,/минимум 1/,/меток не ограничено/])assert.match(text,pattern);assert.ok(JSON.stringify(exported(c).text.traits).includes(text));
+});
+test('PR26 round ten: Artillerist cannon describes activation and all three modes',()=>{
+ for(const intelligence of [8,18]){const c=advance(advance(create('artificer',null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence,wisdom:16,charisma:16}})),'artillerist'),text=extras(c).features.find(f=>f.name==='Мистическая пушка').description,m=stats(c).modifiers.intelligence;
+  for(const pattern of [/бонусным действием/,/60 футов/,/Огнемёт.*конус 15/,/2к8.*огн/,/половин/,/Силовая баллиста.*120/,/2к8.*силовым полем/,/отталкивает.*5 футов/,/Защитник.*10 футов/,/самой пушке/,/минимум 1 временный хит/])assert.match(text,pattern);
+  assert.ok(text.includes('Сл '+(10+m)));assert.ok(text.includes('бонус атаки '+(m+2>=0?'+':'')+(m+2)));assert.ok(text.includes('1к8'+(m>=0?'+':'')+m));assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(extras(c).resources.find(r=>r.id==='eldritch-cannon').max,1);
+ }
+});
+test('PR26 round ten: Swords flourishes retain conditional damage, AC and movement',()=>{
+ const c=advance(advance(create('bard')),'swords'),e=extras(c),text=e.features.find(f=>f.name==='Росчерк клинка').description;
+ for(const pattern of [/действи.*Атака/,/один росчерк за ход/,/вдохновени.*к6/,/Оборонительный.*КД.*следующего хода/,/Режущий.*другому.*5 футов от вас/,/Мобильный.*5.*результат/,/реакци.*скорости.*незанят.*5 футов от цели/])assert.match(text,pattern);assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(e.speedBonus||0,0);
+});
+test('PR26 round ten: Dreams Balm rounds class-level dice limit down',()=>{
+ const second=advance(create('druid'),'dreams');for(const c of [second,advance(second),enter(second,'fighter')]){const e=extras(c),level=e.classes.find(x=>x.id==='druid').level,text=e.features.find(f=>f.name==='Бальзам Летнего двора').description;assert.ok(text.includes('Запас '+level+'к6'));assert.ok(text.includes('до '+Math.floor(level/2)+' костей'));assert.match(text,/округлением вниз/);assert.match(text,/120 футов/);assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(e.resources.find(r=>r.id.endsWith('balm-of-summer-court')).max,level);}
+});
+test('PR26 round ten: origin spell replacement allows relearning the removed bonus during the same level',()=>{
+ for(const [branch,original,replacement,remove,add] of [['aberrant-mind','detect-thoughts','suggestion','bonus_remove','bonus_add'],['divine-soul','cure-wounds','bless','spell_remove','spell_add']]){
+  const c=branch==='aberrant-mind'?advance(create('sorcerer',branch)):create('sorcerer',branch,{creation_affinity:'good'}),p=fill(c,L.begin(c,context(c)),{[remove]:original,[add]:replacement});
+  const learn=L.getChoices(c,p,context(c)).find(g=>g.id==='learn');assert.ok(learn.options.some(o=>o.value===original),branch+': former bonus is learnable');assert.ok(!learn.options.some(o=>o.value===replacement),branch+': active replacement is automatic');p.choices.learn=[original];assert.deepEqual(L.transition(c,p,context(c)).errors,[]);const next=L.commit(c,p,context(c)),state=L.inspect(next,context(next)).state;assert.ok(state.known.includes(original));assert.ok(!L.automaticSpells(next,state).includes(original));assert.ok(L.automaticSpells(next,state).includes(replacement));const spells=extras(next).spells;assert.ok(spells.some(s=>s.id===original&&!s.limitExempt));assert.ok(spells.some(s=>s.id===replacement&&s.limitExempt));const data=E.buildLssExport(next,{},stats(next),extras(next))[0],spellId=E.SPELL_IDS[original];if(spellId)assert.ok(data.spells.prepared.includes(spellId));else assert.ok(JSON.stringify(JSON.parse(data.data).text.attacks).includes(L.label(original)));const bad=copy(p);bad.choices[add]='fireball';assert.ok(L.transition(c,bad,context(c)).errors.length);
+  if(branch==='divine-soul'){const replaced=advance(c,null,{spell_remove:original,spell_add:replacement}),relearned=advance(replaced,null,{learn:[original]});assert.ok(extras(relearned).spells.some(s=>s.id===original&&!s.limitExempt));const third=advance(next);assert.deepEqual(L.inspect(third,context(third)).errors,[]);assert.ok(extras(third).spells.some(s=>s.id===original&&!s.limitExempt));}
+ }
+});
