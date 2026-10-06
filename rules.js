@@ -332,18 +332,20 @@
     const seen=new Set(), choices={...character.proficiencyChoices||{},...extra.progressionProficiencyChoices||{}};
     const add = g=>{const key=g.type+':'+g.id;if(!seen.has(key)&&collection[g.type]){seen.add(key);result[collection[g.type]].push(g.id);}};
     plan.fixed.forEach(add);
-    const regular=plan.slots.filter(s=>!s.expertise && s.type!=='expertise');
-    regular.forEach(s=>{
+    const regular=plan.slots.filter(s=>!s.expertise && s.type!=='expertise'), expertiseGrants=new Set();
+    // Resolve ordinary choices (including replacements) before their expertise grants.
+    regular.slice().sort((a,b)=>Number(!!a.grantExpertise)-Number(!!b.grantExpertise)).forEach(s=>{
       const id=choices[s.id],type=optionType(s.type,id);
       if(!id) {result.errors.push({id:s.id,message:`Заполните выбор: ${s.label}.`});return;}
       if(!s.options.includes(id)) {result.errors.push({id:s.id,message:`«${LABELS[id]||id}» не входит в список для «${s.label}».`});return;}
-      if(seen.has(type+':'+id)) {result.errors.push({id:s.id,message:`«${LABELS[id]||id}» уже получено из другого источника. Выберите другое владение.`});return;}
+      if(seen.has(type+':'+id)&&(!s.grantExpertise||expertiseGrants.has(type+':'+id))) {result.errors.push({id:s.id,message:`«${LABELS[id]||id}» уже получено из другого источника. Выберите другое владение.`});return;}
       const grant={type,id,source:s.source,slotId:s.id};add(grant);result.grants.push(grant);
-      if(s.grantExpertise)result.expertise.push(id);
+      if(s.grantExpertise){expertiseGrants.add(type+':'+id);result.expertise.push(id);}
     });
     let expertiseSlots=plan.slots.filter(s=>s.expertise||s.type==='expertise');
     if(character.class==='rogue') expertiseSlots.push(...[0,1].map(i=>({id:'class:rogue:expertise:'+i,type:'expertise',expertise:true,source:'Компетентность плута',label:`Компетентность плута ${i+1}`,options:[...result.skills,...result.tools.filter(id=>id==='thieves_tools')]})));
-    const expertSeen=new Set(result.expertise);
+    // Independent expertise grants do not invalidate previously selected expertise.
+    const expertSeen=new Set();
     expertiseSlots=expertiseSlots.map(s=>({...s,expertise:true,options:s.options.filter(id=>result.skills.includes(id)||result.tools.includes(id))}));
     expertiseSlots.forEach(s=>{
       const id=choices[s.id];

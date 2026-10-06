@@ -465,7 +465,7 @@ function renderProficiencies(container) {
       const options = slot.options.map(option => {
         const id = typeof option === 'string' ? option : option.value || option.id;
         const actualType = CharacterRules.optionType(type, id);
-        const duplicate = fixed.some(grant => grant.type === actualType && grant.id === id) || slots.some(other => other.id !== slot.id && CharacterRules.optionType(other.type, choices[other.id]) === actualType && choices[other.id] === id);
+        const duplicate = (!slot.grantExpertise && fixed.some(grant => grant.type === actualType && grant.id === id)) || slots.some(other => other.id !== slot.id && !!other.grantExpertise === !!slot.grantExpertise && CharacterRules.optionType(other.type, choices[other.id]) === actualType && choices[other.id] === id);
         return { value: id, label: (typeof option === 'object' && option.label || proficiencyLabel(type, id)) + (duplicate ? ' · уже выбрано' : ''), disabled: duplicate && choices[slot.id] !== id };
       });
       renderChoiceSelect(group, { id: slot.id, label: slot.label, description: slot.description, options, value: choices[slot.id], onChange(value) {

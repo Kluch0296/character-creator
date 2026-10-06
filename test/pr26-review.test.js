@@ -437,3 +437,50 @@ test('PR26 round eight: Martial Arts preserves explicit Hex Warrior ability in m
   for(const c of [multi,advance(multi)]){const e=extras(c),m=stats(c).modifiers,base=e.attacks.find(a=>a.id==='handaxe'),hex=e.attacks.find(a=>a.id==='handaxe-hex');assert.equal(base.ability,'dexterity');assert.equal(base.attackBonus,2+m.dexterity);assert.equal(hex.ability,'charisma');assert.equal(hex.attackBonus,2+m.charisma);assert.equal(hex.damageBonus,m.charisma);assert.equal(hex.damage,'1d6+'+m.charisma);assert.ok(exported(c).weaponsList.some(w=>w.name.value===hex.label&&w.ability==='cha'&&w.dmg.value===hex.damage));}
  }
 });
+
+test('PR26 round nine: Knowledge multiclass retains trained skills and distinct expertise',()=>{
+ const bard=create('bard',null,{proficiencyChoices:{'class:bard:0:0':'nature','class:bard:0:1':'religion','class:bard:0:2':'perception'}}),before=stats(bard).proficiencies;
+ for(const pair of [['arcana','history'],['nature','religion']]){
+  const p=L.selectClass(bard,L.begin(bard,context(bard)),'cleric',context(bard)),ids=pair.map((_,i)=>'cleric:proficiency:creation:knowledge-skill:'+i);p.choices['cleric:creation_domain']='knowledge';
+  assert.deepEqual(L.getChoices(bard,p,context(bard)).find(g=>g.id===ids[0]).options.map(o=>o.value),['arcana','history','nature','religion']);
+  fill(bard,p,{...p.choices,[ids[0]]:pair[0],[ids[1]]:pair[1]});assert.ok(!L.getChoices(bard,p,context(bard)).find(g=>g.id===ids[1]).options.some(o=>o.value===pair[0]));assert.deepEqual(L.transition(bard,p,context(bard)).errors,[]);
+  const c=L.commit(bard,p,context(bard)),profs=stats(c).proficiencies;assert.deepEqual(profs.skills.slice().sort(),before.skills.slice().sort());for(const id of pair)assert.ok(profs.expertise.includes(id));assert.ok(!profs.slots.some(s=>s.id.startsWith('replacement:')));assert.equal(profs.expertise.length,new Set(profs.expertise).size);assert.match(JSON.stringify(exported(c).text.prof),/Компетентность/);
+  const bad=copy(p);bad.choices[ids[1]]=pair[0];assert.ok(L.transition(bard,bad,context(bard)).errors.length);
+ }
+ const cleric=create('cleric','knowledge');cleric.proficiencyChoices['creation:knowledge-skill:0']='arcana';cleric.proficiencyChoices['creation:knowledge-skill:1']='history';assert.deepEqual(stats(cleric).proficiencies.errors,[]);const bad=copy(cleric);bad.proficiencyChoices['creation:knowledge-skill:1']='arcana';assert.ok(stats(bad).proficiencies.errors.length);
+});
+test('PR26 round nine: Spell Sniper grants supplemental attack cantrips by feat class',()=>{
+ for(const cls of ['wizard','sorcerer','warlock'])for(const id of ['booming-blade','green-flame-blade']){
+  const c=create(cls,null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:cls,creation_feat_cantrips:[id]}),e=extras(c),spell=e.spells.find(s=>s.id===id&&s.limitExempt);assert.ok(O.getChoices(c,context(c)).find(g=>g.id==='creation_feat_cantrips').options.some(o=>o.value===id));assert.deepEqual(O.validate(c,context(c)),[]);assert.equal(spell.ability,cls==='wizard'?'intelligence':'charisma');const native=exported(c),text=JSON.stringify(native.text.attacks);assert.ok(text.includes(spell.label));assert.ok(text.includes(cls==='wizard'?'Интеллект':'Харизма'));if(E.SPELL_IDS[id])assert.equal(native.spellsInfo.abilities[E.SPELL_IDS[id]],cls==='wizard'?'int':'cha');else assert.match(text,/карточки нет в каталоге LSS/);
+  const bad=copy(c);bad.creation_feat_cantrips=['acid-splash'];assert.ok(O.validate(bad,context(bad)).some(err=>err.field==='creation_feat_cantrips'));
+ }
+ const druid=create('druid',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'druid'});assert.ok(!O.getChoices(druid,context(druid)).find(g=>g.id==='creation_feat_cantrips').options.some(o=>['booming-blade','green-flame-blade'].includes(o.value)));
+});
+test('PR26 round nine: subclass free uses keep independent pools and paid fallbacks',()=>{
+ for(const [cls,branch,id,max,rest,feature] of [['bard','creation','performance-of-creation',1,'long-rest','Представление созидания'],['fighter','psi-warrior','telekinetic-movement',1,'short-rest','Телекинетическое перемещение'],['rogue','soulknife','psychic-whispers',1,'long-rest','Психический шёпот'],['warlock',null,'pact-talisman',2,'long-rest','Предмет договора']]){
+  const second=advance(create(cls));assert.ok(!extras(second).resources.some(r=>r.id===id));const c=advance(second,branch,cls==='warlock'?{pact:'talisman'}:{}),e=extras(c),pools=e.resources.filter(r=>r.id===id);assert.equal(pools.length,1);assert.equal(pools[0].max,max);assert.equal(pools[0].rest,rest);const text=e.features.find(f=>f.name===feature).description;assert.match(text,cls==='bard'?/ячейку 2-го круга/:cls==='warlock'?/бонусу мастерства/:/кости|кость/);assert.ok(JSON.stringify(exported(c).text.traits).includes(pools[0].name+': '+max+'; восстановление после '+(rest==='short-rest'?'короткого или долгого':'долгого')+' отдыха.'));
+  if(['fighter','rogue'].includes(cls)){assert.equal(e.resources.find(r=>r.id==='psionic-dice').max,4);assert.equal(e.resources.find(r=>r.id==='psi-replenishment').max,1);}
+ }
+ for(const [cls,branch] of [['bard','lore'],['fighter','champion'],['rogue','thief']])assert.ok(!extras(advance(advance(create(cls)),branch)).resources.some(r=>['performance-of-creation','telekinetic-movement','psychic-whispers'].includes(r.id)));
+ assert.ok(!extras(advance(advance(create('warlock')),null,{pact:'blade'})).resources.some(r=>r.id==='pact-talisman'));
+});
+test('PR26 round nine: Armorer models export ordinary and Intelligence weapon profiles',()=>{
+ for(const intelligence of [8,13,18]){
+  const first=create('artificer',null,{abilities:{strength:16,dexterity:12,constitution:14,intelligence,wisdom:10,charisma:10}}),second=advance(first);assert.ok(!extras(second).attacks.some(a=>a.armorerWeapon));const c=advance(second,'armorer'),e=extras(c),m=stats(c).modifiers;assert.equal(e.attacks.filter(a=>a.armorerWeapon).length,4);assert.equal(e.attacks.length,new Set(e.attacks.map(a=>a.id)).size);assert.ok(!Object.hasOwn(c.advancement.entries.at(-1).choices,'armor_model'));
+  for(const [id,ability,die,type] of [['armorer-thunder-gauntlets','strength','1d8','thunder'],['armorer-lightning-launcher','dexterity','1d6','lightning']])for(const variant of [false,true]){const attack=e.attacks.find(a=>a.id===id+(variant?'-int':'')),ab=variant?'intelligence':ability;assert.equal(attack.ability,ab);assert.equal(attack.attackBonus,2+m[ab]);assert.equal(attack.damageBonus,m[ab]);assert.equal(attack.damage,die+(m[ab]>=0?'+':'')+m[ab]);assert.equal(attack.type,type);assert.equal(attack.proficient,true);assert.match(attack.notes.join(' '),/модель|модели/);assert.match(attack.notes.join(' '),/доспех/);if(type==='lightning'){assert.match(attack.notes.join(' '),/90.*300/);assert.match(attack.notes.join(' '),/раз.*свой ход.*1к6/);}else{assert.match(attack.notes.join(' '),/свободн/);assert.match(attack.notes.join(' '),/помех/);}assert.ok(exported(c).weaponsList.some(w=>w.name.value===attack.label&&w.ability===({strength:'str',dexterity:'dex',intelligence:'int'})[ab]&&w.dmg.value===attack.damage));}
+ }
+ assert.ok(!extras(advance(advance(create('artificer')),'alchemist')).attacks.some(a=>a.armorerWeapon));
+});
+
+
+test('PR26 round nine: Knowledge expertise preserves the rogue existing expertise without stacking',()=>{
+ const rogue=create('rogue'),before=stats(rogue);assert.ok(before.proficiencies.expertise.includes('arcana'));assert.ok(before.proficiencies.expertise.includes('history'));const c=enter(rogue,'cleric',{'cleric:creation_domain':'knowledge','cleric:proficiency:creation:knowledge-skill:0':'arcana','cleric:proficiency:creation:knowledge-skill:1':'history'}),after=stats(c);assert.deepEqual(after.proficiencies.errors,[]);assert.deepEqual(after.proficiencies.expertise.slice().sort(),before.proficiencies.expertise.slice().sort());for(const id of ['arcana','history'])assert.equal(after.skills[id],after.modifiers.intelligence+2*after.proficiencyBonus);const bad=copy(c);bad.proficiencyChoices['class:rogue:expertise:1']=bad.proficiencyChoices['class:rogue:expertise:0'];assert.ok(stats(bad).proficiencies.errors.length);
+});
+test('PR26 round nine: Spell Sniper also permits Primal Savagery from Xanathar',()=>{
+ const c=create('druid',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'druid',creation_feat_cantrips:['primal-savagery']}),spell=extras(c).spells.find(s=>s.id==='primal-savagery'&&s.limitExempt);assert.ok(spell);assert.equal(spell.ability,'wisdom');assert.deepEqual(O.validate(c,context(c)),[]);const text=JSON.stringify(exported(c).text.attacks);assert.ok(text.includes(spell.label));assert.ok(text.includes('Мудрость'));for(const id of ['acid-splash','toll-the-dead','booming-blade']){const bad=copy(c);bad.creation_feat_cantrips=[id];assert.ok(O.validate(bad,context(bad)).some(e=>e.field==='creation_feat_cantrips'));}
+});
+
+
+test('PR26 round nine: Knowledge expertise can reuse a replacement proficiency',()=>{
+ const c=create('cleric','knowledge',{race:'half-orc',background:'soldier'});c.proficiencyChoices['replacement:skill:intimidation:1']='nature';c.proficiencyChoices['creation:knowledge-skill:0']='nature';c.proficiencyChoices['creation:knowledge-skill:1']='arcana';const derived=stats(c);assert.deepEqual(derived.proficiencies.errors,[]);assert.equal(derived.proficiencies.skills.filter(id=>id==='nature').length,1);assert.ok(derived.proficiencies.expertise.includes('nature'));assert.equal(derived.skills.nature,derived.modifiers.intelligence+2*derived.proficiencyBonus);const bad=copy(c);bad.proficiencyChoices['replacement:skill:intimidation:1']=c.proficiencyChoices['class:cleric:0:0'];assert.ok(stats(bad).proficiencies.errors.some(e=>e.id==='replacement:skill:intimidation:1'));
+});
