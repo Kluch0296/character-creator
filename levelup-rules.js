@@ -276,7 +276,7 @@
  function spellList(cls,max,c={},s=firstState(c),exact=false){
   const expanded=(c.creation_expanded_spells||s.choices?.expanded_spells)==='yes';
   let ids=Object.values(D.spells).filter(x=>(x.classes.includes(cls)||(expanded&&x.optionalClasses?.includes(cls)))&&(exact?x.level===max:x.level>0&&x.level<=max)&&!x.restrictions).map(x=>x.id);
-  if(c.class==='sorcerer'&&c.creation_origin==='divine-soul')ids.push(...Object.values(D.spells).filter(x=>x.classes.includes('cleric')&&(exact?x.level===max:x.level>0&&x.level<=max)).map(x=>x.id));
+  if(cls==='sorcerer'&&c.class==='sorcerer'&&c.creation_origin==='divine-soul')ids.push(...Object.values(D.spells).filter(x=>x.classes.includes('cleric')&&(exact?x.level===max:x.level>0&&x.level<=max)).map(x=>x.id));
   if(cls==='warlock')ids.push(...additional(c,s,'expanded').filter(id=>exact?D.spells[id].level===max:D.spells[id].level>0&&D.spells[id].level<=max));
   if(cls==='wizard'&&['chronurgy','graviturgy'].includes(s.subclass))ids.push(...Object.values(D.spells).filter(x=>x.source==='EGW'&&(exact?x.level===max:x.level>0&&x.level<=max)).map(x=>x.id));
   return uniq(ids);
@@ -363,7 +363,7 @@
    e.attacks.push({...withDamage(attack,attack.damageBonus+shift),id,label:(attack.label||attack.name||attack.id)+' (специальное оружие)',ability:'dexterity',attackBonus:attack.attackBonus+shift,dedicatedWeapon:true,notes:['Только если это единственное оружие, назначенное специальным после короткого или долгого отдыха; исходная атака остаётся доступной.',...(attack.notes||[])]});
   }
  }
- function featureSkills(ids,context){const known=context.proficiencies?.skills||[],missing=ids.filter(id=>!known.includes(id));return missing.length?missing:Object.keys(R.SKILLS).filter(id=>!known.includes(id));}
+ function featureSkills(ids,context,anySkillFallback=true){const known=context.proficiencies?.skills||[],missing=ids.filter(id=>!known.includes(id));return missing.length?missing:anySkillFallback?Object.keys(R.SKILLS).filter(id=>!known.includes(id)):ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
  function createChoices(c,context={}){
   const result=[],sc=subclass(c),add=(id,name,ids,count=1,section='class',source=sc?.source)=>result.push(group('creation_'+id,name,ids,count,section,source));
@@ -441,7 +441,7 @@
     case 'bard:swords':add('swords_style','Боевой стиль Коллегии Мечей',['dueling','two-weapon-fighting']);break;
     case 'bard:spirits':add('guidance_bonus','Заговор Указание',[option('guidance','Указание: дальность 60 футов')],1,'spells');break;
     case 'druid:land':add('bonus_cantrip','Дополнительный заговор',spellList('druid',0,c,s,true).filter(id=>!old.cantrips.includes(id)),1,'spells');break;
-    case 'wizard:bladesinging':add('bladesinger_weapon','Одноручное рукопашное оружие',Object.keys(R.WEAPONS).filter(id=>!['simple','martial','firearms','improvised','glaive','greataxe','greatsword','halberd','maul','pike','light_crossbow','dart','shortbow','sling','blowgun','hand_crossbow','heavy_crossbow','longbow','net'].includes(id)),1,'proficiencies');break;
+    case 'wizard:bladesinging':add('bladesinger_weapon','Одноручное рукопашное оружие',Object.keys(R.WEAPONS).filter(id=>!['simple','martial','firearms','improvised','greatclub','glaive','greataxe','greatsword','halberd','maul','pike','light_crossbow','dart','shortbow','sling','blowgun','hand_crossbow','heavy_crossbow','longbow','net'].includes(id)),1,'proficiencies');break;
     case 'wizard:illusion':{const known=new Set([...old.cantrips,...knownElsewhere(context)]);add('illusion_cantrip','Улучшенная малая иллюзия',known.has('minor-illusion')?spellList('wizard',0,c,s,true).filter(id=>!known.has(id)):['minor-illusion'],1,'spells');break;}
     case 'fighter:battle-master':{const aliases={disarming:'disarming-attack',distracting:'distracting-strike',evasive:'evasive-footwork',feinting:'feinting-attack',goading:'goading-attack',lunging:'lunging-attack',maneuvering:'maneuvering-attack',menacing:'menacing-attack',precision:'precision-attack',pushing:'pushing-attack',sweeping:'sweeping-attack',trip:'trip-attack'};
      const known=new Set([...(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='martial-adept'?arr(c.creation_maneuvers):[]),...(c.creation_style==='superior-technique'?arr(c.creation_superior_maneuver):[])].map(id=>aliases[id]||id));
@@ -459,7 +459,7 @@
     case 'ranger:drakewarden':add('drake_language','Драконий дар: Драконий либо другой язык',R.CHOICE_LANGUAGES.filter(id=>!context.proficiencies?.languages.includes(id)),1,'proficiencies');break;
     case 'ranger:hunter':add('hunter_prey','Добыча охотника',['colossus-slayer','giant-killer','horde-breaker']);break;
     case 'ranger:beast-master':add('companion_rules','Животный спутник',['phb-beast','primal-companion']);if(s.choices.companion_rules==='primal-companion')add('companion','Первобытный спутник',['beast-of-land','beast-of-sea','beast-of-sky']);else add('companion','Зверь среднего размера или меньше, ПО не выше 1/4',(D.companions||[]).map(x=>option(x.id,(x.label||x.name)+' (ПО '+x.cr+')',x.source)));break;
-    case 'ranger:fey-wanderer':add('fey_skill','Очарование фей: навык',featureSkills(['deception','performance','persuasion'],context),1,'proficiencies');break;
+    case 'ranger:fey-wanderer':add('fey_skill','Очарование фей: навык',featureSkills(['deception','performance','persuasion'],context,false),1,'proficiencies');break;
     case 'ranger:swarmkeeper':add('swarm','Облик роя (не меняет механику)',['insects','birds','pixies','twigs']);break;
     case 'rogue:mastermind':add('gaming_set','Игровой набор',R.GAMING_SETS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');add('languages','Два языка',R.CHOICE_LANGUAGES.filter(id=>!context.proficiencies?.languages.includes(id)),2,'proficiencies');break;
     case 'artificer:alchemist':add('specialist_tool','Инструменты алхимика',context.proficiencies?.tools.includes('alchemist')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['alchemist'],1,'proficiencies');break;
@@ -621,6 +621,7 @@
    'divination-savant':['Прорицание: знаток','Переписывайте заклинания прорицания в книгу вдвое быстрее и дешевле.'],
    'enchantment-savant':['Очарование: знаток','Переписывайте заклинания очарования в книгу вдвое быстрее и дешевле.'],
    'evocation-savant':['Воплощение: знаток','Переписывайте заклинания воплощения в книгу вдвое быстрее и дешевле.'],
+   'improved-minor-illusion':['Улучшенная малая иллюзия','Малая иллюзия может создавать звук и изображение вместе за одно накладывание. Изучаете Малую иллюзию, а если она уже известна — другой заговор волшебника на выбор; этот дополнительный заговор не учитывается в лимите известных.'],
    'illusion-savant':['Иллюзия: знаток','Переписывайте заклинания иллюзий в книгу вдвое быстрее и дешевле.'],
    'necromancy-savant':['Некромантия: знаток','Переписывайте заклинания некромантии в книгу вдвое быстрее и дешевле.'],
    'transmutation-savant':['Преобразование: знаток','Переписывайте заклинания преобразования в книгу вдвое быстрее и дешевле.'],
@@ -654,7 +655,7 @@
    if(s.choices['variant_ki-fueled-attack']==='yes')feature('Атака за ци','Если потратили ци частью действия, можете бонусным действием атаковать безоружно или монашеским оружием.','TCE');
    if(s.choices['variant_cantrip-formulas']==='yes')feature('Формулы заговоров','После долгого отдыха и изучения формул в книге можно заменить один заговор волшебника другим из его списка. Не даёт свободную замену при повышении.','TCE');
    if(s.choices['variant_primal-awareness']==='yes'){e.features=e.features.filter(f=>f.id!=='primeval-awareness'&&f.name!=='Primeval Awareness'&&f.name!=='Первозданная осведомлённость');spell('speak-with-animals','feature','Первобытная осведомлённость','wisdom',true,'1 раз / долгий отдых; также можно использовать ячейку.');}
-   for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).forEach(id=>gain(type,id));
+   for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).filter(id=>key!=='fey_skill'||!context.proficiencies?.skills?.includes(id)).forEach(id=>gain(type,id));
    for(const key of ['cavalier_proficiency','samurai_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
    e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...arr(s.choices.expertise)]);
    if(sc?.id==='rune-knight'){
@@ -736,7 +737,7 @@
    }
    if(style==='thrown-weapon-fighting'&&e.attacks)thrownStyle(e.attacks,a);
    if(c.class==='warlock'&&sc?.id==='fiend'){e.features=e.features.filter(f=>!f.name.startsWith('Покровитель:'));feature('Благословение тёмного','При снижении враждебного существа до 0 хитов получаете '+Math.max(1,s.level+mod(a.charisma))+' временных хитов.',sc.source,1);}
-   const CHOICE_LABELS={style:'Боевой стиль',metamagic:'Метамагия',invocations:'Воззвания',totem:'Дух тотема',storm_environment:'Среда ауры бури',divine_damage:'Божественная ярость',giant_cantrip:'Заговор Великана',giant_language:'Язык Великана',expertise:'Компетентность',subclass_skills:'Навыки подкласса',swords_style:'Стиль Коллегии Мечей',bonus_cantrip:'Дополнительный заговор',bladesinger_weapon:'Оружие Песни клинка',illusion_cantrip:'Улучшенная малая иллюзия',maneuvers:'Боевые приёмы',artisan_tool:'Ремесленный инструмент',arcane_shots:'Мистические выстрелы',archer_skill:'Навык мистического лучника',archer_cantrip:'Заговор мистического лучника',runes:'Руны',discipline:'Стихийная дисциплина',kensei_melee:'Рукопашное оружие кэнсэя',kensei_ranged:'Дальнобойное оружие кэнсэя',kensei_tool:'Путь кисти',dragon_language:'Язык Драконьего ученика',hunter_prey:'Добыча охотника',companion_rules:'Правила спутника',companion:'Спутник',fey_skill:'Навык Странника фей',swarm:'Облик роя',gaming_set:'Игровой набор',languages:'Языки',specialist_tool:'Инструмент специальности',land:'Земля круга',pact:'Предмет договора'};
+   const CHOICE_LABELS={style:'Боевой стиль',metamagic:'Метамагия',invocations:'Воззвания',totem:'Дух тотема',storm_environment:'Среда ауры бури',divine_damage:'Божественная ярость',giant_cantrip:'Заговор Великана',giant_language:'Язык Великана',expertise:'Компетентность',subclass_skills:'Навыки подкласса',swords_style:'Стиль Коллегии Мечей',bonus_cantrip:'Дополнительный заговор',bladesinger_weapon:'Оружие Песни клинка',illusion_cantrip:'Дополнительный заговор школы Иллюзии',maneuvers:'Боевые приёмы',artisan_tool:'Ремесленный инструмент',arcane_shots:'Мистические выстрелы',archer_skill:'Навык мистического лучника',archer_cantrip:'Заговор мистического лучника',runes:'Руны',discipline:'Стихийная дисциплина',kensei_melee:'Рукопашное оружие кэнсэя',kensei_ranged:'Дальнобойное оружие кэнсэя',kensei_tool:'Путь кисти',dragon_language:'Язык Драконьего ученика',hunter_prey:'Добыча охотника',companion_rules:'Правила спутника',companion:'Спутник',fey_skill:'Навык Странника фей',swarm:'Облик роя',gaming_set:'Игровой набор',languages:'Языки',specialist_tool:'Инструмент специальности',land:'Земля круга',pact:'Предмет договора'};
    for(const [key,value] of Object.entries(s.choices))if(CHOICE_LABELS[key])feature(CHOICE_LABELS[key],arr(value).map(id=>label(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; '));
   }
   const m=magic(c,s,a);

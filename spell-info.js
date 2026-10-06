@@ -20,7 +20,8 @@
     damage: 'Урон',
     control: 'Контроль',
     support: 'Поддержка',
-    utility: 'Полезные'
+    utility: 'Полезные',
+    unknown: 'Без категории'
   };
 
   const TIMES = {
@@ -151,13 +152,17 @@
     level
   }]));
 
+  // Verified effect metadata; school alone does not determine a spell's purpose.
+  const CATALOGUE_KINDS = { 'scorching-ray': 'damage', shatter: 'damage', moonbeam: 'damage' };
+
   function get(id) {
     if(Object.hasOwn(SPELLS,id))return SPELLS[id];
     const catalogue=typeof module==='object'&&module.exports?require('./levelup-data'):(typeof LevelUpData!=='undefined'?LevelUpData:null);
     const s=catalogue?.spells[id];if(!s)return null;
     const school={A:'abj',C:'con',D:'div',E:'enc',V:'evo',I:'ill',N:'nec',T:'tra'}[s.school];
+    const kind=CATALOGUE_KINDS[id]||'unknown';
     const distance=s.range?.type==='feet'?s.range.amount+' фт':({self:'на себя',touch:'касание',sight:'видимость',unlimited:'неограниченно'}[s.range?.type]||'по описанию');
-    return {id,label:s.label||s.name,level:s.level,source:s.source,school,schoolLabel:SCHOOLS[school],kind:'utility',kindLabel:'Полезные',time:({action:'1 действие',bonus:'бонусное действие',reaction:'реакция',minute:(s.time?.number||1)+' минута',hour:(s.time?.number||1)+' час'}[s.time?.unit]||'по описанию'),range:distance,text:'Источник: '+s.source+'. Эффект, цели и компоненты — по карточке заклинания в справочнике 5e 2014.',ritual:s.ritual,concentration:s.concentration};
+    return {id,label:s.label||s.name,level:s.level,source:s.source,school,schoolLabel:SCHOOLS[school],kind,kindLabel:KINDS[kind],time:({action:'1 действие',bonus:'бонусное действие',reaction:'реакция',minute:(s.time?.number||1)+' минута',hour:(s.time?.number||1)+' час'}[s.time?.unit]||'по описанию'),range:distance,text:'Источник: '+s.source+'. Эффект, цели и компоненты — по карточке заклинания в справочнике 5e 2014.',ritual:s.ritual,concentration:s.concentration};
   }
 
   return { SCHOOLS, KINDS, SPELLS, get };

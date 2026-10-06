@@ -521,3 +521,33 @@ test('PR26 round ten: origin spell replacement allows relearning the removed bon
   if(branch==='divine-soul'){const replaced=advance(c,null,{spell_remove:original,spell_add:replacement}),relearned=advance(replaced,null,{learn:[original]});assert.ok(extras(relearned).spells.some(s=>s.id===original&&!s.limitExempt));const third=advance(next);assert.deepEqual(L.inspect(third,context(third)).errors,[]);assert.ok(extras(third).spells.some(s=>s.id===original&&!s.limitExempt));}
  }
 });
+
+test('PR26 round eleven: Divine Soul cleric access stays within sorcerer lists',()=>{
+ const c=create('sorcerer','divine-soul',{human_feature:'human_alt',creation_feat:'magic-initiate',creation_feat_class:'wizard'});
+ for(const [cls,id,level] of [['wizard','guidance',0],['wizard','cure-wounds',1],['warlock','guidance',0]])assert.ok(!L.spellList(cls,level,c,undefined,level===0).includes(id));
+ for(const [id,level] of [['guidance',0],['cure-wounds',1]])assert.ok(L.spellList('sorcerer',level,c,undefined,level===0).includes(id));
+ const groups=O.getChoices(c,context(c));assert.ok(!groups.find(g=>g.id==='creation_feat_cantrips').options.some(o=>o.value==='guidance'));assert.ok(!groups.find(g=>g.id==='creation_feat_spells').options.some(o=>o.value==='cure-wounds'));
+ for(const [field,value] of [['creation_feat_cantrips',['guidance','mage-hand']],['creation_feat_spells',['cure-wounds']]]){const bad=copy(c);bad[field]=value;assert.ok(O.validate(bad,context(bad)).some(e=>e.field===field));}
+ const clericFeat=create('sorcerer','divine-soul',{human_feature:'human_alt',creation_feat:'magic-initiate',creation_feat_class:'cleric',creation_feat_cantrips:['guidance','sacred-flame'],creation_feat_spells:['cure-wounds']});assert.deepEqual(O.validate(clericFeat,context(clericFeat)),[]);
+});
+test('PR26 round eleven: Fey Wanderer never grants unrelated skill when all three are trained',()=>{
+ const c=create('ranger',null,{human_feature:'human_alt',creation_feat:'skilled'}),slots=stats(c).proficiencies.slots.filter(s=>s.id.includes('skilled'));
+ for(const [i,id] of ['deception','performance','persuasion'].entries())c.proficiencyChoices[slots[i].id]=id;
+ assert.deepEqual(stats(c).proficiencies.errors,[]);const second=advance(c),p=fill(second,L.begin(second,context(second)),{subclass:'fey-wanderer'}),group=L.getChoices(second,p,context(second)).find(g=>g.id==='fey_skill');assert.deepEqual(group.options.map(o=>o.value).sort(),['deception','performance','persuasion']);
+ const next=L.commit(second,p,context(second));assert.deepEqual(stats(next).proficiencies.skills.slice().sort(),stats(second).proficiencies.skills.slice().sort());assert.ok(!stats(next).proficiencies.slots.some(s=>s.id.startsWith('replacement:')));const bad=copy(p);bad.choices.fey_skill='athletics';assert.ok(L.transition(second,bad,context(second)).errors.some(e=>e.field==='fey_skill'));
+ const archer=advance(create('fighter',null,{background:'sage',human_feature:'human_alt',creation_feat:'alert',proficiencyChoices:{'human-alt:0:0':'nature'}})),archerPlan=fill(archer,L.begin(archer,context(archer)),{subclass:'arcane-archer'});const fallback=L.getChoices(archer,archerPlan,context(archer)).find(g=>g.id==='archer_skill');assert.ok(fallback.options.length);assert.ok(fallback.options.every(o=>!['arcana','nature'].includes(o.value)));
+});
+test('PR26 round eleven: Bladesinger training accepts only one-handed melee weapons',()=>{
+ const c=create('wizard'),p=fill(c,L.begin(c,context(c)),{subclass:'bladesinging'}),g=L.getChoices(c,p,context(c)).find(g=>g.id==='bladesinger_weapon');assert.ok(!g.options.some(o=>o.value==='greatclub'));for(const o of g.options){const weapon=O.WEAPONS[o.value.replace(/_/g,'-')];assert.ok(weapon,o.value);assert.ok(!weapon.properties.some(p=>['two-handed','ranged'].includes(p)),o.value);}
+ for(const id of ['longsword','quarterstaff','spear'])assert.ok(g.options.some(o=>o.value===id));const bad=copy(p);bad.choices.bladesinger_weapon='greatclub';assert.ok(L.transition(c,bad,context(c)).errors.some(e=>e.field==='bladesinger_weapon'));p.choices.bladesinger_weapon='longsword';assert.ok(stats(L.commit(c,p,context(c))).proficiencies.weapons.includes('longsword'));
+});
+test('PR26 round eleven: Improved Minor Illusion survives either bonus cantrip selection',()=>{
+ for(const known of [false,true]){const first=create('wizard',null,known?{creation_cantrips:['minor-illusion','fire-bolt','mage-hand']}:{}),second=advance(first,'illusion',known?{illusion_cantrip:'ray-of-frost'}:{});
+  for(const c of [second,advance(second)]){const e=extras(c),features=e.features.filter(f=>f.name==='Улучшенная малая иллюзия');assert.equal(features.length,1);assert.match(features[0].description,/звук.*изображени.*одн|одн.*звук.*изображени/);assert.ok(JSON.stringify(exported(c).text.traits).includes(features[0].description));assert.ok(e.spells.some(s=>s.id==='minor-illusion'));assert.ok(e.spells.some(s=>s.id===(known?'ray-of-frost':'minor-illusion')&&s.limitExempt));}
+ }
+});
+test('PR26 round eleven: catalogue effects are classified only when verified',()=>{
+ const info=require('../spell-info');for(const id of ['scorching-ray','shatter','moonbeam']){assert.equal(info.get(id).kind,'damage');assert.equal(info.get(id).kindLabel,'Урон');}
+ for(const id of ['aid','web','mirror-image']){assert.equal(info.get(id).kind,'unknown');assert.equal(info.get(id).kindLabel,'Без категории');}
+ assert.equal(info.get('fire-bolt').kind,'damage');assert.equal(info.get('minor-illusion').kind,'utility');assert.equal(info.get('not-a-spell'),null);
+});

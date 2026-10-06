@@ -801,7 +801,7 @@ test('a falsey advancement ledger still asks to reset before editing and the res
   assert.equal(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled,false);
 });
 test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
-  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['sorcerer','wild',1],['artificer','battle-smith',3],['artificer','armorer',3],['bard','creation',3],['fighter','psi-warrior',3],['rogue','soulknife',3],['warlock','talisman',3],['druid','shepherd',2],['druid','shepherd',3],['druid','dreams',3],['fighter','rune-knight',3],['artificer','artillerist',3],['bard','swords',3]]) {
+  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['sorcerer','wild',1],['artificer','battle-smith',3],['artificer','armorer',3],['bard','creation',3],['fighter','psi-warrior',3],['rogue','soulknife',3],['warlock','talisman',3],['druid','shepherd',2],['druid','shepherd',3],['druid','dreams',3],['fighter','rune-knight',3],['artificer','artillerist',3],['bard','swords',3],['wizard','illusion',2]]) {
     const dom=createDOM(),context=loadScript(dom,readConfig());await flush();
     const overrides={class:cls};if(cls==='cleric')overrides.creation_domain=branch;if(cls==='warlock'&&branch)overrides.creation_patron=branch;if(cls==='sorcerer'&&branch)overrides.creation_origin=branch;
     if(cls==='artificer')overrides.abilities={strength:8,dexterity:10,constitution:14,intelligence:15,wisdom:13,charisma:12};fillWizard(context,overrides);
@@ -819,10 +819,10 @@ test('both final sheets show exact resource maxima and recovery; Chain spell sur
       sheetProbe={left:left.textContent,right:right.textContent,extras:getCreationExtras(),export:getExportData()};
     `,context);
     const result=JSON.parse(vm.runInContext('JSON.stringify(sheetProbe)',context));
-    if(cls==='wizard'){const recovery=result.extras.features.find(f=>f.name==='Магическое восстановление').description;assert.ok(recovery.includes('суммарного круга до 2'));assert.ok(result.left.includes(recovery));}
+    if(cls==='wizard'){const recovery=result.extras.features.find(f=>f.name==='Магическое восстановление').description;assert.ok(recovery.includes('суммарного круга до '+Math.ceil(lastLevel/2)));assert.ok(result.left.includes(recovery));}
     if(cls==='artificer'&&branch==='battle-smith'){const magic=result.extras.attacks.find(a=>a.id==='light-crossbow-battle-ready');assert.ok(magic);assert.ok(result.left.includes(magic.label));assert.equal(result.extras.attacks.length,new Set(result.extras.attacks.map(a=>a.id)).size);}
     if(cls==='artificer'&&branch==='armorer'){for(const attack of result.extras.attacks.filter(a=>a.armorerWeapon)){assert.ok(result.left.includes(attack.label));assert.ok(JSON.parse(result.export[0].data).weaponsList.some(w=>w.name.value===attack.label&&w.dmg.value===attack.damage));}}
-    for(const name of ['Тотемный дух','Бальзам Летнего двора','Резчик рун','Непоколебимая метка','Мистическая пушка','Росчерк клинка']){const f=result.extras.features.find(f=>f.name===name);if(f){assert.ok(result.left.includes(f.description),name+': sheet');assert.ok(JSON.stringify(JSON.parse(result.export[0].data).text.traits).includes(f.description),name+': export');}}
+    for(const name of ['Тотемный дух','Бальзам Летнего двора','Резчик рун','Непоколебимая метка','Мистическая пушка','Росчерк клинка','Улучшенная малая иллюзия']){const f=result.extras.features.find(f=>f.name===name);if(f){assert.ok(result.left.includes(f.description),name+': sheet');assert.ok(JSON.stringify(JSON.parse(result.export[0].data).text.traits).includes(f.description),name+': export');}}
     if(cls==='warlock'&&!branch){
       const spell=result.extras.spells.find(x=>x.id==='find-familiar');assert.ok(spell&&spell.ability==='charisma');assert.ok(result.left.includes(spell.label));assert.ok(result.right.includes(spell.label));assert.ok(result.export[0].spells.slotless.includes(context.LssExport.SPELL_IDS['find-familiar']));
     } else {
@@ -890,4 +890,16 @@ test('Knowledge creation picker permits trained skills but blocks duplicate expe
  first.value='arcana';first.dispatchEvent({type:'change'});
  const second=dom.document.getElementById('field-creation:knowledge-skill:1');assert.equal(second.querySelectorAll('option').find(o=>o.value==='arcana').disabled,true);assert.equal(second.querySelectorAll('option').find(o=>o.value==='history').disabled,false);second.value='history';second.dispatchEvent({type:'change'});
  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(getResolvedProficiencies().errors)',context)),[]);assert.ok(vm.runInContext("getResolvedProficiencies().expertise.includes('arcana')&&getResolvedProficiencies().expertise.includes('history')",context));
+});
+
+test('PR26 round eleven: advancement effect filters show verified damage and honest unknown categories', async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,groupId,damageIds,unknown] of [['wizard','book_add',['scorching-ray','shatter'],'mirror-image'],['druid','prepared',['moonbeam'],'barkskin']]){
+  const c=H.advance(H.create(cls)),dom=createDOM(),context=loadScript(dom,readConfig());await flush();
+  vm.runInContext(`character=${JSON.stringify(c)};character.pendingAdvancement=LevelUpRules.begin(character,getAdvancementContext());character.pendingAdvancement.step=3;currentPageIndex=config.pages.length;renderPage();`,context);
+  const field=dom.document.getElementById('field-'+groupId);assert.ok(field);const chips=field.querySelectorAll('button').filter(b=>b.getAttribute('data-kind')),chip=id=>chips.find(b=>b.getAttribute('data-kind')===id),card=id=>field.querySelector(`[data-choice-option="${groupId}:${id}"]`).parentNode;
+  assert.ok(chip('damage'));assert.ok(chip('unknown'));assert.ok(chip('unknown').textContent.includes('Без категории'));chip('damage').click();for(const id of damageIds)assert.equal(card(id).hidden,false,id);assert.equal(card(unknown).hidden,true);
+  const visibleDamage=field.querySelectorAll('.spell-card').filter(c=>!c.hidden);assert.equal(Number(chip('damage').querySelector('em').textContent),visibleDamage.length);chip('unknown').click();assert.equal(card(unknown).hidden,false);for(const id of damageIds)assert.equal(card(id).hidden,true);
+  chip('all').click();for(const id of [...damageIds,unknown])assert.equal(card(id).hidden,false);const search=field.querySelector('input');search.value=context.LevelUpRules.label(unknown);search.dispatchEvent({type:'input'});assert.equal(card(unknown).hidden,false);for(const id of damageIds)assert.equal(card(id).hidden,true);
+ }
 });
