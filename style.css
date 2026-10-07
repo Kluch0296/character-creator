@@ -2923,6 +2923,7 @@ fieldset.form-field {
   padding-left: 22px;
   margin: 0;
   color: var(--text-soft);
+  white-space: pre-line;
 }
 
 .mechanical-list li + li {

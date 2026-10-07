@@ -551,3 +551,44 @@ test('PR26 round eleven: catalogue effects are classified only when verified',()
  for(const id of ['aid','web','mirror-image']){assert.equal(info.get(id).kind,'unknown');assert.equal(info.get(id).kindLabel,'Без категории');}
  assert.equal(info.get('fire-bolt').kind,'damage');assert.equal(info.get('minor-illusion').kind,'utility');assert.equal(info.get('not-a-spell'),null);
 });
+
+test('PR26 round twelve: Sneak Attack retains legal triggers and rogue-level dice in sheet export',()=>{
+ const second=advance(create('rogue')),third=advance(second,'thief'),mixed=enter(second,'fighter');
+ for(const [c,dice] of [[second,'1к6'],[third,'2к6'],[mixed,'1к6']]){
+  const e=extras(c),f=e.features.find(f=>f.name==='Скрытая атака');assert.ok(f);assert.ok(f.description.includes(dice));
+  for(const pattern of [/один раз за ход/,/фехтовальн/,/дальнобойн/,/преимуществ/,/другой враг цели/,/5 фут/,/не недееспособ/,/без помехи/])assert.match(f.description,pattern);
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));assert.equal(e.features.filter(f=>f.name==='Скрытая атака').length,1);
+ }
+});
+
+test('PR26 round twelve: Wild Surge exports all eight conditional outcomes with Constitution DC',()=>{
+ for(const constitution of [6,16]){
+  const second=advance(create('barbarian',null,{abilities:{strength:16,dexterity:14,constitution,intelligence:12,wisdom:10,charisma:8}})),c=advance(second,'wild-magic'),e=extras(c),text=e.features.find(f=>f.name==='Дикий всплеск').description;
+  assert.ok(text.includes('Сл '+(10+stats(c).modifiers.constitution)));assert.match(text,/модификатор Телосложения/);assert.match(text,/к8/);
+  const outcomes=text.split(/(?:^|\n)[1-8]\. /).slice(1);assert.equal(outcomes.length,8);
+  const checks=[[/30 фут/,/Телосложения/,/1к12.*некротическ/,/1к12 временных/],[/30 фут/,/свободн/,/видим/,/бонусным действием/],[/фламф/,/пикси/,/5 фут/,/30 фут/,/конце.*хода/,/Ловкости/,/1к6.*силов/,/бонусным действием/],[/силов/,/лёгкое/,/метательное/,/20\/60/,/конце.*хода/],[/попадан/,/1к6.*силов/],[/союзник/,/10 фут/,/\+1.*КД/],[/15 фут/,/труднопроходим/,/врагов/],[/30 фут/,/Телосложения/,/1к6.*излучен/,/ослеп/,/начала.*следующего хода/,/бонусным действием/]];
+  checks.forEach((patterns,i)=>patterns.forEach(p=>assert.match(outcomes[i],p)));text.split("\n").forEach(line=>assert.ok(JSON.stringify(exported(c).text.traits).includes(line)));assert.equal(stats(c).ac,stats(second).ac);assert.equal(stats(c).speed,stats(second).speed);
+ }
+});
+
+test('PR26 round twelve: Steel Defender exports a separate usable profile scaled by Intelligence',()=>{
+ for(const intelligence of [6,16]){
+  const second=advance(create('artificer',null,{abilities:{strength:8,dexterity:14,constitution:14,intelligence,wisdom:12,charisma:10}})),c=advance(second,'battle-smith'),e=extras(c),f=e.features.find(f=>f.name==='Стальной защитник'),hp=17+stats(c).modifiers.intelligence,attack=2+stats(c).modifiers.intelligence;
+  assert.ok(f.description.includes('Хиты '+hp));assert.ok(f.description.includes('бонус атаки '+(attack>=0?'+':'')+attack));assert.equal(e.resources.find(r=>r.id==='steel-defender').max,hp);
+  for(const p of [/Средний конструкт/,/КД 15/,/40 фут/,/СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6/,/ЛОВ \+3, ТЕЛ \+4/,/Атлетика \+4, Восприятие \+4/,/яд/,/отравлен/,/очарован/,/истощен/,/60 фут/,/пассивное Восприятие 14/,/врасплох/,/1к8\+2.*силов/,/Ремонт.*3\/день/,/2к8\+2/,/конструкт.*предмет.*5 фут/,/Отражение атаки.*реакция/,/помех/,/кроме защитника/,/сразу после вас/,/Уклонение/,/бонусным действием/,/недееспособны/,/Починка.*2к6/,/часа после смерти/,/1 минуту/])assert.match(f.description,p);
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));assert.equal(stats(c).ac,stats(second).ac);assert.equal(stats(c).speed,stats(second).speed);assert.deepEqual(stats(c).saves,stats(second).saves);
+ }
+});
+
+test('PR26 round twelve: both Arcane Archer Lore cantrips use Intelligence in native LSS metadata',()=>{
+ for(const id of ['prestidigitation','druidcraft']){
+  const c=advance(advance(create('fighter',null,{abilities:{strength:16,dexterity:14,constitution:12,intelligence:16,wisdom:8,charisma:10}})),'arcane-archer',{archer_cantrip:id}),e=extras(c),spell=e.spells.find(s=>s.id===id);assert.equal(spell.ability,'intelligence');assert.equal(exported(c).spellsInfo.abilities[E.SPELL_IDS[id]],'int');assert.match(JSON.stringify(exported(c).text.attacks),/Интеллект/);assert.ok(!e.spellcasting);
+ }
+ const c=advance(create('cleric','nature',{creation_nature_cantrip:'druidcraft'}));assert.equal(extras(c).spells.find(s=>s.id==='druidcraft').ability,'wisdom');
+});
+
+test('PR26 round twelve: TCE Circle of Spores keeps necrotic Symbiotic Entity damage at levels two and three',()=>{
+ const second=advance(create('druid'),'spores');for(const c of [second,advance(second)]){
+  const e=extras(c),f=e.features.find(f=>f.name==='Симбиотическая сущность');assert.equal(e.subclass.source,'TCE');assert.match(f.description,/1к6 некротического урона/);assert.doesNotMatch(f.description,/яд/);assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));
+ }
+});

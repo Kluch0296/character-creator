@@ -662,7 +662,7 @@ function renderCharacterSheet(aside, steps, view = {}) {
   const classSpells = spells.filter(spell => spell.level && ['prepared', 'known'].includes(spell.status));
   const bookOnly = spells.filter(spell => spell.status === 'spellbook');
   const innate = spells.filter(spell => spell.level && ['racial', 'feat', 'ritual', 'feature', 'invocation'].includes(spell.status));
-  const spellLabel = spell => `${spell.label || spell.id}${castings.length > 1 && !['racial','feat','ritual','feature','invocation'].includes(spell.status) ? ` · ${plainLabel(getSelectedOption('class', spell.classId || model.class)?.label)}` : ''}`;
+  const spellLabel = spell => `${spell.label || spell.id}${spell.ability ? ` · ${abilityInfo(spell.ability).label}` : ''}${castings.length > 1 && !['racial','feat','ritual','feature','invocation'].includes(spell.status) ? ` · ${plainLabel(getSelectedOption('class', spell.classId || model.class)?.label)}` : ''}`;
   if (cantrips.length) sheetTags(sheetSection(details, 'Заговоры'), cantrips.map(spell => ({ text: spellLabel(spell) })));
   if (classSpells.length || bookOnly.length) {
     const section = sheetSection(details, casting && casting.mode === 'book' ? 'Подготовлено' : 'Заклинания');
