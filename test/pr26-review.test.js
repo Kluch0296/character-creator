@@ -575,7 +575,7 @@ test('PR26 round twelve: Steel Defender exports a separate usable profile scaled
  for(const intelligence of [6,16]){
   const second=advance(create('artificer',null,{abilities:{strength:8,dexterity:14,constitution:14,intelligence,wisdom:12,charisma:10}})),c=advance(second,'battle-smith'),e=extras(c),f=e.features.find(f=>f.name==='Стальной защитник'),hp=17+stats(c).modifiers.intelligence,attack=2+stats(c).modifiers.intelligence;
   assert.ok(f.description.includes('Хиты '+hp));assert.ok(f.description.includes('бонус атаки '+(attack>=0?'+':'')+attack));assert.equal(e.resources.find(r=>r.id==='steel-defender').max,hp);
-  for(const p of [/Средний конструкт/,/КД 15/,/40 фут/,/СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6/,/ЛОВ \+3, ТЕЛ \+4/,/Атлетика \+4, Восприятие \+4/,/яд/,/отравлен/,/очарован/,/истощен/,/60 фут/,/пассивное Восприятие 14/,/врасплох/,/1к8\+2.*силов/,/Ремонт.*3\/день/,/2к8\+2/,/конструкт.*предмет.*5 фут/,/Отражение атаки.*реакция/,/помех/,/кроме защитника/,/сразу после вас/,/Уклонение/,/бонусным действием/,/недееспособны/,/Починка.*2к6/,/часа после смерти/,/1 минуту/])assert.match(f.description,p);
+  for(const p of [/Средний конструкт/,/КД 15/,/40 фут/,/СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6/,/ЛОВ \+3, ТЕЛ \+4/,/Атлетика \+4, Восприятие \+4/,/яд/,/отравлен/,/очарован/,/истощен/,/60 фут/,/пассивное Восприятие 14/,/врасплох/,/1к8\+2.*силов/,/Ремонт.*3\/день/,/2к8\+2/,/конструкт.*предмет.*5 фут/,/Отражение атаки.*реакция/,/помех/,/кроме защитника/,/сразу после вас/,/Уклонение/,/бонусным действием/,/недееспособны/,/Заговор «Починка».*отдельно от действия «Ремонт».*2к6/,/часа после смерти/,/1 минуту/])assert.match(f.description,p);
   assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));assert.equal(stats(c).ac,stats(second).ac);assert.equal(stats(c).speed,stats(second).speed);assert.deepEqual(stats(c).saves,stats(second).saves);
  }
 });
@@ -590,5 +590,39 @@ test('PR26 round twelve: both Arcane Archer Lore cantrips use Intelligence in na
 test('PR26 round twelve: TCE Circle of Spores keeps necrotic Symbiotic Entity damage at levels two and three',()=>{
  const second=advance(create('druid'),'spores');for(const c of [second,advance(second)]){
   const e=extras(c),f=e.features.find(f=>f.name==='Симбиотическая сущность');assert.equal(e.subclass.source,'TCE');assert.match(f.description,/1к6 некротического урона/);assert.doesNotMatch(f.description,/яд/);assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));
+ }
+});
+
+test('PR26 round thirteen: Drakewarden exports a runnable level-three drake without changing hero stats',()=>{
+ const second=advance(create('ranger')),c=advance(second,'drakewarden'),e=extras(c),f=e.features.find(f=>f.name==='Драконий спутник');
+ for(const p of [/Маленький дракон/,/КД 16/,/Хиты 20/,/3к10/,/40 фут/,/СИЛ 16, ЛОВ 12, ТЕЛ 15, ИНТ 8, МДР 14, ХАР 8/,/ЛОВ \+3, МДР \+4/,/60 фут/,/Восприятие 12/,/Драконий/,/кислота.*огонь.*холод.*молния.*яд/,/иммунитет/,/Укус.*\+5.*5 фут.*1к6\+2.*колющ/,/Усиленные удары.*реакция/,/другое видимое существо.*30 фут/,/попада.*атакой оружием/,/1к6.*выбранного типа/,/сразу после вас/,/Уклонение/,/бонусным действием/,/недееспособны/,/0 хитов/,/повторном призыве/,/вашей смерти/])assert.match(f.description,p);
+ assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));assert.equal(e.resources.find(r=>r.id==='drake-companion').max,1);assert.equal(stats(c).ac,stats(second).ac);assert.equal(stats(c).speed,stats(second).speed);assert.deepEqual(stats(c).saves,stats(second).saves);assert.ok(!L.getChoices(second,fill(second,L.begin(second,context(second)),{subclass:'drakewarden'}),context(second)).some(g=>/essence/.test(g.id)));
+});
+
+test('PR26 round thirteen: Martial Adept retains one d6 alongside class/style pools and multiclass resources',()=>{
+ const first=create('fighter',null,{human_feature:'human_alt',creation_feat:'martial-adept',creation_style:'superior-technique'}),second=advance(first),third=advance(second,'battle-master');
+ for(const c of [first,second,third,enter(second,'rogue'),enter(create('wizard',null,{human_feature:'human_alt',creation_feat:'martial-adept'}),'fighter')]){
+  const e=extras(c),pools=e.resources.filter(r=>r.id==='martial-adept');assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.equal(pools[0].rest,'short-rest');assert.match(pools[0].name,/к6/);assert.ok(JSON.stringify(exported(c).text.traits).includes(pools[0].name+': 1; восстановление после короткого или долгого отдыха.'));
+ }
+ const pools=extras(third).resources;assert.equal(pools.find(r=>r.id==='superiority-dice').max,4);assert.match(pools.find(r=>r.id==='superiority-dice').name,/к8/);assert.equal(pools.find(r=>r.id==='superior-technique').max,1);assert.equal(extras(create('fighter',null,{creation_feat:'martial-adept'})).resources.filter(r=>r.id==='martial-adept').length,0);
+});
+
+test('PR26 round thirteen: Primal Knowledge offers one unowned barbarian skill only when opted in',()=>{
+ const second=advance(create('barbarian')),p=fill(second,L.begin(second,context(second)),{subclass:'berserker','variant_primal-knowledge':'yes'}),groups=L.getChoices(second,p,context(second)),g=groups.find(g=>g.id==='primal_skill');assert.ok(g);assert.equal(g.source,'TCE');const owned=context(second).proficiencies.skills;assert.deepEqual(g.options.map(o=>o.value),R.CLASSES.barbarian.choices[0].options.filter(id=>!owned.includes(id)));
+ const good=g.options[0].value;p.choices.primal_skill=good;assert.deepEqual(L.transition(second,p,context(second)).errors,[]);const c=L.commit(second,p,context(second)),e=extras(c);assert.ok(R.resolveProficiencies(c,e).skills.includes(good));assert.ok(JSON.stringify(exported(c).text.traits).includes('Первобытное знание'));
+ for(const value of [undefined,owned.find(id=>R.CLASSES.barbarian.choices[0].options.includes(id)),'arcana']){const bad=copy(p);if(value===undefined)delete bad.choices.primal_skill;else bad.choices.primal_skill=value;assert.ok(L.transition(second,bad,context(second)).errors.length);}
+ const no=copy(p);no.choices['variant_primal-knowledge']='no';assert.ok(L.transition(second,no,context(second)).errors.some(e=>e.field==='primal_skill'));delete no.choices.primal_skill;assert.deepEqual(L.transition(second,no,context(second)).errors,[]);assert.ok(!extras(L.commit(second,no,context(second))).features.some(f=>f.name==='Первобытное знание'));
+ const full=create('barbarian',null,{background:'outlander',human_feature:'human_alt',creation_feat:'skilled'});Object.assign(full.proficiencyChoices,{'creation:skilled:0':'nature','creation:skilled:1':'perception','creation:skilled:2':'stealth'});assert.deepEqual(context(full).proficiencies.errors,[]);const full2=advance(full),fp=fill(full2,L.begin(full2,context(full2)),{subclass:'berserker','variant_primal-knowledge':'yes'});assert.ok(!L.getChoices(full2,fp,context(full2)).some(g=>g.id==='primal_skill'));assert.deepEqual(L.transition(full2,fp,context(full2)).errors,[]);const full3=L.commit(full2,fp,context(full2));assert.deepEqual(R.resolveProficiencies(full3,extras(full3)).skills.sort(),context(full2).proficiencies.skills.sort());
+});
+
+test('PR26 round thirteen: Steady Aim is an explicit class-three option with complete action conditions',()=>{
+ const second=advance(create('rogue')),p=fill(second,L.begin(second,context(second)),{subclass:'thief','variant_steady-aim':'yes'});assert.ok(L.getChoices(second,p,context(second)).some(g=>g.id==='variant_steady-aim'));const c=L.commit(second,p,context(second)),f=extras(c).features.find(f=>f.name==='Точное прицеливание');assert.equal(f.source,'TCE');for(const pattern of [/Бонусное действие/,/преимущество/,/следующ.*атак/,/текущем ходу/,/не перемещались/,/скорость.*0.*конца хода/])assert.match(f.description,pattern);assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));
+});
+
+test('PR26 round thirteen: missing new opt-ins preserve both ledger formats and cannot grant class-three benefits early',()=>{
+ for(const [cls,key,name,branch] of [['barbarian','variant_primal-knowledge','Первобытное знание','berserker'],['rogue','variant_steady-aim','Точное прицеливание','thief']]){
+  const second=advance(create(cls)),third=advance(second,branch);for(const version of [1,2]){const c=copy(third);c.advancement.version=version;for(const entry of c.advancement.entries){entry.version=version;delete entry.choices[key];}assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.equal(extras(c).effectiveLevel,3);assert.ok(!extras(c).features.some(f=>f.name===name));assert.equal(stats(c).hp,stats(third).hp);}
+  const bad=copy(third);bad.advancement.entries.at(-1).choices[key]='invalid';assert.ok(L.inspect(bad,context(bad)).errors.length);
+  const mixed=enter(second,'fighter');assert.ok(!extras(mixed).features.some(f=>f.name===name));const p=fill(create(cls),L.begin(create(cls),context(create(cls))));assert.ok(!L.getChoices(create(cls),p,context(create(cls))).some(g=>g.id===key));p.choices[key]='yes';assert.ok(L.transition(create(cls),p,context(create(cls))).errors.length);
  }
 });

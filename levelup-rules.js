@@ -147,7 +147,7 @@
 'armor-model':['Модель доспеха','После короткого/долгого отдыха с инструментами кузнеца выберите Стража или Лазутчика. Оружие обеих моделей может использовать Интеллект для атаки и урона вместо Силы/Ловкости. Страж: свободные громовые рукавицы — простое рукопашное оружие, 1к8 урона звуком; после попадания цель атакует других с помехой до начала вашего следующего хода. Защитное поле бонусным действием заменяет текущие временные хиты на временные хиты, равные уровню изобретателя; они исчезают при снятии брони, использований — бонус мастерства за долгий отдых. Лазутчик: метатель молний — простое дальнобойное оружие, 90/300 футов, 1к6 урона молнией; при попадании можно нанести дополнительно 1к6 раз в свой ход. Усиленные шаги: +5 футов скорости ходьбы. Подавляющее поле: преимущество на Скрытность, которое отменяет помеху от доспеха.'],
  'eldritch-cannon':['Мистическая пушка','Действием создайте Маленькую/Крошечную пушку: огнемёт, силовую баллисту или защитника; 1 час. Бесплатно 1 / долгий отдых, далее за ячейку.'],
  'battle-ready':['Готовность к бою','Владение воинским оружием. Для атак и урона магическим оружием можно использовать Интеллект вместо Силы/Ловкости.'],
- 'steel-defender':['Стальной защитник','Ходит сразу после вас с вашей инициативой. Самостоятельно двигается и использует реакцию; действие по умолчанию — Уклонение. Прикажите другое действие бонусным действием; если вы недееспособны, действует свободно. Починка восстанавливает 2к6 хитов. В течение часа после смерти: действием с инструментами кузнеца в 5 футах потратьте ячейку 1-го круга или выше; через 1 минуту оживает с полными хитами. После долгого отдыха с инструментами кузнеца можно создать нового; прежний погибает. Погибает также при вашей смерти. Внешность и число ног не меняют характеристики.']
+ 'steel-defender':['Стальной защитник','Ходит сразу после вас с вашей инициативой. Самостоятельно двигается и использует реакцию; действие по умолчанию — Уклонение. Прикажите другое действие бонусным действием; если вы недееспособны, действует свободно. Заговор «Починка» (отдельно от действия «Ремонт») восстанавливает 2к6 хитов. В течение часа после смерти: действием с инструментами кузнеца в 5 футах потратьте ячейку 1-го круга или выше; через 1 минуту оживает с полными хитами. После долгого отдыха с инструментами кузнеца можно создать нового; прежний погибает. Погибает также при вашей смерти. Внешность и число ног не меняют характеристики.']
  };
  Object.assign(FEATURE_RULES,{
  'reaper':['Жнец','Один заговор некромантии любого класса; заговоры некромантии с одной целью могут поражать двух существ в 5 футах друг от друга.'],
@@ -202,7 +202,7 @@
  'otherworldly-glamour':['Потустороннее очарование','Один дополнительный социальный навык; к проверкам Харизмы добавляется Мудрость, минимум +1.'],
  'gathered-swarm':['Собранный рой','Раз в каждый свой ход после попадания атакой выберите +1к6 колющего урона, сдвиг цели на 15 футов при провале Силы или своё перемещение на 5 футов.'],
  'draconic-gift':['Драконий дар','Изучаете Тауматургию и Драконий либо другой разрешённый язык.'],
- 'drake-companion':['Драконий спутник','Действием призовите дракончика по опубликованному блоку; вид эссенции выбирается при призыве. Бесплатно раз за долгий отдых, далее за ячейку заклинания 1-го круга или выше.'],
+ 'drake-companion':['Драконий спутник','Действием призовите дрейка в свободное место в 30 футах; бесплатно 1 раз за долгий отдых, повтор — за ячейку 1-го круга или выше. Инициатива как у вас, ходит сразу после вас. Перемещение и реакция самостоятельные; действие — Уклонение, другое действие прикажите бонусным действием. Если вы недееспособны, действует свободно. Исчезает при 0 хитов, повторном призыве или вашей смерти; его вещи остаются на месте. Внешность не меняет характеристики.'],
  'rangers-companion':['Спутник следопыта','Зверь размера Средний или меньше, ПО до 1/4; бонус мастерства к ряду показателей, максимум хитов не меньше 4 × уровень следопыта.'],
  'ear-for-deceit':['Чутьё на обман','При Проницательности для выявления лжи к20 ниже 8 считается 8.'],
  'eye-for-detail':['Внимание к деталям','Бонусным действием можно Восприятием заметить спрятавшееся существо или Анализом изучить подсказки.'],
@@ -421,8 +421,12 @@
   }
   if(p.to===3&&c.class==='bard')add('expertise','Компетентность: два известных навыка',uniq([...(context.proficiencies||R.resolveProficiencies(c)).skills,...arr(p.choices.subclass_skills)]),2,'proficiencies');
   if(p.to===3&&c.class==='sorcerer')add('metamagic','Два варианта метамагии',optionList('MM',c,s),2);
-  const variants={bard:{2:['magical-inspiration','Магическое вдохновение']},cleric:{2:['harness-divine-power','Использование божественной силы']},druid:{2:['wild-companion','Дикий спутник']},monk:{2:['dedicated-weapon','Специальное оружие'],3:['ki-fueled-attack','Атака за ци']},paladin:{3:['harness-divine-power','Использование божественной силы']},ranger:{3:['primal-awareness','Первобытная осведомлённость вместо Первозданной осведомлённости']}};
+  const variants={barbarian:{3:['primal-knowledge','Первобытное знание']},rogue:{3:['steady-aim','Точное прицеливание']},bard:{2:['magical-inspiration','Магическое вдохновение']},cleric:{2:['harness-divine-power','Использование божественной силы']},druid:{2:['wild-companion','Дикий спутник']},monk:{2:['dedicated-weapon','Специальное оружие'],3:['ki-fueled-attack','Атака за ци']},paladin:{3:['harness-divine-power','Использование божественной силы']},ranger:{3:['primal-awareness','Первобытная осведомлённость вместо Первозданной осведомлённости']}};
   if(variants[c.class]?.[p.to]){const [id,name]=variants[c.class][p.to];add('variant_'+id,'Вариант TCE: '+name,['no','yes'],1,'class','TCE');}
+  if(c.class==='barbarian'&&p.to===3&&s.choices['variant_primal-knowledge']==='yes'){
+   const skills=R.CLASSES.barbarian.choices[0].options.filter(id=>!(context.proficiencies?.skills||R.resolveProficiencies(c).skills).includes(id));
+   if(skills.length)add('primal_skill','Первобытное знание: дополнительный навык',skills,1,'proficiencies','TCE');
+  }
   if(c.class==='warlock'){
    if(p.to===3)add('pact','Предмет договора',['blade','chain','tome','talisman']);
    const available=optionList('EI',c,s,knownElsewhere(context));
@@ -534,7 +538,8 @@
   if(!die||!hp||!['average','roll'].includes(hp.mode)||!Number.isInteger(hp.value)||hp.value<1||hp.value>die||(hp.mode==='average'&&hp.value!==die/2+1))fail('hp','Укажите среднее класса либо целый результат броска от 1 до '+die+'.');
   if(!p.choices||typeof p.choices!=='object'||Array.isArray(p.choices)){fail('choices','Повреждены выборы повышения.');return {errors,state:old};}
   const groups=getChoicesSingle(c,p,context,old),active=new Set(groups.map(g=>g.id));
-  for(const g of groups){const selected=arr(p.choices[g.id]);if(selected.length!==g.count||uniq(selected).length!==selected.length||selected.some(x=>!g.options.some(o=>o.value===x)))fail(g.id,g.label+': выберите '+g.count+' различных допустимых вариантов.');}
+  // Existing level-three ledgers predate these opt-ins; an absent flag means declined.
+  for(const g of groups){const selected=arr(p.choices[g.id]);if(!Object.hasOwn(p.choices,g.id)&&['variant_primal-knowledge','variant_steady-aim'].includes(g.id))continue;if(selected.length!==g.count||uniq(selected).length!==selected.length||selected.some(x=>!g.options.some(o=>o.value===x)))fail(g.id,g.label+': выберите '+g.count+' различных допустимых вариантов.');}
   for(const k of Object.keys(p.choices))if(!active.has(k))fail(k,'Неизвестный или неактивный выбор: '+k+'.');
   if(errors.length)return {errors,state:old};
   const s={...clone(old),level:p.to,subclass:p.choices.subclass||old.subclass,choices:{...old.choices,...p.choices},entries:[...old.entries,clone(p)]};
@@ -574,6 +579,7 @@
   // Advancement features grant a proficiency only if it is missing; they never open a free replacement.
   const gain=(type,id)=>grant(type,id,true);
   const resource=(id,name,max,rest='long-rest',recovery)=>e.resources.push({id,name,max,rest,...(recovery?{recovery}:{})});
+  if(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='martial-adept')resource('martial-adept','Воинский адепт: кость превосходства (к6)',1,'short-rest');
   const spell=(id,status,source=sc?.label||sc?.name||NAMES[c.class],ability,exempt=true,usage,slotless=['racial','ritual','feature','invocation'].includes(status))=>{const x=D.spells[id];if(x)e.spells.push({id,label:label(id),level:x.level,ability:ability||magic(c,s,a)?.ability||'wisdom',source,status,limitExempt:exempt,usage,slotless});};
   if(c.class==='fighter'&&c.creation_style==='superior-technique'){resource('superior-technique','Превосходная техника: кость превосходства (к6)',1,'short-rest');e.features=e.features.filter(f=>f.name!=='Превосходная техника');feature('Превосходная техника',label(c.creation_superior_maneuver)+': '+(OPTION_RULES[c.creation_superior_maneuver]||'')+' Сл спасброска: '+(10+mod(a.strength))+' от Силы или '+(10+mod(a.dexterity))+' от Ловкости (8 + бонус мастерства + модификатор Силы или Ловкости, на ваш выбор). Одна кость к6; восстановление после короткого или долгого отдыха.','TCE',1);}
   if(FIELD[c.class]&&sc){
@@ -658,6 +664,8 @@
    if(c.class==='sorcerer'){resource('sorcery-points','Единицы чародейства',s.level);if(s.level===3)feature('Метамагия',arr(s.choices.metamagic).map(label).join(', '));}
    if(c.class==='warlock'){feature('Воззвания',s.invocations.map(id=>label(id)+': '+(OPTION_RULES[id]||'')).join('; '));if(s.choices.pact)feature('Предмет договора',label(s.choices.pact)+': '+(OPTION_RULES[s.choices.pact]||''));if(s.choices.pact==='talisman')resource('pact-talisman','Талисман договора: применения к4',2,'long-rest');if(s.choices.pact==='chain')spell('find-familiar','ritual','Договор цепи','charisma',true,'Бонусное заклинание договора; можно применять как ритуал.');}
    if(c.class==='artificer')feature('Инфузии',s.infusions.map(id=>label(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; ')+'. Изучено 4, одновременно до 2 предметов; каждый предмет имеет одну инфузию.');
+   if(c.class==='barbarian'&&s.level>=3&&s.choices['variant_primal-knowledge']==='yes'){if(s.choices.primal_skill)gain('skill',s.choices.primal_skill);feature('Первобытное знание',s.choices.primal_skill?'Дополнительное владение навыком варвара: '+R.labelFor('skill',s.choices.primal_skill)+'.':'Все навыки из списка варвара уже известны; нового владения нет.','TCE',3);}
+   if(c.class==='rogue'&&s.level>=3&&s.choices['variant_steady-aim']==='yes')feature('Точное прицеливание','Бонусное действие, только если не перемещались в текущем ходу: преимущество на следующий бросок атаки в этом ходу; после применения скорость становится 0 до конца хода.','TCE',3);
    if(s.choices['variant_magical-inspiration']==='yes')feature('Магическое вдохновение','Существо с костью вдохновения может добавить её результат к лечению или урону заклинания одной цели.','TCE');
    if(s.choices['variant_harness-divine-power']==='yes'){resource('harness-divine-power','Использование божественной силы',1);feature('Использование божественной силы','Бонусное действие: потратьте Божественный канал и восстановите ячейку 1-го круга; 1 / долгий отдых.','TCE');}
    if(s.choices['variant_wild-companion']==='yes'){spell('find-familiar','feature','Дикий спутник','wisdom',true,'Потратьте Дикий облик: без компонентов, фея, на '+Math.floor(s.level/2)+' час.');}
@@ -719,7 +727,10 @@
    if(sc?.id==='armorer'){gain('armor','heavy');resource('defensive-field','Защитное поле',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');}if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
    if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}
    if(sc?.id==='valor'){gain('armor','medium');gain('armor','shield');gain('weapon','martial');}
-   if(sc?.id==='drakewarden'){spell('thaumaturgy','cantrip',sc.label,'wisdom');resource('drake-companion','Драконий спутник: бесплатный призыв',1,'long-rest');}
+   if(sc?.id==='drakewarden'){
+    spell('thaumaturgy','cantrip',sc.label,'wisdom');resource('drake-companion','Драконий спутник: бесплатный призыв',1,'long-rest');
+    feature('Драконий спутник','Маленький дракон, БМ +2. КД 16 (14 + БМ, природный доспех). Хиты '+(5+5*s.level)+' (5 + 5 × уровень следопыта), кости хитов '+s.level+'к10; скорость 40 футов. СИЛ 16, ЛОВ 12, ТЕЛ 15, ИНТ 8, МДР 14, ХАР 8. Спасброски: ЛОВ +3, МДР +4. Тёмное зрение 60 футов, пассивное Восприятие 12; язык Драконий. Сущность дракона: при каждом призыве выберите тип урона — кислота, огонь, холод, молния или яд. Дрейк получает иммунитет к этому урону; он определяет урон Усиленных ударов. Укус (действие): рукопашная атака оружием +5, одна цель в 5 футах, 1к6+2 колющего урона. Усиленные удары (реакция): когда другое видимое существо в 30 футах от дрейка попадает атакой оружием, добавьте к этой атаке 1к6 урона выбранного типа. '+FEATURE_RULES['drake-companion'][1]);
+   }
    if(sc?.id==='ascendant-dragon'){resource('draconic-presence','Драконье присутствие: переброс',1);resource('breath-of-the-dragon','Дыхание дракона: бесплатные применения',2,'long-rest');}
    if(sc?.id==='four-elements')feature(label('elemental-attunement'),OPTION_RULES['elemental-attunement'],sc.source);
    if(sc?.id==='beast-master'&&s.choices.companion_rules==='primal-companion'){
