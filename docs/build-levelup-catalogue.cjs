@@ -46,6 +46,7 @@ const resolveCopy=(x,all)=>x._copy?{...resolveCopy(all.find(y=>y.name===x._copy.
  const beastIndex=await get('bestiary/index.json'),companions=[];
  for(const source of itemSources)if(beastIndex[source])for(const x of (await get('bestiary/'+beastIndex[source])).monster||[]){const type=typeof x.type==='string'?x.type:x.type?.type;const cr=typeof x.cr==='string'?x.cr:x.cr?.cr;const n=cr?.includes('/')?Number(cr.split('/')[0])/Number(cr.split('/')[1]):Number(cr);if(type==='beast'&&!x.type?.swarmSize&&!/^swarm of /i.test(x.name)&&n<=0.25&&x.size?.every(s=>['T','S','M'].includes(s)))companions.push({id:slug(x.name),name:x.name,source:x.source,cr});}
  data.companions=[...new Map(companions.map(x=>[x.id,x])).values()];
+ await require('./enrich-companions.cjs').enrich(data.companions,get);
  // Read only names/links from the primary Russian indices, never rule prose.
  data.labels={};data.referenceLinks={};
  for(const category of ['spells','bestiary','items']){
@@ -63,6 +64,6 @@ const resolveCopy=(x,all)=>x._copy?{...resolveCopy(all.find(y=>y.name===x._copy.
  for(const card of indexData.cards){const s=data.spells[slug(card.title_en)];if(s){s.label=card.title;s.url='https://5e14.dnd.su'+card.link;}}
  data.audit={date:'2026-10-03',primary:'https://5e14.dnd.su/spells/',unmatchedOfficialLowSpells:indexData.cards.filter(c=>Number(c.level)<=2&&!data.spells[slug(c.title_en)]).map(c=>c.title_en)};
  const dest=path.join(__dirname,'..','levelup-data.js');
- fs.writeFileSync(dest,'/* Published-source allowlist: docs/levelup-audit.md. Factual metadata only. */\n(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.LevelUpData=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){return '+JSON.stringify(data,null,2)+';});\n');
+ fs.writeFileSync(dest,'/* Published-source allowlist: docs/levelup-audit.md. Factual metadata and paraphrased companion mechanics. */\n(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.LevelUpData=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){return '+JSON.stringify(data,null,2)+';});\n');
  console.log(JSON.stringify({subclasses:data.subclasses.length,spells:Object.keys(data.spells).length,options:data.options.length}));
 })().catch(e=>{console.error(e);process.exitCode=1;});

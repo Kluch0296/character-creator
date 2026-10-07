@@ -1,4 +1,4 @@
-/* Published-source allowlist: docs/levelup-audit.md. Factual metadata only. */
+/* Published-source allowlist: docs/levelup-audit.md. Factual metadata and paraphrased companion mechanics. */
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.LevelUpData=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){return {
   "edition": "2014",
   "sources": [
@@ -16997,7 +16997,48 @@
       "source": "ERLW",
       "cr": "1/4",
       "label": "Шустрик",
-      "url": "https://5e14.dnd.su/bestiary/4973-fastieth/"
+      "url": "https://5e14.dnd.su/bestiary/4973-fastieth/",
+      "profile": {
+        "source": "ERLW",
+        "page": 289,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-erlw.json",
+        "size": "M",
+        "ac": 14,
+        "hp": 9,
+        "hitDice": "2d8",
+        "abilities": {
+          "str": 12,
+          "dex": 18,
+          "con": 10,
+          "int": 4,
+          "wis": 11,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 50
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Проворство (перезарядка 5–6): Уклонение бонусным действием."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 6,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d8 + 4",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "fox",
@@ -17005,7 +17046,54 @@
       "source": "IDRotF",
       "cr": "0",
       "label": "Лиса",
-      "url": "https://5e14.dnd.su/bestiary/5755-fox/"
+      "url": "https://5e14.dnd.su/bestiary/5755-fox/",
+      "profile": {
+        "source": "IDRotF",
+        "page": 288,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-idrotf.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 2,
+          "dex": 16,
+          "con": 11,
+          "int": 3,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 30,
+          "burrow": 5
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+5"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "hare",
@@ -17013,7 +17101,40 @@
       "source": "IDRotF",
       "cr": "0",
       "label": "Заяц",
-      "url": "https://5e14.dnd.su/bestiary/5749-hare/"
+      "url": "https://5e14.dnd.su/bestiary/5749-hare/",
+      "profile": {
+        "source": "IDRotF",
+        "page": 294,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-idrotf.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 1,
+          "dex": 17,
+          "con": 9,
+          "int": 2,
+          "wis": 11,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 20,
+          "burrow": 5
+        },
+        "skills": {
+          "perception": "+2",
+          "stealth": "+5"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 12,
+        "languages": [],
+        "traits": [
+          "Бегство: в свой ход Рывок, Отход или Засада бонусным действием."
+        ],
+        "actions": []
+      }
     },
     {
       "id": "kingsport",
@@ -17021,7 +17142,53 @@
       "source": "IDRotF",
       "cr": "0",
       "label": "Кингспорт",
-      "url": "https://5e14.dnd.su/bestiary/5813-kingsport/"
+      "url": "https://5e14.dnd.su/bestiary/5813-kingsport/",
+      "profile": {
+        "source": "IDRotF",
+        "page": 243,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-idrotf.json",
+        "size": "M",
+        "ac": 11,
+        "hp": 5,
+        "hitDice": "1d8 + 1",
+        "abilities": {
+          "str": 6,
+          "dex": 12,
+          "con": 12,
+          "int": 10,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 20,
+          "swim": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 30 ft. (blind beyond this radius)"
+        ],
+        "passive": 10,
+        "languages": [
+          "Common"
+        ],
+        "traits": [
+          "Задержка дыхания: 20 минут."
+        ],
+        "actions": [
+          {
+            "name": "Клюв",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 1",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "knucklehead-trout",
@@ -17029,7 +17196,62 @@
       "source": "IDRotF",
       "cr": "0",
       "label": "Тупоголовая форель",
-      "url": "https://5e14.dnd.su/bestiary/5775-knucklehead-trout/"
+      "url": "https://5e14.dnd.su/bestiary/5775-knucklehead-trout/",
+      "profile": {
+        "source": "IDRotF",
+        "page": 295,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-idrotf.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 7,
+        "hitDice": "2d6",
+        "abilities": {
+          "str": 14,
+          "dex": 14,
+          "con": 11,
+          "int": 1,
+          "wis": 6,
+          "cha": 1
+        },
+        "speed": {
+          "walk": 0,
+          "swim": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 8,
+        "languages": [],
+        "traits": [
+          "Дышит только под водой."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "колющий"
+            },
+            "text": ""
+          },
+          {
+            "name": "Хвост",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "дробящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "mountain-goat",
@@ -17037,7 +17259,50 @@
       "source": "IDRotF",
       "cr": "1/8",
       "label": "Горный козёл",
-      "url": "https://5e14.dnd.su/bestiary/5743-mountain-goat/"
+      "url": "https://5e14.dnd.su/bestiary/5743-mountain-goat/",
+      "profile": {
+        "source": "IDRotF",
+        "page": 304,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-idrotf.json",
+        "size": "M",
+        "ac": 11,
+        "hp": 13,
+        "hitDice": "2d8 + 4",
+        "abilities": {
+          "str": 14,
+          "dex": 12,
+          "con": 14,
+          "int": 2,
+          "wis": 10,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 40,
+          "climb": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Разбег: после 20 футов прямо к цели и попадания тараном/клыком в этот ход дополнительно 1к6 дробящего урона; существо при провале спасброска СИЛ Сл 12 падает ничком.",
+          "Устойчивость: преимущество спасбросков СИЛ и ЛОВ против сбивания с ног."
+        ],
+        "actions": [
+          {
+            "name": "Таран",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 2",
+              "type": "дробящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "seal",
@@ -17045,7 +17310,52 @@
       "source": "IDRotF",
       "cr": "0",
       "label": "Тюлень",
-      "url": "https://5e14.dnd.su/bestiary/5777-seal/"
+      "url": "https://5e14.dnd.su/bestiary/5777-seal/",
+      "profile": {
+        "source": "IDRotF",
+        "page": 308,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-idrotf.json",
+        "size": "M",
+        "ac": 11,
+        "hp": 9,
+        "hitDice": "2d8",
+        "abilities": {
+          "str": 10,
+          "dex": 12,
+          "con": 11,
+          "int": 3,
+          "wis": 12,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 20,
+          "swim": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Задержка дыхания: 15 минут.",
+          "Острые чувства: преимущество Внимательности (обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 2,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "baboon",
@@ -17053,7 +17363,49 @@
       "source": "MM",
       "cr": "0",
       "label": "Бабуин",
-      "url": "https://5e14.dnd.su/bestiary/326-baboon/"
+      "url": "https://5e14.dnd.su/bestiary/326-baboon/",
+      "profile": {
+        "source": "MM",
+        "page": 318,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 3,
+        "hitDice": "1d6",
+        "abilities": {
+          "str": 8,
+          "dex": 14,
+          "con": 11,
+          "int": 4,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 30,
+          "climb": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 1,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 - 1",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "badger",
@@ -17061,7 +17413,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Барсук",
-      "url": "https://5e14.dnd.su/bestiary/327-badger/"
+      "url": "https://5e14.dnd.su/bestiary/327-badger/",
+      "profile": {
+        "source": "MM",
+        "page": 318,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 10,
+        "hp": 3,
+        "hitDice": "1d4 + 1",
+        "abilities": {
+          "str": 4,
+          "dex": 11,
+          "con": 12,
+          "int": 2,
+          "wis": 12,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 20,
+          "burrow": 5
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 2,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "bat",
@@ -17069,7 +17465,52 @@
       "source": "MM",
       "cr": "0",
       "label": "Летучая мышь",
-      "url": "https://5e14.dnd.su/bestiary/377-bat/"
+      "url": "https://5e14.dnd.su/bestiary/377-bat/",
+      "profile": {
+        "source": "MM",
+        "page": 318,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 12,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 15,
+          "con": 8,
+          "int": 2,
+          "wis": 12,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 5,
+          "fly": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 60 ft."
+        ],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Эхолокация: при глухоте слепое зрение не работает.",
+          "Острые чувства: преимущество Внимательности (слух)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 0,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "blood-hawk",
@@ -17077,7 +17518,52 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Кровавый ястреб",
-      "url": "https://5e14.dnd.su/bestiary/371-blood-hawk/"
+      "url": "https://5e14.dnd.su/bestiary/371-blood-hawk/",
+      "profile": {
+        "source": "MM",
+        "page": 319,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 7,
+        "hitDice": "2d6",
+        "abilities": {
+          "str": 6,
+          "dex": 14,
+          "con": 10,
+          "int": 3,
+          "wis": 14,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 60
+        },
+        "skills": {
+          "perception": "+4"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 14,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (зрение).",
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Клюв",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "boar",
@@ -17085,7 +17571,49 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Кабан",
-      "url": "https://5e14.dnd.su/bestiary/365-boar/"
+      "url": "https://5e14.dnd.su/bestiary/365-boar/",
+      "profile": {
+        "source": "MM",
+        "page": 319,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 11,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 13,
+          "dex": 11,
+          "con": 12,
+          "int": 2,
+          "wis": 9,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 9,
+        "languages": [],
+        "traits": [
+          "Разбег: после 20 футов прямо к цели и попадания тараном/клыком в этот ход дополнительно 1к6 рубящего урона; существо при провале спасброска СИЛ Сл 11 падает ничком.",
+          "Стойкость (короткий или долгий отдых): если урон не более 7 снизил бы хиты до 0, остаётся 1 хит."
+        ],
+        "actions": [
+          {
+            "name": "Клык",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 1",
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "cat",
@@ -17093,7 +17621,52 @@
       "source": "MM",
       "cr": "0",
       "label": "Кошка",
-      "url": "https://5e14.dnd.su/bestiary/369-cat/"
+      "url": "https://5e14.dnd.su/bestiary/369-cat/",
+      "profile": {
+        "source": "MM",
+        "page": 320,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 12,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 3,
+          "dex": 15,
+          "con": 10,
+          "int": 3,
+          "wis": 12,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 40,
+          "climb": 30
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+4"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Когти",
+            "hit": 0,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "crab",
@@ -17101,7 +17674,53 @@
       "source": "MM",
       "cr": "0",
       "label": "Краб",
-      "url": "https://5e14.dnd.su/bestiary/370-crab/"
+      "url": "https://5e14.dnd.su/bestiary/370-crab/",
+      "profile": {
+        "source": "MM",
+        "page": 320,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 11,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 2,
+          "dex": 11,
+          "con": 10,
+          "int": 1,
+          "wis": 8,
+          "cha": 2
+        },
+        "speed": {
+          "walk": 20,
+          "swim": 20
+        },
+        "skills": {
+          "stealth": "+2"
+        },
+        "saves": {},
+        "senses": [
+          "blindsight 30 ft."
+        ],
+        "passive": 9,
+        "languages": [],
+        "traits": [
+          "Дышит воздухом и водой."
+        ],
+        "actions": [
+          {
+            "name": "Клешня",
+            "hit": 0,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "дробящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "deer",
@@ -17109,7 +17728,46 @@
       "source": "MM",
       "cr": "0",
       "label": "Олень",
-      "url": "https://5e14.dnd.su/bestiary/387-deer/"
+      "url": "https://5e14.dnd.su/bestiary/387-deer/",
+      "profile": {
+        "source": "MM",
+        "page": 321,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 13,
+        "hp": 4,
+        "hitDice": "1d8",
+        "abilities": {
+          "str": 11,
+          "dex": 16,
+          "con": 11,
+          "int": 2,
+          "wis": 14,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 50
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 12,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 2,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "eagle",
@@ -17117,7 +17775,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Орёл",
-      "url": "https://5e14.dnd.su/bestiary/388-eagle/"
+      "url": "https://5e14.dnd.su/bestiary/388-eagle/",
+      "profile": {
+        "source": "MM",
+        "page": 322,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 3,
+        "hitDice": "1d6",
+        "abilities": {
+          "str": 6,
+          "dex": 15,
+          "con": 10,
+          "int": 2,
+          "wis": 14,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 60
+        },
+        "skills": {
+          "perception": "+4"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 14,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (зрение)."
+        ],
+        "actions": [
+          {
+            "name": "Когти",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "flying-snake",
@@ -17125,7 +17827,56 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Летающая змея",
-      "url": "https://5e14.dnd.su/bestiary/376-flying-snake/"
+      "url": "https://5e14.dnd.su/bestiary/376-flying-snake/",
+      "profile": {
+        "source": "MM",
+        "page": 322,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 14,
+        "hp": 5,
+        "hitDice": "2d4",
+        "abilities": {
+          "str": 4,
+          "dex": 18,
+          "con": 11,
+          "int": 2,
+          "wis": 12,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 30,
+          "fly": 60,
+          "swim": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 10 ft."
+        ],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Облёт: полёт из досягаемости врага не провоцирует его атак."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 6,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "3d4",
+              "type": "яд"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "frog",
@@ -17133,7 +17884,43 @@
       "source": "MM",
       "cr": "0",
       "label": "Лягушка",
-      "url": "https://5e14.dnd.su/bestiary/380-frog/"
+      "url": "https://5e14.dnd.su/bestiary/380-frog/",
+      "profile": {
+        "source": "MM",
+        "page": 322,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 11,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 1,
+          "dex": 13,
+          "con": 8,
+          "int": 1,
+          "wis": 8,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 20,
+          "swim": 20
+        },
+        "skills": {
+          "perception": "+1",
+          "stealth": "+3"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Дышит воздухом и водой.",
+          "Прыжок с места: в длину 10 футов, в высоту 5 футов; разбег не требуется."
+        ],
+        "actions": []
+      }
     },
     {
       "id": "giant-badger",
@@ -17141,7 +17928,66 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Гигантский барсук",
-      "url": "https://5e14.dnd.su/bestiary/347-giant-badger/"
+      "url": "https://5e14.dnd.su/bestiary/347-giant-badger/",
+      "profile": {
+        "source": "MM",
+        "page": 323,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 10,
+        "hp": 13,
+        "hitDice": "2d8 + 4",
+        "abilities": {
+          "str": 13,
+          "dex": 10,
+          "con": 15,
+          "int": 2,
+          "wis": 12,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 30,
+          "burrow": 10
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Мультиатака",
+            "text": "Один укус и одна атака когтями. В PHB команда Атака до 11-го уровня следопыта не разрешает Мультиатаку."
+          },
+          {
+            "name": "Укус",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 1",
+              "type": "колющий"
+            },
+            "text": ""
+          },
+          {
+            "name": "Когти",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "2d4 + 1",
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "giant-centipede",
@@ -17149,7 +17995,56 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Гигантская многоножка",
-      "url": "https://5e14.dnd.su/bestiary/341-giant-centipede/"
+      "url": "https://5e14.dnd.su/bestiary/341-giant-centipede/",
+      "profile": {
+        "source": "MM",
+        "page": 323,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 13,
+        "hp": 4,
+        "hitDice": "1d6 + 1",
+        "abilities": {
+          "str": 5,
+          "dex": 14,
+          "con": 12,
+          "int": 1,
+          "wis": 7,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30,
+          "climb": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 30 ft."
+        ],
+        "passive": 8,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "3d6",
+              "type": "яд",
+              "dc": 11,
+              "save": "ТЕЛ",
+              "half": false
+            },
+            "text": "Если яд снизил хиты цели до 0, она стабильна, отравлена на 1 час даже после лечения и парализована, пока действует это отравление."
+          }
+        ]
+      }
     },
     {
       "id": "giant-crab",
@@ -17157,7 +18052,53 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Гигантский краб",
-      "url": "https://5e14.dnd.su/bestiary/351-giant-crab/"
+      "url": "https://5e14.dnd.su/bestiary/351-giant-crab/",
+      "profile": {
+        "source": "MM",
+        "page": 324,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 15,
+        "hp": 13,
+        "hitDice": "3d8",
+        "abilities": {
+          "str": 13,
+          "dex": 15,
+          "con": 11,
+          "int": 1,
+          "wis": 9,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30,
+          "swim": 30
+        },
+        "skills": {
+          "stealth": "+4"
+        },
+        "saves": {},
+        "senses": [
+          "blindsight 30 ft."
+        ],
+        "passive": 9,
+        "languages": [],
+        "traits": [
+          "Дышит воздухом и водой."
+        ],
+        "actions": [
+          {
+            "name": "Клешня",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 1",
+              "type": "дробящий"
+            },
+            "text": "Цель захвачена (высвобождение Сл 11); две клешни, каждая удерживает одну цель."
+          }
+        ]
+      }
     },
     {
       "id": "giant-fire-beetle",
@@ -17165,7 +18106,50 @@
       "source": "MM",
       "cr": "0",
       "label": "Гигантский огненный жук",
-      "url": "https://5e14.dnd.su/bestiary/355-giant-fire-beetle/"
+      "url": "https://5e14.dnd.su/bestiary/355-giant-fire-beetle/",
+      "profile": {
+        "source": "MM",
+        "page": 325,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 13,
+        "hp": 4,
+        "hitDice": "1d6 + 1",
+        "abilities": {
+          "str": 8,
+          "dex": 10,
+          "con": 12,
+          "int": 1,
+          "wis": 7,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 30 ft."
+        ],
+        "passive": 8,
+        "languages": [],
+        "traits": [
+          "Свечение: яркий свет 10 футов и ещё 10 футов тусклого света."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 1,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 - 1",
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "giant-frog",
@@ -17173,7 +18157,64 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Гигантская лягушка",
-      "url": "https://5e14.dnd.su/bestiary/340-giant-frog/"
+      "url": "https://5e14.dnd.su/bestiary/340-giant-frog/",
+      "profile": {
+        "source": "MM",
+        "page": 325,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 11,
+        "hp": 18,
+        "hitDice": "4d8",
+        "abilities": {
+          "str": 12,
+          "dex": 13,
+          "con": 11,
+          "int": 2,
+          "wis": 10,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30,
+          "swim": 30
+        },
+        "skills": {
+          "perception": "+2",
+          "stealth": "+3"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 12,
+        "languages": [],
+        "traits": [
+          "Дышит воздухом и водой.",
+          "Прыжок с места: в длину 20 футов, в высоту 10 футов; разбег не требуется."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 1",
+              "type": "колющий"
+            },
+            "text": "Цель захвачена (высвобождение Сл 11) и опутана до конца захвата; новую цель кусать нельзя."
+          },
+          {
+            "name": "Проглатывание",
+            "text": "Укус по захваченной Маленькой или меньшей цели; попадание — проглатывание вместо захвата (одна цель). Цель ослеплена, опутана и имеет полное укрытие от внешних эффектов.",
+            "ongoing": {
+              "dice": "2d4",
+              "type": "кислота"
+            },
+            "after": "В начале каждого хода лягушки. После смерти лягушки цель больше не опутана и может за 5 футов перемещения выйти из трупа ничком."
+          }
+        ]
+      }
     },
     {
       "id": "giant-poisonous-snake",
@@ -17181,7 +18222,58 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Гигантская ядовитая змея",
-      "url": "https://5e14.dnd.su/bestiary/345-giant-poisonous-snake/"
+      "url": "https://5e14.dnd.su/bestiary/345-giant-poisonous-snake/",
+      "profile": {
+        "source": "MM",
+        "page": 327,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 14,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 10,
+          "dex": 18,
+          "con": 13,
+          "int": 2,
+          "wis": 10,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30,
+          "swim": 30
+        },
+        "skills": {
+          "perception": "+2"
+        },
+        "saves": {},
+        "senses": [
+          "blindsight 10 ft."
+        ],
+        "passive": 12,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 6,
+            "reach": 10,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 4",
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "3d6",
+              "type": "яд",
+              "dc": 11,
+              "save": "ТЕЛ",
+              "half": true
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "giant-rat",
@@ -17189,7 +18281,51 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Гигантская крыса",
-      "url": "https://5e14.dnd.su/bestiary/336-giant-rat/"
+      "url": "https://5e14.dnd.su/bestiary/336-giant-rat/",
+      "profile": {
+        "source": "MM",
+        "page": 327,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 7,
+        "hitDice": "2d6",
+        "abilities": {
+          "str": 7,
+          "dex": 15,
+          "con": 11,
+          "int": 2,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние).",
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "giant-weasel",
@@ -17197,7 +18333,53 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Гигантская куница",
-      "url": "https://5e14.dnd.su/bestiary/338-giant-weasel/"
+      "url": "https://5e14.dnd.su/bestiary/338-giant-weasel/",
+      "profile": {
+        "source": "MM",
+        "page": 329,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 13,
+        "hp": 9,
+        "hitDice": "2d8",
+        "abilities": {
+          "str": 11,
+          "dex": 16,
+          "con": 10,
+          "int": 4,
+          "wis": 12,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+5"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух или обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 3",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "giant-wolf-spider",
@@ -17205,7 +18387,64 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Гигантский паук-волк",
-      "url": "https://5e14.dnd.su/bestiary/358-giant-wolf-spider/"
+      "url": "https://5e14.dnd.su/bestiary/358-giant-wolf-spider/",
+      "profile": {
+        "source": "MM",
+        "page": 330,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 13,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 12,
+          "dex": 16,
+          "con": 13,
+          "int": 3,
+          "wis": 12,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 40,
+          "climb": 40
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+7"
+        },
+        "saves": {},
+        "senses": [
+          "blindsight 10 ft.",
+          "darkvision 60 ft."
+        ],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Паучье лазание: сложные поверхности и потолок без проверки характеристики.",
+          "Чувство паутины: касаясь паутины, знает точное положение других касающихся её существ.",
+          "Хождение по паутине: паутина не ограничивает перемещение."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 3,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "dice": "1d6 + 1",
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "2d6",
+              "type": "яд",
+              "dc": 11,
+              "save": "ТЕЛ",
+              "half": true
+            },
+            "text": "Если яд снизил хиты цели до 0, она стабильна, отравлена на 1 час даже после лечения и парализована, пока действует это отравление."
+          }
+        ]
+      }
     },
     {
       "id": "goat",
@@ -17213,7 +18452,49 @@
       "source": "MM",
       "cr": "0",
       "label": "Козёл",
-      "url": "https://5e14.dnd.su/bestiary/367-goat/"
+      "url": "https://5e14.dnd.su/bestiary/367-goat/",
+      "profile": {
+        "source": "MM",
+        "page": 330,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 10,
+        "hp": 4,
+        "hitDice": "1d8",
+        "abilities": {
+          "str": 12,
+          "dex": 10,
+          "con": 11,
+          "int": 2,
+          "wis": 10,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Разбег: после 20 футов прямо к цели и попадания тараном/клыком в этот ход дополнительно 1к4 дробящего урона; существо при провале спасброска СИЛ Сл 10 падает ничком.",
+          "Устойчивость: преимущество спасбросков СИЛ и ЛОВ против сбивания с ног."
+        ],
+        "actions": [
+          {
+            "name": "Таран",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 1",
+              "type": "дробящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "hawk",
@@ -17221,7 +18502,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Ястреб",
-      "url": "https://5e14.dnd.su/bestiary/417-hawk/"
+      "url": "https://5e14.dnd.su/bestiary/417-hawk/",
+      "profile": {
+        "source": "MM",
+        "page": 330,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 5,
+          "dex": 16,
+          "con": 8,
+          "int": 2,
+          "wis": 14,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 60
+        },
+        "skills": {
+          "perception": "+4"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 14,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (зрение)."
+        ],
+        "actions": [
+          {
+            "name": "Когти",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "hyena",
@@ -17229,7 +18554,50 @@
       "source": "MM",
       "cr": "0",
       "label": "Гиена",
-      "url": "https://5e14.dnd.su/bestiary/361-hyena/"
+      "url": "https://5e14.dnd.su/bestiary/361-hyena/",
+      "profile": {
+        "source": "MM",
+        "page": 331,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 11,
+        "hp": 5,
+        "hitDice": "1d8 + 1",
+        "abilities": {
+          "str": 11,
+          "dex": 13,
+          "con": 12,
+          "int": 2,
+          "wis": 12,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 50
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 2,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "jackal",
@@ -17237,7 +18605,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Шакал",
-      "url": "https://5e14.dnd.su/bestiary/415-jackal/"
+      "url": "https://5e14.dnd.su/bestiary/415-jackal/",
+      "profile": {
+        "source": "MM",
+        "page": 331,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 3,
+        "hitDice": "1d6",
+        "abilities": {
+          "str": 8,
+          "dex": 15,
+          "con": 11,
+          "int": 3,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух или обоняние).",
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 1,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 - 1",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "lizard",
@@ -17245,7 +18657,49 @@
       "source": "MM",
       "cr": "0",
       "label": "Ящерица",
-      "url": "https://5e14.dnd.su/bestiary/418-lizard/"
+      "url": "https://5e14.dnd.su/bestiary/418-lizard/",
+      "profile": {
+        "source": "MM",
+        "page": 332,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 10,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 2,
+          "dex": 11,
+          "con": 10,
+          "int": 1,
+          "wis": 8,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 20,
+          "climb": 20
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 9,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 0,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "mastiff",
@@ -17253,7 +18707,50 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Мастиф",
-      "url": "https://5e14.dnd.su/bestiary/382-mastiff/"
+      "url": "https://5e14.dnd.su/bestiary/382-mastiff/",
+      "profile": {
+        "source": "MM",
+        "page": 332,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 12,
+        "hp": 5,
+        "hitDice": "1d8 + 1",
+        "abilities": {
+          "str": 13,
+          "dex": 14,
+          "con": 12,
+          "int": 3,
+          "wis": 12,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух или обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 1",
+              "type": "колющий"
+            },
+            "text": "Существо: спасбросок СИЛ Сл 11; провал — ничком."
+          }
+        ]
+      }
     },
     {
       "id": "mule",
@@ -17261,7 +18758,49 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Мул",
-      "url": "https://5e14.dnd.su/bestiary/385-mule/"
+      "url": "https://5e14.dnd.su/bestiary/385-mule/",
+      "profile": {
+        "source": "MM",
+        "page": 333,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 10,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 14,
+          "dex": 10,
+          "con": 13,
+          "int": 2,
+          "wis": 10,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Вьючный зверь: при расчёте грузоподъёмности размер считается Большим.",
+          "Устойчивость: преимущество спасбросков СИЛ и ЛОВ против сбивания с ног."
+        ],
+        "actions": [
+          {
+            "name": "Копыта",
+            "hit": 2,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "дробящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "octopus",
@@ -17269,7 +18808,60 @@
       "source": "MM",
       "cr": "0",
       "label": "Осьминог",
-      "url": "https://5e14.dnd.su/bestiary/389-octopus/"
+      "url": "https://5e14.dnd.su/bestiary/389-octopus/",
+      "profile": {
+        "source": "MM",
+        "page": 333,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 3,
+        "hitDice": "1d6",
+        "abilities": {
+          "str": 4,
+          "dex": 15,
+          "con": 11,
+          "int": 3,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 5,
+          "swim": 30
+        },
+        "skills": {
+          "perception": "+2",
+          "stealth": "+4"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 12,
+        "languages": [],
+        "traits": [
+          "Задержка дыхания: 30 минут.",
+          "Подводный камуфляж: преимущество Скрытности под водой.",
+          "Дышит только под водой."
+        ],
+        "actions": [
+          {
+            "name": "Щупальца",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "дробящий"
+            },
+            "text": "Цель захвачена (высвобождение Сл 10); новую цель щупальцами атаковать нельзя."
+          },
+          {
+            "name": "Чернильное облако",
+            "text": "Под водой: радиус 5 футов, сильно заслонённая область на 1 минуту; сильное течение рассеивает её. После выпуска — Рывок бонусным действием. Восстановление: короткий или долгий отдых."
+          }
+        ]
+      }
     },
     {
       "id": "owl",
@@ -17277,7 +18869,55 @@
       "source": "MM",
       "cr": "0",
       "label": "Сова",
-      "url": "https://5e14.dnd.su/bestiary/408-owl/"
+      "url": "https://5e14.dnd.su/bestiary/408-owl/",
+      "profile": {
+        "source": "MM",
+        "page": 333,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 11,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 3,
+          "dex": 13,
+          "con": 8,
+          "int": 2,
+          "wis": 12,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 5,
+          "fly": 60
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+3"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Облёт: полёт из досягаемости врага не провоцирует его атак.",
+          "Острые чувства: преимущество Внимательности (слух или зрение)."
+        ],
+        "actions": [
+          {
+            "name": "Когти",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "panther",
@@ -17285,7 +18925,64 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Пантера",
-      "url": "https://5e14.dnd.su/bestiary/391-panther/"
+      "url": "https://5e14.dnd.su/bestiary/391-panther/",
+      "profile": {
+        "source": "MM",
+        "page": 333,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 12,
+        "hp": 13,
+        "hitDice": "3d8",
+        "abilities": {
+          "str": 14,
+          "dex": 15,
+          "con": 10,
+          "int": 3,
+          "wis": 14,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 50,
+          "climb": 40
+        },
+        "skills": {
+          "perception": "+4",
+          "stealth": "+6"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 14,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние).",
+          "Наскок: после 20 футов движения прямо к существу попадание когтем требует спасбросок СИЛ Сл 12; провал — цель ничком. По лежащей цели можно бонусным действием атаковать укусом."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 2",
+              "type": "колющий"
+            },
+            "text": ""
+          },
+          {
+            "name": "Коготь",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "poisonous-snake",
@@ -17293,7 +18990,56 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Ядовитая змея",
-      "url": "https://5e14.dnd.su/bestiary/416-poisonous-snake/"
+      "url": "https://5e14.dnd.su/bestiary/416-poisonous-snake/",
+      "profile": {
+        "source": "MM",
+        "page": 334,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 2,
+          "dex": 16,
+          "con": 11,
+          "int": 1,
+          "wis": 10,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30,
+          "swim": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 10 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "2d4",
+              "type": "яд",
+              "dc": 10,
+              "save": "ТЕЛ",
+              "half": true
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "pony",
@@ -17301,7 +19047,46 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Пони",
-      "url": "https://5e14.dnd.su/bestiary/395-pony/"
+      "url": "https://5e14.dnd.su/bestiary/395-pony/",
+      "profile": {
+        "source": "MM",
+        "page": 335,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 10,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 15,
+          "dex": 10,
+          "con": 13,
+          "int": 2,
+          "wis": 11,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Копыта",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "2d4 + 2",
+              "type": "дробящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "pteranodon",
@@ -17309,7 +19094,51 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Птеранодон",
-      "url": "https://5e14.dnd.su/bestiary/92-pteranodon/"
+      "url": "https://5e14.dnd.su/bestiary/92-pteranodon/",
+      "profile": {
+        "source": "MM",
+        "page": 80,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 13,
+        "hp": 13,
+        "hitDice": "3d8",
+        "abilities": {
+          "str": 12,
+          "dex": 15,
+          "con": 10,
+          "int": 2,
+          "wis": 9,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 60
+        },
+        "skills": {
+          "perception": "+1"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Облёт: полёт из досягаемости врага не провоцирует его атак."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 3,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "2d4 + 1",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "quipper",
@@ -17317,7 +19146,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Квиппер",
-      "url": "https://5e14.dnd.su/bestiary/366-quipper/"
+      "url": "https://5e14.dnd.su/bestiary/366-quipper/",
+      "profile": {
+        "source": "MM",
+        "page": 335,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 16,
+          "con": 9,
+          "int": 1,
+          "wis": 7,
+          "cha": 2
+        },
+        "speed": {
+          "swim": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 8,
+        "languages": [],
+        "traits": [
+          "Кровавое безумие: преимущество рукопашных атак по существу с неполными хитами.",
+          "Дышит только под водой."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "rat",
@@ -17325,7 +19198,50 @@
       "source": "MM",
       "cr": "0",
       "label": "Крыса",
-      "url": "https://5e14.dnd.su/bestiary/373-rat/"
+      "url": "https://5e14.dnd.su/bestiary/373-rat/",
+      "profile": {
+        "source": "MM",
+        "page": 335,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 10,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 11,
+          "con": 9,
+          "int": 2,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 20
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 0,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "raven",
@@ -17333,7 +19249,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Ворон",
-      "url": "https://5e14.dnd.su/bestiary/333-raven/"
+      "url": "https://5e14.dnd.su/bestiary/333-raven/",
+      "profile": {
+        "source": "MM",
+        "page": 335,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 12,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 14,
+          "con": 8,
+          "int": 2,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 50
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Подражание услышанным простым звукам; проверка Проницательности Сл 10 распознаёт имитацию."
+        ],
+        "actions": [
+          {
+            "name": "Клюв",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "scorpion",
@@ -17341,7 +19301,55 @@
       "source": "MM",
       "cr": "0",
       "label": "Скорпион",
-      "url": "https://5e14.dnd.su/bestiary/406-scorpion/"
+      "url": "https://5e14.dnd.su/bestiary/406-scorpion/",
+      "profile": {
+        "source": "MM",
+        "page": 337,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 11,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 11,
+          "con": 8,
+          "int": 1,
+          "wis": 8,
+          "cha": 2
+        },
+        "speed": {
+          "walk": 10
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "blindsight 10 ft."
+        ],
+        "passive": 9,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Жало",
+            "hit": 2,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "1d8",
+              "type": "яд",
+              "dc": 9,
+              "save": "ТЕЛ",
+              "half": true
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "sea-horse",
@@ -17349,7 +19357,36 @@
       "source": "MM",
       "cr": "0",
       "label": "Морской конёк",
-      "url": "https://5e14.dnd.su/bestiary/384-sea-horse/"
+      "url": "https://5e14.dnd.su/bestiary/384-sea-horse/",
+      "profile": {
+        "source": "MM",
+        "page": 337,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 11,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 1,
+          "dex": 12,
+          "con": 8,
+          "int": 1,
+          "wis": 10,
+          "cha": 2
+        },
+        "speed": {
+          "swim": 20
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Дышит только под водой."
+        ],
+        "actions": []
+      }
     },
     {
       "id": "spider",
@@ -17357,7 +19394,62 @@
       "source": "MM",
       "cr": "0",
       "label": "Паук",
-      "url": "https://5e14.dnd.su/bestiary/392-spider/"
+      "url": "https://5e14.dnd.su/bestiary/392-spider/",
+      "profile": {
+        "source": "MM",
+        "page": 337,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 12,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 14,
+          "con": 8,
+          "int": 1,
+          "wis": 10,
+          "cha": 2
+        },
+        "speed": {
+          "walk": 20,
+          "climb": 20
+        },
+        "skills": {
+          "stealth": "+4"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Паучье лазание: сложные поверхности и потолок без проверки характеристики.",
+          "Чувство паутины: касаясь паутины, знает точное положение других касающихся её существ.",
+          "Хождение по паутине: паутина не ограничивает перемещение."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "1d4",
+              "type": "яд",
+              "dc": 9,
+              "save": "ТЕЛ",
+              "half": false
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "stirge",
@@ -17365,7 +19457,49 @@
       "source": "MM",
       "cr": "1/8",
       "label": "Кровопийца",
-      "url": "https://5e14.dnd.su/bestiary/11-stirge/"
+      "url": "https://5e14.dnd.su/bestiary/11-stirge/",
+      "profile": {
+        "source": "MM",
+        "page": 284,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 14,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 4,
+          "dex": 16,
+          "con": 11,
+          "int": 2,
+          "wis": 8,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 9,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Кровососание",
+            "hit": 5,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "dice": "1d4 + 3",
+              "type": "колющий"
+            },
+            "text": "Прикрепляется к цели и больше не атакует. В начале каждого своего хода цель теряет 1к4 + 3 хита от кровопотери (это не бросок урона, БМ не добавляется). Отцепление стоит 5 футов перемещения; отцепляется после потери целью 10 хитов крови или её смерти. Любое существо может действием снять кровопийцу."
+          }
+        ]
+      }
     },
     {
       "id": "vulture",
@@ -17373,7 +19507,52 @@
       "source": "MM",
       "cr": "0",
       "label": "Гриф",
-      "url": "https://5e14.dnd.su/bestiary/362-vulture/"
+      "url": "https://5e14.dnd.su/bestiary/362-vulture/",
+      "profile": {
+        "source": "MM",
+        "page": 339,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 10,
+        "hp": 5,
+        "hitDice": "1d8 + 1",
+        "abilities": {
+          "str": 7,
+          "dex": 10,
+          "con": 13,
+          "int": 2,
+          "wis": 12,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 10,
+          "fly": 50
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (зрение или обоняние).",
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Клюв",
+            "hit": 2,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "weasel",
@@ -17381,7 +19560,51 @@
       "source": "MM",
       "cr": "0",
       "label": "Куница",
-      "url": "https://5e14.dnd.su/bestiary/374-weasel/"
+      "url": "https://5e14.dnd.su/bestiary/374-weasel/",
+      "profile": {
+        "source": "MM",
+        "page": 340,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 3,
+          "dex": 16,
+          "con": 8,
+          "int": 2,
+          "wis": 12,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+5"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух или обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "wolf",
@@ -17389,7 +19612,52 @@
       "source": "MM",
       "cr": "1/4",
       "label": "Волк",
-      "url": "https://5e14.dnd.su/bestiary/2-wolf/"
+      "url": "https://5e14.dnd.su/bestiary/2-wolf/",
+      "profile": {
+        "source": "MM",
+        "page": 341,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json",
+        "size": "M",
+        "ac": 13,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 12,
+          "dex": 15,
+          "con": 12,
+          "int": 3,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 40
+        },
+        "skills": {
+          "perception": "+3",
+          "stealth": "+4"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух или обоняние).",
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "2d4 + 2",
+              "type": "колющий"
+            },
+            "text": "Существо: спасбросок СИЛ Сл 11; провал — ничком."
+          }
+        ]
+      }
     },
     {
       "id": "cranium-rat",
@@ -17397,7 +19665,53 @@
       "source": "VGM",
       "cr": "0",
       "label": "Черепная крыса",
-      "url": "https://5e14.dnd.su/bestiary/6577-cranium-rat/"
+      "url": "https://5e14.dnd.su/bestiary/6577-cranium-rat/",
+      "profile": {
+        "source": "VGM",
+        "page": 133,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-vgm.json",
+        "size": "T",
+        "ac": 12,
+        "hp": 2,
+        "hitDice": "1d4",
+        "abilities": {
+          "str": 2,
+          "dex": 14,
+          "con": 10,
+          "int": 4,
+          "wis": 11,
+          "cha": 8
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 10,
+        "languages": [
+          "telepathy 30 ft."
+        ],
+        "traits": [
+          "Свечение: бонусным действием включить или погасить тусклый свет мозга в 5 футах.",
+          "Телепатическая защита: иммунитет к чтению мыслей, определению эмоций и всем заклинаниям школы Прорицания."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "deep-roth",
@@ -17405,7 +19719,51 @@
       "source": "MPMM",
       "cr": "1/4",
       "label": "Глубинный роф",
-      "url": "https://5e14.dnd.su/bestiary/6489-deep-rothe/"
+      "url": "https://5e14.dnd.su/bestiary/6489-deep-rothe/",
+      "profile": {
+        "source": "MPMM",
+        "page": 71,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mpmm.json",
+        "size": "M",
+        "ac": 10,
+        "hp": 13,
+        "hitDice": "2d8 + 4",
+        "abilities": {
+          "str": 18,
+          "dex": 10,
+          "con": 14,
+          "int": 2,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Вьючный зверь: при расчёте грузоподъёмности размер считается Большим.",
+          "Пляшущие огоньки: неограниченно, без компонентов, заклинательная характеристика МУД."
+        ],
+        "actions": [
+          {
+            "name": "Рога",
+            "hit": 6,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 4",
+              "type": "колющий"
+            },
+            "text": "После 20 футов движения прямо к цели непосредственно перед попаданием дополнительно 2к6 колющего урона."
+          }
+        ]
+      }
     },
     {
       "id": "dimetrodon",
@@ -17413,7 +19771,49 @@
       "source": "MPMM",
       "cr": "1/4",
       "label": "Диметродон",
-      "url": "https://5e14.dnd.su/bestiary/6601-dimetrodon/"
+      "url": "https://5e14.dnd.su/bestiary/6601-dimetrodon/",
+      "profile": {
+        "source": "MPMM",
+        "page": 95,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mpmm.json",
+        "size": "M",
+        "ac": 12,
+        "hp": 19,
+        "hitDice": "3d8 + 6",
+        "abilities": {
+          "str": 14,
+          "dex": 10,
+          "con": 15,
+          "int": 2,
+          "wis": 10,
+          "cha": 5
+        },
+        "speed": {
+          "walk": 30,
+          "swim": 20
+        },
+        "skills": {
+          "perception": "+2"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 12,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "2d6 + 2",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "dolphin",
@@ -17421,7 +19821,53 @@
       "source": "MPMM",
       "cr": "1/8",
       "label": "Дельфин",
-      "url": "https://5e14.dnd.su/bestiary/6608-dolphin/"
+      "url": "https://5e14.dnd.su/bestiary/6608-dolphin/",
+      "profile": {
+        "source": "MPMM",
+        "page": 97,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mpmm.json",
+        "size": "M",
+        "ac": 12,
+        "hp": 11,
+        "hitDice": "2d8 + 2",
+        "abilities": {
+          "str": 14,
+          "dex": 13,
+          "con": 13,
+          "int": 6,
+          "wis": 12,
+          "cha": 7
+        },
+        "speed": {
+          "walk": 0,
+          "swim": 60
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [
+          "blindsight 60 ft."
+        ],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Задержка дыхания: 20 минут."
+        ],
+        "actions": [
+          {
+            "name": "Удар",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d6 + 2",
+              "type": "дробящий"
+            },
+            "text": "После 30 футов движения прямо к цели непосредственно перед попаданием дополнительно 1к6 дробящего урона."
+          }
+        ]
+      }
     },
     {
       "id": "velociraptor",
@@ -17429,7 +19875,65 @@
       "source": "MPMM",
       "cr": "1/4",
       "label": "Велоцираптор",
-      "url": "https://5e14.dnd.su/bestiary/6607-velociraptor/"
+      "url": "https://5e14.dnd.su/bestiary/6607-velociraptor/",
+      "profile": {
+        "source": "MPMM",
+        "page": 96,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mpmm.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 10,
+        "hitDice": "3d4 + 3",
+        "abilities": {
+          "str": 6,
+          "dex": 14,
+          "con": 13,
+          "int": 4,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {
+          "perception": "+3"
+        },
+        "saves": {},
+        "senses": [],
+        "passive": 13,
+        "languages": [],
+        "traits": [
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен."
+        ],
+        "actions": [
+          {
+            "name": "Мультиатака",
+            "text": "Один укус и одна атака когтями. В PHB команда Атака до 11-го уровня следопыта не разрешает Мультиатаку."
+          },
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "dice": "1d6 + 2",
+              "type": "колющий"
+            },
+            "text": ""
+          },
+          {
+            "name": "Коготь",
+            "hit": 4,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "рубящий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "pollenella-the-honeybee",
@@ -17437,7 +19941,47 @@
       "source": "WBtW",
       "cr": "0",
       "label": "Медоносная пчела Полленелла",
-      "url": "https://5e14.dnd.su/bestiary/8440-pollenella-the-honeybee/"
+      "url": "https://5e14.dnd.su/bestiary/8440-pollenella-the-honeybee/",
+      "profile": {
+        "source": "WBtW",
+        "page": 135,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-wbtw.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 1,
+          "dex": 16,
+          "con": 8,
+          "int": 1,
+          "wis": 10,
+          "cha": 1
+        },
+        "speed": {
+          "walk": 5,
+          "fly": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 10,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Жало",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 3,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "almiraj",
@@ -17445,7 +19989,54 @@
       "source": "ToA",
       "cr": "0",
       "label": "Альмираж",
-      "url": "https://5e14.dnd.su/bestiary/1313-almiraj/"
+      "url": "https://5e14.dnd.su/bestiary/1313-almiraj/",
+      "profile": {
+        "source": "ToA",
+        "page": 211,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-toa.json",
+        "size": "S",
+        "ac": 13,
+        "hp": 3,
+        "hitDice": "1d6",
+        "abilities": {
+          "str": 2,
+          "dex": 16,
+          "con": 10,
+          "int": 2,
+          "wis": 14,
+          "cha": 10
+        },
+        "speed": {
+          "walk": 50
+        },
+        "skills": {
+          "perception": "+4",
+          "stealth": "+5"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 14,
+        "languages": [],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (слух или зрение).",
+          "С разрешения Мастера может быть призван Поиском фамильяра."
+        ],
+        "actions": [
+          {
+            "name": "Рог",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 3",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "flying-monkey",
@@ -17453,7 +20044,51 @@
       "source": "ToA",
       "cr": "0",
       "label": "Летающая обезьяна",
-      "url": "https://5e14.dnd.su/bestiary/2640-flying-monkey/"
+      "url": "https://5e14.dnd.su/bestiary/2640-flying-monkey/",
+      "profile": {
+        "source": "ToA",
+        "page": 220,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-toa.json",
+        "size": "S",
+        "ac": 12,
+        "hp": 3,
+        "hitDice": "1d6",
+        "abilities": {
+          "str": 8,
+          "dex": 14,
+          "con": 11,
+          "int": 5,
+          "wis": 12,
+          "cha": 6
+        },
+        "speed": {
+          "walk": 30,
+          "climb": 20,
+          "fly": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [],
+        "passive": 11,
+        "languages": [],
+        "traits": [
+          "Тактика стаи: преимущество атаки по существу, если в 5 футах от него есть союзник зверя, который не недееспособен.",
+          "С разрешения Мастера может быть призван Поиском фамильяра."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 1,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 - 1",
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "awakened-rat",
@@ -17461,7 +20096,52 @@
       "source": "WDH",
       "cr": "0",
       "label": "Пробуждённая крыса",
-      "url": "https://5e14.dnd.su/bestiary/5104-awakened-rat/"
+      "url": "https://5e14.dnd.su/bestiary/5104-awakened-rat/",
+      "profile": {
+        "source": "WDH",
+        "page": 102,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-wdh.json",
+        "size": "T",
+        "ac": 10,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 11,
+          "con": 9,
+          "int": 10,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 20
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 30 ft."
+        ],
+        "passive": 10,
+        "languages": [
+          "Common"
+        ],
+        "traits": [
+          "Острые чувства: преимущество Внимательности (обоняние)."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 0,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "sylgar",
@@ -17469,7 +20149,51 @@
       "source": "WDH",
       "cr": "0",
       "label": "Силгар",
-      "url": "https://5e14.dnd.su/bestiary/5362-sylgar/"
+      "url": "https://5e14.dnd.su/bestiary/5362-sylgar/",
+      "profile": {
+        "source": "WDH",
+        "page": 220,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-wdh.json",
+        "size": "T",
+        "ac": 13,
+        "hp": 1,
+        "hitDice": "1d4 - 1",
+        "abilities": {
+          "str": 2,
+          "dex": 16,
+          "con": 9,
+          "int": 1,
+          "wis": 7,
+          "cha": 2
+        },
+        "speed": {
+          "walk": 0,
+          "swim": 40
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 8,
+        "languages": [],
+        "traits": [
+          "Дышит только под водой."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "fixed": 1,
+              "type": "колющий"
+            },
+            "text": ""
+          }
+        ]
+      }
     },
     {
       "id": "male-steeder",
@@ -17477,7 +20201,68 @@
       "source": "OotA",
       "cr": "1/4",
       "label": "Самец стидера",
-      "url": "https://5e14.dnd.su/bestiary/6709-male-steeder/"
+      "url": "https://5e14.dnd.su/bestiary/6709-male-steeder/",
+      "profile": {
+        "source": "OotA",
+        "page": 231,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-oota.json",
+        "size": "M",
+        "ac": 12,
+        "hp": 13,
+        "hitDice": "2d8 + 4",
+        "abilities": {
+          "str": 15,
+          "dex": 12,
+          "con": 14,
+          "int": 2,
+          "wis": 10,
+          "cha": 3
+        },
+        "speed": {
+          "walk": 30,
+          "climb": 30
+        },
+        "skills": {
+          "stealth": "+5"
+        },
+        "saves": {},
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [
+          "Паучье лазание: сложные поверхности и потолок без проверки характеристики.",
+          "Прыжок: потратьте всё перемещение на прыжок до 60 футов горизонтально или вертикально, если скорость не менее 30 футов."
+        ],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 4,
+            "reach": 5,
+            "target": "одно существо",
+            "damage": {
+              "dice": "1d8 + 2",
+              "type": "колющий"
+            },
+            "secondary": {
+              "dice": "1d8",
+              "type": "кислота",
+              "dc": 12,
+              "save": "ТЕЛ",
+              "half": true
+            },
+            "text": ""
+          },
+          {
+            "name": "Липкая лапа",
+            "hit": 4,
+            "reach": 5,
+            "target": "одно Маленькое или Крошечное существо",
+            "text": "Цель захвачена и приклеена к лапе (высвобождение Сл 12). Перезарядка, когда стидер никого не держит."
+          }
+        ]
+      }
     },
     {
       "id": "guthash",
@@ -17485,7 +20270,48 @@
       "source": "TftYP",
       "cr": "1/4",
       "label": "Guthash",
-      "url": "https://5e14.dnd.su/bestiary/"
+      "url": "https://5e14.dnd.su/bestiary/",
+      "profile": {
+        "source": "TftYP",
+        "page": 21,
+        "dataUrl": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-tftyp.json",
+        "size": "M",
+        "ac": 12,
+        "hp": 16,
+        "hitDice": "2d6",
+        "abilities": {
+          "str": 7,
+          "dex": 15,
+          "con": 11,
+          "int": 2,
+          "wis": 10,
+          "cha": 4
+        },
+        "speed": {
+          "walk": 30
+        },
+        "skills": {},
+        "saves": {},
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 10,
+        "languages": [],
+        "traits": [],
+        "actions": [
+          {
+            "name": "Укус",
+            "hit": 5,
+            "reach": 5,
+            "target": "одна цель",
+            "damage": {
+              "dice": "1d4 + 2",
+              "type": "колющий"
+            },
+            "text": "Существо: спасбросок ТЕЛ Сл 10; провал — болезнь до излечения. Хиты восстанавливаются только магией, максимум хитов уменьшается на 1к6 каждые 24 часа; максимум 0 — смерть."
+          }
+        ]
+      }
     }
   ],
   "labels": {

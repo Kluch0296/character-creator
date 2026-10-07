@@ -626,3 +626,91 @@ test('PR26 round thirteen: missing new opt-ins preserve both ledger formats and 
   const mixed=enter(second,'fighter');assert.ok(!extras(mixed).features.some(f=>f.name===name));const p=fill(create(cls),L.begin(create(cls),context(create(cls))));assert.ok(!L.getChoices(create(cls),p,context(create(cls))).some(g=>g.id===key));p.choices[key]='yes';assert.ok(L.transition(create(cls),p,context(create(cls))).errors.length);
  }
 });
+
+
+test('PR26 round fourteen: all 62 PHB beasts have exact profiles and export once without changing the hero',()=>{
+ const D=require('../levelup-data'),second=advance(create('ranger')),snapshot=JSON.stringify(second);
+ assert.equal(D.companions.length,62);assert.equal(new Set(D.companions.map(x=>x.id)).size,62);
+ const pending=fill(second,L.begin(second,context(second)),{subclass:'beast-master',companion_rules:'phb-beast'});
+ assert.deepEqual(L.getChoices(second,pending,context(second)).find(g=>g.id==='companion').options.map(o=>o.value),D.companions.map(x=>x.id));
+ let hero;
+ for(const beast of D.companions){
+  const p=beast.profile;assert.ok(p,beast.id);assert.equal(p.source,beast.source);assert.ok(p.page>0);assert.match(p.dataUrl,/bestiary-/);assert.equal(Object.keys(p.abilities).length,6);assert.ok(p.ac>0&&p.hp>0);assert.ok(p.hitDice);assert.ok(Object.keys(p.speed).length>0);assert.ok(Array.isArray(p.actions)&&Array.isArray(p.traits));
+  const c=advance(second,'beast-master',{companion_rules:'phb-beast',companion:beast.id}),e=extras(c),features=e.features.filter(f=>f.name==='Спутник следопыта');assert.equal(features.length,1,beast.id);
+  const text=features[0].description;assert.ok(text.includes(beast.label));assert.ok(text.includes('КД '+(p.ac+2)));assert.ok(text.includes('хиты '+Math.max(p.hp,12)));assert.ok(text.includes(beast.url));assert.match(text,/устная команда перемещения/);assert.match(text,/Ваше действие — команда Атака, Отход, Помощь или Рывок/);assert.match(text,/без команды — Уклонение/);assert.match(text,/8 часов/);
+  const paragraphs=exported(c).text.traits.value.data.content,texts=paragraphs.flatMap(p=>p.content||[]).map(x=>x.text||'');for(const line of text.split('\n'))assert.equal(texts.filter(x=>x.includes(line)).length,1,beast.id+': exported line '+line);
+  const st=stats(c),current={hp:st.hp,ac:st.ac,speed:st.speed,initiative:st.initiative,abilities:st.abilities,attacks:e.attacks,resources:e.resources};if(hero)assert.deepEqual(current,hero,beast.id+': hero');else hero=current;
+  assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.equal(JSON.stringify(second),snapshot);
+ }
+});
+
+test('PR26 round fourteen: golden PHB animals preserve printed bonuses, fixed damage, saves and named variants',()=>{
+ const second=advance(create('ranger')),summary=id=>extras(advance(second,'beast-master',{companion_rules:'phb-beast',companion:id})).features.find(f=>f.name==='Спутник следопыта').description;
+ for(const [id,patterns] of [
+  ['wolf',[/КД 15/,/хиты 12/,/Восприятие \+5|Внимательность \+5/,/Скрытность \+6/,/пассивная Внимательность 15/,/оружием \+6/,/2к4 \+ 4/,/СИЛ Сл 11/,/Тактика стаи/]],
+  ['cat',[/оружием \+2/,/3 \(рубящий\)/,/Скрытность \+6/]],
+  ['flying-snake',[/оружием \+8/,/3 \(колющий\)/,/3к4 \+ 2 \(яд\)/,/Облёт/]],
+  ['giant-poisonous-snake',[/досягаемость 10 футов/,/1к4 \+ 6/,/ТЕЛ Сл 11/,/3к6 \+ 2/,/половина при успехе/]],
+  ['giant-centipede',[/3к6 \+ 2/,/при успехе урона нет/,/стабильна, отравлена на 1 час/,/парализована/]],
+  ['spider',[/3 \(колющий\)/,/ТЕЛ Сл 9/,/1к4 \+ 2/,/Паучье лазание/,/Чувство паутины/]],
+  ['stirge',[/1к4 \+ 5 \(колющий\)/,/теряет 1к4 \+ 3 хита/,/БМ не добавляется/,/5 футов перемещения/,/10 хитов крови/]],
+  ['giant-frog',[/Проглатывание/,/2к4 \+ 2 \(кислота\)/,/Маленькой или меньшей/,/полное укрытие/]],
+  ['goat',[/дополнительно 1к4 дробящего/,/СИЛ Сл 10/]],
+  ['mountain-goat',[/дополнительно 1к6 дробящего/,/СИЛ Сл 12/,/лазание 30 футов/]],
+  ['kingsport',[/ИНТ 10/,/Общий/,/20 минут/,/слеп за пределами радиуса/]],
+  ['awakened-rat',[/ИНТ 10/,/Общий/]],
+  ['sylgar',[/плавание 40 футов/,/оружием \+7/,/3 \(колющий\)/]],
+  ['guthash',[/хиты 16/,/оружием \+7/,/болезнь до излечения/,/1к6 каждые 24 часа/,/максимум 0 — смерть/]],
+  ['male-steeder',[/OotA, стр. 231/,/прыжок до 60 футов/,/1к8 \+ 4 \(колющий\)/,/1к8 \+ 2 \(кислота\)/,/ТЕЛ Сл 12/,/Липкая лапа/,/Маленькое или Крошечное/,/Сл 12/]],
+  ['giant-badger',[/хиты 13/,/Мультиатака/,/не разрешает Мультиатаку/]],
+  ['dimetrodon',[/хиты 19/]],
+  ['hare',[/Бегство/,/Засада бонусным действием/]],
+  ['pollenella-the-honeybee',[/Жало/,/5 \(колющий\)/]],
+  ['deep-roth',[/Пляшущие огоньки/,/2к6 колющего/,/Большим/]]
+ ])for(const re of patterns)assert.match(summary(id),re,id);
+ const primal=extras(advance(second,'beast-master',{companion_rules:'primal-companion',companion:'beast-of-land'}));assert.equal(primal.features.filter(f=>f.name==='Первобытный спутник').length,1);assert.ok(!primal.features.some(f=>f.name==='Спутник следопыта'));
+});
+
+test('PR26 round fourteen: legacy parser resolves named copies and rejects missing or unknown mechanics',()=>{
+ const {profile,resolveMonster,actionProfile}=require('../docs/enrich-companions.cjs'),D=require('../levelup-data'),wolf=D.companions.find(x=>x.id==='wolf');
+ const raw={name:'Wolf',source:'MM',size:['M'],ac:[13],hp:{average:11,formula:'2d8 + 2'},str:12,dex:15,con:12,int:3,wis:12,cha:6,speed:{walk:40},passive:13,trait:[],action:[]},copy={name:'Named Wolf',source:'TftYP',page:21,hp:{average:16,formula:'2d8 + 2'},int:10,_copy:{name:'Wolf',source:'MM',_mod:{trait:{mode:'appendArr',items:{name:'Pack Tactics',entries:[]}}}}};
+ const resolved=resolveMonster(copy,[raw,copy]);assert.equal(resolved.hp.average,16);assert.equal(resolved.int,10);assert.equal(resolved.ac[0],13);assert.equal(resolved.trait[0].name,'Pack Tactics');assert.equal(profile({...wolf,name:'Named Wolf',source:'TftYP'},[raw,copy]).hp,16);
+ assert.throws(()=>profile({id:'missing',name:'Missing',source:'MM'},[raw]),/Missing exact/);assert.throws(()=>actionProfile({name:'Unsupported',entries:['Unknown mechanics']},'test'),/Unparsed/);
+});
+
+test('PR26 round fourteen: Wildfire has its own class-scaled profile, WIS attacks and teleport save',()=>{
+ for(const wisdom of [8,18]){
+  const first=create('druid',null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence:16,wisdom,charisma:16}}),second=advance(first,'wildfire');
+  for(const c of [second,advance(second),...(wisdom>=13?[enter(second,'fighter')]:[])]){
+   const e=extras(c),n=L.inspect(c,context(c)).state.classStates.druid.state.level,text=e.features.find(f=>f.name==='Призыв духа дикого огня').description,pb=stats(c).proficiencyBonus,w=stats(c).modifiers.wisdom;
+   for(const term of ['КД 13','хиты '+(5+5*n),'5 × уровень друида','Огненное семя','оружием '+(pb+w>=0?'+':'')+(pb+w),'ЛОВ Сл '+(8+pb+w),'1к6 + '+pb+' огня','2к6 огня','через 1 час','0 хитов','сразу после вас','бонусным действием','согласные существа в 5 футах','до 15 футов','парит','Иммунитет к огню'])assert.ok(text.includes(term),term);
+   for(const line of text.split('\n'))assert.ok(JSON.stringify(exported(c).text.traits).includes(line));assert.ok(!e.attacks.some(a=>/дух|семя/i.test(a.label)));assert.equal(stats(c).ac,stats(first).ac);assert.deepEqual(e.resources.filter(r=>r.id==='wild-shape').map(r=>r.max),[2]);
+  }
+ }
+ assert.ok(!extras(advance(create('druid'),'land')).features.some(f=>f.name==='Призыв духа дикого огня'));
+});
+
+test('PR26 round fourteen: eight feature summaries are playable in LSS and preserve temporary effects',()=>{
+ const feature=(c,name)=>{const f=extras(c).features.filter(f=>f.name===name);assert.equal(f.length,1,name);for(const line of f[0].description.split('\n'))assert.ok(JSON.stringify(exported(c).text.traits).includes(line),name);return f[0].description;};
+ const third=(cls,branch,overrides)=>advance(advance(create(cls,undefined,overrides)),branch);
+ const monk=third('monk','open-hand');assert.match(feature(monk,'Техника открытой ладони'),/ЛОВ.*СИЛ.*15 футов.*без спасброска.*до конца вашего следующего хода/);assert.match(feature(monk,'Техника открытой ладони'),/Сл обоих спасбросков 13/);
+ for(const n of [2,3]){let c=advance(create('paladin'));if(n===3)c=advance(c,'devotion');const t=feature(c,'Наложение рук');for(const re of [new RegExp('Запас '+5*n),/Действием коснитесь/,/1 хит/,/5 пунктов/,/несколько болезней\/ядов/,/нежить и конструктов/,/долгого отдыха/])assert.match(t,re);assert.equal(extras(c).resources.find(r=>r.id==='lay-on-hands').max,5*n);}
+ const echo=feature(third('fighter','echo-knight'),'Проявление эха');for(const re of [/КД эха 16/,/1 хит/,/иммунитет ко всем состояниям/,/15 футах/,/вашего размера/,/30 футов/,/в конце вашего хода/,/за 15 футов своего перемещения/,/Для каждой атаки действием Атака/,/вашей реакцией/,/минимум на 5 футов/])assert.match(echo,re);
+ for(const n of [2,3]){let c=advance(create('sorcerer','wild'));if(n===3)c=advance(c);const t=feature(c,'Гибкое колдовство');for(const re of [new RegExp('Максимум '+n),/Бонусным действием/,/равном кругу ячейки/,/1-й круг стоит 2, 2-й — 3/,/исчезают в конце долгого отдыха/])assert.match(t,re);assert.equal(extras(c).resources.find(r=>r.id==='sorcery-points').max,n);}
+ const spirits=feature(third('bard','spirits'),'Истории из-за пределов');for(const re of [/духовную фокусировку/,/история случайна/,/короткого\/долгого отдыха/,/Действием.*30 футах/,/Новый бросок немедленно прекращает/,/1\. Умный зверь.*10 минут/,/2\. Прославленный дуэлянт.*2к6 \+ ХАР/,/3\. Любимые друзья.*5 футах/,/4\. Беглец.*реакцией.*30 футов/,/5\. Мститель.*1 минуту/,/6\. Путешественник.*временных хитов/,/ХАР \+3/,/уровень барда 3/])assert.match(spirits,re);assert.doesNotMatch(spirits,/7\./);
+ const mote=feature(third('bard','creation'),'Частица потенциала');for(const re of [/Проверка характеристики.*ещё раз/,/Бросок атаки.*5 футах.*ТЕЛ/,/Спасбросок.*временные хиты/,/минимум 1/,/Сл ТЕЛ 13/,/ХАР \+3/])assert.match(mote,re);
+ const alchemist=third('artificer','alchemist'),elixir=feature(alchemist,'Экспериментальный эликсир');for(const re of [/один эликсир/,/инструменты алхимика/,/Бросьте к6/,/Дополнительный эликсир: действие, ячейка 1-го круга/,/недееспособное существо/,/2к4/,/2\. Быстрота.*1 час/,/3\. Стойкость.*10 минут/,/4\. Смелость.*один раз бросьте 1к4/,/4\. Смелость.*один и тот же результат.*каждому броску атаки и спасброску.*1 минуты/,/5\. Полёт.*10 футов.*10 минут/,/6\. Превращение.*10 минут/,/ИНТ \+3/])assert.match(elixir,re);assert.equal(extras(alchemist).resources.find(r=>r.id==='experimental-elixir').max,1);
+ const rogue=third('rogue','swashbuckler'),rakish=feature(rogue,'Удалой нахал');for(const re of [/вы в 5 футах от цели/,/никакие другие существа/,/без помехи/,/фехтовальное или дальнобойное/,/один раз за ход/,/Обычные способы/])assert.match(rakish,re);assert.match(feature(rogue,'Скрытая атака'),/2к6/);
+ for(const [cls,branch,forbidden] of [['bard','lore','Истории из-за пределов'],['bard','lore','Частица потенциала'],['artificer','battle-smith','Экспериментальный эликсир'],['monk','shadow','Техника открытой ладони'],['rogue','thief','Удалой нахал']])assert.ok(!extras(third(cls,branch)).features.some(f=>f.name===forbidden));
+ const mixed=enter(advance(create('sorcerer','wild')),'paladin');assert.match(feature(mixed,'Гибкое колдовство'),/Максимум 2/);assert.equal(extras(mixed).resources.find(r=>r.id.endsWith('lay-on-hands')).max,5);assert.ok(!extras(mixed).features.some(f=>f.name==='Метамагия'));
+});
+
+
+test('PR26 round fourteen: ability-based summaries follow low and high modifiers without permanent table buffs',()=>{
+ for(const score of [6,18])for(const [cls,branch,ability,name] of [['monk','open-hand','wisdom','Техника открытой ладони'],['bard','creation','charisma','Частица потенциала'],['bard','spirits','charisma','Истории из-за пределов'],['artificer','alchemist','intelligence','Экспериментальный эликсир']]){
+  const first=create(cls,null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence:16,wisdom:16,charisma:16,[ability]:score}}),c=advance(advance(first),branch),e=extras(c),t=e.features.find(f=>f.name===name).description,m=stats(c).modifiers[ability],sign=(m>=0?'+':'')+m;
+  if(branch==='open-hand')assert.ok(t.includes('Сл обоих спасбросков '+(10+m)));if(branch==='creation'){assert.ok(t.includes('Сл ТЕЛ '+(10+m)));assert.ok(t.includes('модификатор ХАР '+sign));}if(branch==='spirits'){assert.ok(t.includes('ХАР '+sign));assert.ok(t.includes('атаки заклинанием '+(2+m>=0?'+':'')+(2+m)));}if(branch==='alchemist')assert.ok(t.includes('модификатор ИНТ '+sign));
+  for(const line of t.split('\n'))assert.ok(JSON.stringify(exported(c).text.traits).includes(line));
+  if(cls==='bard'){assert.equal(stats(c).ac,stats(first).ac);assert.equal(stats(c).speed,stats(first).speed);assert.equal(e.resources.find(r=>r.id==='bardic-inspiration').max,Math.max(1,m));}
+ }
+});
