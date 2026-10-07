@@ -250,7 +250,7 @@ function clearDraft() {
 function renderPage() {
   const app = getApp();
   if (!app || !config) return;
-  if (character.pendingAdvancement && typeof LevelUpRules!=='undefined') { showAdvancement(app); return; }
+  if (currentPageIndex >= config.pages.length && character.pendingAdvancement && typeof LevelUpRules!=='undefined') { showAdvancement(app); return; }
   if (currentPageIndex >= config.pages.length) {
     showResult(app);
     return;

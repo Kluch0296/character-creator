@@ -714,3 +714,27 @@ test('PR26 round fourteen: ability-based summaries follow low and high modifiers
   if(cls==='bard'){assert.equal(stats(c).ac,stats(first).ac);assert.equal(stats(c).speed,stats(first).speed);assert.equal(e.resources.find(r=>r.id==='bardic-inspiration').max,Math.max(1,m));}
  }
 });
+
+test('PR26 round fifteen: Wild Shape exports complete transformation rules at druid levels two and three',()=>{
+ for(const subclass of ['land','moon']){
+  const first=create('druid'),second=advance(first,subclass);
+  assert.ok(!extras(first).features.some(f=>f.name==='Дикий облик'));
+  for(const c of [second,advance(second),enter(second,'fighter')]){
+   const e=extras(c),f=e.features.find(f=>f.name==='Дикий облик'),text=f.description;
+   for(const pattern of [/которого вы видели/,/1 час.*половина уровня друида.*вниз/,/ещё одно использование/,/бонусным действием.*вернуться/,/бессознательн.*0 хитов.*смерт/,/характеристики зверя/,/мировоззрени.*личност.*Интеллект.*Мудрост.*Харизм/,/владения навыками и спасбросками/,/больший бонус/,/легендарные.*логов/,/хиты и кости хитов зверя/,/до превращения/,/избыточный урон.*обычный облик/,/не падаете без сознания/,/нельзя накладывать заклинания/,/речь.*рук.*анатом/,/концентрация.*не прерывается/i,/действия.*уже действующих заклинаний/,/умения класса.*расы.*физически/i,/особые чувства.*звер/,/снаряжением.*земл.*слива.*надева/,/Мастер.*размер/,/размер.*не меняются/,/слившееся.*не работает/i])assert.match(text,pattern);
+   assert.match(text,subclass==='moon'?/ПО 1.*без плавания и полёта.*бонусное действие/:/ПО 1\/4.*без плавания и полёта.*действие/);
+   for(const line of text.split('\n'))assert.ok(JSON.stringify(exported(c).text.traits).includes(line));
+   assert.deepEqual(e.resources.filter(r=>r.id==='wild-shape').map(r=>[r.max,r.rest]),[[2,'short-rest']]);
+   assert.equal(stats(c).ac,stats(first).ac);assert.equal(stats(c).speed,stats(first).speed);
+  }
+ }
+});
+
+test('PR26 round fifteen: Drakewarden Bite ignores ranger Wisdom and essence grants no level-three resistance',()=>{
+ for(const wisdom of [8,18]){
+  const c=advance(advance(create('ranger',null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence:16,wisdom,charisma:16}})),'drakewarden'),e=extras(c),f=e.features.find(f=>f.name==='Драконий спутник');
+  assert.match(f.description,/Укус.*\+5.*1к6\+2/);assert.match(f.description,/Дрейк получает иммунитет/);
+  assert.doesNotMatch(f.description,/вы получаете сопротивление|следопыт.*сопротивление/i);
+  assert.ok(!e.features.some(f=>/сопротивление/i.test(f.name+' '+f.description)));assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));
+ }
+});
