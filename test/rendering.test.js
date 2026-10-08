@@ -1110,3 +1110,13 @@ test('PR26 round nineteen: uncarried pact forms and barbarian proficiencies reac
  const c=H.advance(H.advance(H.create('barbarian',null,{abilityMethod:'manual'})),'wild-magic'),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
  const rule='Вам — 1к12 временных хитов.';assert.ok(dom.root.textContent.includes(rule));assert.ok(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).includes(rule));
 });
+
+
+test('PR26 round twenty: source-verified feature conditions reach actual sheet and export',async()=>{
+ const H=require('./fixtures/characters'),cases=[['barbarian','berserker','Ярость','не атаковали враждебное существо и не получали урон'],['warlock','undying','Среди мёртвых','24 часа'],['druid','spores','Симбиотическая сущность','Преимущества действуют 10 минут'],['wizard','divination','Предзнаменование','до броска'],['rogue','soulknife','Психический шёпот','1 мили']];
+ for(const [cls,branch,name,condition] of cases){const first=H.create(cls,cls==='warlock'?branch:null,{abilityMethod:'manual'}),second=H.advance(first,['druid','wizard'].includes(cls)?branch:null),third=H.advance(second,['barbarian','rogue'].includes(cls)?branch:null),heroes=[third];if(cls!=='rogue')heroes.push(second,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name);assert.ok(f);assert.ok(f.description.includes(condition));assert.ok(dom.root.textContent.includes(f.description));assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(JSON.stringify(c),before);}
+ }
+ const c=H.advance(H.create('paladin',null,{abilityMethod:'manual',creation_weapon:'longbow',creation_shield_weapon:'greatsword'}),null,{style:'great-weapon-fighting'}),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();const data=JSON.parse(ctx.getExportData()[0].data),attacks=H.extras(c).attacks;
+ for(const id of ['longbow','greatsword']){const attack=attacks.find(a=>a.id===id),native=data.weaponsList.find(w=>w.name.value===attack.label);assert.ok(dom.root.textContent.includes(attack.label+': +'+attack.attackBonus+' к попаданию, '+attack.damage+' урона'+(attack.notes.length?'. '+attack.notes.join(' '):'')));assert.equal(/переброс/.test(native.notes.value),id==='greatsword');}
+});

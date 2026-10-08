@@ -1,6 +1,6 @@
 {
   "name": "character-creator",
-  "version": "3.3.15",
+  "version": "3.3.16",
   "private": true,
   "description": "Мастер создания и прокачки персонажа до 3-го уровня D&D 5e 2014 с экспортом Long Story Short",
   "scripts": {

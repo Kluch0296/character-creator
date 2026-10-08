@@ -927,3 +927,42 @@ test('PR26 round eighteen: ordinary Hex Warrior preserves legal multiclass throw
  const first=create('fighter',null,{creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes',abilityMethod:'manual'}),c=enter(first,'warlock',{'warlock:creation_patron':'hexblade'}),before=copy(c),e=extras(c),thrown=e.attacks.find(a=>a.id==='handaxe-thrown'),hex=e.attacks.find(a=>a.id==='handaxe-thrown-hex');
  assert.ok(hex);assert.equal(hex.ability,'charisma');assert.equal(hex.damage,'1d6+5');assert.equal(hex.attackBonus,5);assert.equal(thrown.damage,'1d6+5');assert.ok(!e.attacks.some(a=>a.pactWeapon));const native=exported(c).weaponsList.find(w=>w.name.value===hex.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,hex.damage);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);
 });
+
+
+const round20Cases=[
+ ['Ярость',()=>{const first=create('barbarian',null,{abilityMethod:'manual'}),second=advance(first),entry=enter(create('wizard',null,{abilityMethod:'manual'}),'barbarian');return [first,second,advance(second,'berserker'),enter(second,'wizard'),entry,enter(entry,'barbarian')];},[/бонусным действием.*свой ход/i,/1 минут/,/без тяжёлого доспеха/,/преимущество.*проверки.*спасброски Силы/,/\+2.*рукопашных атак оружием.*Силы/,/дробящему, колющему и рубящему/,/нельзя накладывать заклинания.*концентраци/,/потере сознания/,/конце вашего хода.*не атаковали враждебное существо и не получали урон/,/закончить.*бонусным действием/]],
+ ['Среди мёртвых',()=>{const first=create('warlock','undying',{abilityMethod:'manual'}),second=advance(first);return [first,second,advance(second,null,{pact:'blade'}),enter(first,'fighter'),enter(second,'fighter'),enter(create('fighter',null,{abilityMethod:'manual'}),'warlock',{'warlock:creation_patron':'undying'})];},[/Уход за умирающим/,/преимущество.*спасброски против болезней/,/нежить непосредственно выбирает вас целью/,/Мудрости.*Сл.*колдуна/,/област.*не требует/,/другую цель.*атака или заклинание тратится впустую/,/успехе.*24 часа/,/вы выбираете.*целью.*атаки или вредоносного заклинания/]],
+ ['Симбиотическая сущность',()=>{const second=advance(create('druid',null,{abilityMethod:'manual'}),'spores'),entry=enter(create('fighter',null,{abilityMethod:'manual'}),'druid');return [second,advance(second),enter(second,'fighter'),enter(entry,'druid',{subclass:'spores'})];},[/Действие.*Дикого облика/,/4 × уровень друида временных хитов/,/удвоенные кости Ореола/,/\+1к6 некротического.*рукопашн/,/Преимущества действуют 10 минут/,/потере всех этих временных хитов/,/повторном использовании Дикого облика/]],
+ ['Предзнаменование',()=>{const second=advance(create('wizard',null,{abilityMethod:'manual'}),'divination'),entry=enter(create('fighter',null,{abilityMethod:'manual'}),'wizard');return [second,advance(second),enter(second,'fighter'),enter(entry,'wizard',{subclass:'divination'})];},[/два к20/,/вы или существо/,/видимости/,/атаку, проверку или спасбросок/,/до броска/,/(?:один раз|одного раза) за ход/,/одной неиспользованной костью/,/исчезают после следующего долгого отдыха/]],
+ ['Психический шёпот',()=>[advance(advance(create('rogue',null,{abilityMethod:'manual'})),'soulknife')],[/Действием.*видимых существ/,/бонуса мастерства/,/бросьте.*к6.*число часов/,/Каждое.*с вами, а вы с ним/,/1 мили/,/Сообщения.*не требуют действия/,/хотя бы на одном языке/,/общий язык не нужен/,/оборвать связь.*без действия/,/Первое применение.*долгого отдыха.*не расходует кость/,/Повторные применения расходуют одну псионическую кость/,/костей не осталось/]]
+];
+for(const [name,build,patterns] of round20Cases)test('PR26 round twenty: complete '+name+' conditions survive legal class levels and native LSS',()=>{
+ for(const c of build()){
+  const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name===name||(name==='Ярость'&&f.description.startsWith('Ярость:')));assert.equal(features.length,1,name);
+  const text=features[0].description;for(const p of patterns)assert.match(text,p,name);assert.ok(JSON.stringify(exported(c).text.traits).includes(text));
+  if(name==='Психический шёпот')assert.doesNotMatch(text,/одном плане|друг с другом|между собой/);
+  if(name==='Симбиотическая сущность')assert.doesNotMatch(text,/временные хиты исчезают|теряете.*хиты.*10 минут/);
+  assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(R.validateAbilities(c,context(c).baseExtras),[]);assert.deepEqual(c,before);
+ }
+});
+
+test('PR26 round twenty: Great Weapon Fighting rejects ranged weapons in creation, advancement and multiclass',()=>{
+ const fighter=create('fighter',null,{abilityMethod:'manual',creation_style:'great_weapon',creation_weapon:'greatsword'}),paladin=create('paladin',null,{abilityMethod:'manual',creation_weapon:'longbow',creation_shield_weapon:'greatsword'}),p2=advance(paladin,null,{style:'great-weapon-fighting'}),ranger=create('ranger',null,{abilityMethod:'manual',creation_weapon:'spear',creation_second_weapon:'spear'});
+ const cases=[fighter,advance(fighter),p2,advance(p2,'devotion'),enter(p2,'fighter',{'fighter:creation_style':'defense'}),enter(ranger,'fighter',{'fighter:creation_style':'great_weapon'}),enter(enter(ranger,'paladin'),'paladin',{style:'great-weapon-fighting'})];
+ for(const c of cases){const before=copy(c),e=extras(c),data=exported(c),reroll=/переброс|перебрасыва/;assert.deepEqual(L.inspect(c,context(c)).errors,[]);
+  const ranged=e.attacks.filter(a=>a.properties.includes('ranged')),melee=e.attacks.filter(a=>!a.properties.includes('ranged')&&(a.properties.includes('two-handed')||a.properties.includes('versatile')));assert.ok(ranged.length);assert.ok(melee.length);
+  for(const attack of ranged){assert.doesNotMatch(attack.notes.join(' '),reroll);assert.doesNotMatch(data.weaponsList.find(w=>w.name.value===attack.label).notes.value,reroll);}
+  for(const attack of melee){assert.match(attack.notes.join(' '),reroll);assert.match(attack.notes.join(' '),/новый результат/);assert.match(data.weaponsList.find(w=>w.name.value===attack.label).notes.value,reroll);}
+  assert.deepEqual(c,before);
+ }
+ for(const attack of O.derive(fighter,context(fighter)).attacks.filter(a=>a.properties.includes('ranged')))assert.doesNotMatch(attack.notes.join(' '),/переброс/);
+});
+
+
+test('PR26 round twenty: completed summaries remain restricted to their class and unlock level',()=>{
+ for(const [cls,branch,name] of [['warlock','fiend','Среди мёртвых'],['druid','land','Симбиотическая сущность'],['wizard','evocation','Предзнаменование'],['rogue','thief','Психический шёпот']]){
+  const first=create(cls,cls==='warlock'?branch:null,{abilityMethod:'manual'}),second=advance(first,['druid','wizard'].includes(cls)?branch:null),third=advance(second,cls==='rogue'?branch:null);
+  for(const c of [first,second,third])assert.ok(!extras(c).features.some(f=>f.name===name));
+ }
+ for(const cls of ['fighter','wizard','warlock'])assert.ok(!extras(create(cls,null,{abilityMethod:'manual'})).features.some(f=>f.name==='Ярость'||f.description.startsWith('Ярость:')));
+});
