@@ -108,6 +108,7 @@ let abilityPick = null;
 let liveRefs = null;
 let liveRefreshTimer = null;
 let saveIndicatorNode = null;
+let draftSaved = true;
 let actionBarObserver = null;
 const raceViewState = { filter: 'all', query: '', sort: 'fit' };
 
@@ -445,6 +446,7 @@ function trackActionBarHeight(bar) {
 }
 
 function markDraftSaved(saved) {
+  draftSaved = saved;
   if (!saveIndicatorNode) return;
   saveIndicatorNode.textContent = saved ? 'Черновик сохранён' : 'Автосохранение недоступно';
   toggleClass(saveIndicatorNode, 'is-off', !saved);

@@ -202,6 +202,19 @@ function restoreDraft() {
     if (!draft || !draft.character || draft.edition !== config.meta.edition) return;
     if (typeof draft.character !== 'object' || Array.isArray(draft.character)) return;
     character = { ...base, ...draft.character };
+    if (typeof LevelUpRules !== 'undefined') {
+      const upgraded = LevelUpRules.upgradeLegacyFoundation(character, getAdvancementContext());
+      if (upgraded !== character) {
+        // Persist before validation can route an incomplete draft to editable creation.
+        character = upgraded;
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...draft, character }));
+          markDraftSaved(true);
+        } catch (error) {
+          markDraftSaved(false);
+        }
+      }
+    }
     if (draft.pageId === 'result') {
       currentPageIndex = config.pages.length;
     } else {
@@ -327,7 +340,8 @@ function renderHeader(container) {
   header.appendChild(brand);
 
   const tools = createElement('div', 'header-tools');
-  saveIndicatorNode = createElement('span', 'save-indicator', 'Черновик сохранён');
+  saveIndicatorNode = createElement('span', 'save-indicator');
+  markDraftSaved(draftSaved);
   tools.appendChild(saveIndicatorNode);
   const reset = createElement('button', 'header-button', 'Начать заново');
   reset.type = 'button';
@@ -1352,7 +1366,7 @@ function appendDefinition(list, term, value) {
 }
 
 function getExportData() {
-  if(typeof LevelUpRules!=='undefined'){const errors=LevelUpRules.inspect(character,getAdvancementContext()).errors;if(errors.length)throw new Error(errors[0].message);}
+  if(typeof LevelUpRules!=='undefined'){const errors=LevelUpRules.inspect(character,getAdvancementContext()).errors;if(errors.length)throw new Error(errors[0].message);if(character.pendingAdvancement?.foundation!==undefined&&character.pendingAdvancement.foundation!==LevelUpRules.foundation(character))throw new Error('Основные выборы изменились. Сначала явно сбросьте зависимую прокачку.');}
   const invalid = findFirstInvalidPage();
   if (invalid) throw new Error(`Персонаж не завершён: ${invalid.errors[0].message}`);
   const race = getSelectedRace();

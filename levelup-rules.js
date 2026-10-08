@@ -274,7 +274,26 @@
  function subclasses(cls){return D.subclasses.filter(s=>s.class===cls).map(s=>({...s,label:cls==='wizard'&&s.id==='war'?'Военная магия':cls==='sorcerer'&&s.id==='shadow'?'Теневая магия':SUBNAMES[s.id]||s.name}));}
  function subclass(c,state={}){return subclasses(c.class).find(s=>s.id===(FIELD[c.class]?c[FIELD[c.class]]:state.subclass));}
  // Include creation ability/proficiency decisions in the fingerprint, but allow narrative edits.
- function foundation(c){const keys=Object.keys(c).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature'].includes(k)||k.startsWith('creation_')||k.startsWith('race_'));return JSON.stringify(Object.fromEntries(keys.sort().map(k=>[k,c[k]])));}
+ function foundationValues(c,expanded=false){const keys=Object.keys(c).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature',...(expanded?['abilityBonusPlan','high_elf_cantrip','astral_elf_astral_fire']:[])].includes(k)||k.startsWith('creation_')||k.startsWith('race_'));return JSON.stringify(Object.fromEntries(keys.sort().map(k=>[k,c[k]])));}
+ function foundation(c){return 'foundation:v2:'+foundationValues(c,true);}
+ // Only the local-save ingress may bind fields omitted by historical fingerprints.
+ // All entries must still match their exact saved creation values; inspectors never migrate.
+ function upgradeLegacyFoundation(c,context={}){
+  const ledger=c.advancement,pending=c.pendingAdvancement;
+  if(ledger!==undefined&&(!ledger||![1,2].includes(ledger.version)||!Array.isArray(ledger.entries)))return c;
+  const entries=ledger?.entries||[],legacy=foundationValues(c),current=foundation(c);
+  // A stamped mismatch already has a protected baseline and must never be rebound.
+  if([...entries,pending].some(p=>typeof p?.foundation==='string'&&p.foundation.startsWith('foundation:v2:')&&p.foundation!==current))return c;
+  if(entries.some(p=>!p||![1,2].includes(p.version)||![legacy,current].includes(p.foundation)))return c;
+  const upgradePending=pending&&[1,2].includes(pending.version)&&pending.foundation===legacy;
+  if(!entries.some(p=>p.foundation===legacy)&&!upgradePending)return c;
+  const next=clone(c);for(const p of next.advancement?.entries||[])p.foundation=current;
+  // Validate committed progression independently of unfinished/corrupt pending choices.
+  // Pending data remains intact for normal repair or cancellation after signature binding.
+  try {if(inspect(next,context).errors.length)return c;}catch(error){return c;}
+  if(upgradePending)next.pendingAdvancement.foundation=current;
+  return next;
+ }
  function firstState(c){return {level:1,subclass:FIELD[c.class]?c[FIELD[c.class]]:null,choices:{},entries:[],known:arr(c.creation_known_spells),book:arr(c.creation_spellbook),prepared:arr(c.creation_prepared),cantrips:arr(c.creation_cantrips),invocations:[],infusions:[],bonusReplacements:{}};}
  function additional(c,s,kind,level=s.level){
   const sc=subclass(c,s);if(!sc)return [];
@@ -309,10 +328,14 @@
   const base=attacks?.find(x=>x.id==='unarmed');if(!base||attacks.some(x=>x.id==='unarmed-d8'))return;
   attacks.push({...base,id:'unarmed-d8',label:'Безоружный удар (свободные руки, к8)',damage:base.damage.replace(/^1d6/,'1d8'),notes:['Только если в руках нет ни оружия, ни щита; владение предметами не означает, что они в руках.',...(base.notes||[])]});
  }
- function hexWarrior(attacks,a){
+ function hexWarrior(attacks,a,s){
   for(const attack of [...attacks]){const props=attack.properties||[],shift=mod(a.charisma)-mod(a[attack.ability]);
-   if(!['simple','martial'].includes(attack.group)||props.includes('two-handed')||attack.hexWarrior||attacks.some(x=>x.id===attack.id+'-hex'))continue;
-   attacks.push({...withDamage(attack,attack.damageBonus+shift),id:attack.id+'-hex',label:(attack.label||attack.name||attack.id)+' (Ведьмовской воин)',ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+(attack.proficient?0:2),hexWarrior:true,notes:['Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.',...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+   if(!['simple','martial'].includes(attack.group)||attack.hexWarrior)continue;
+   const pact=props.includes('two-handed'),ranged=props.includes('ranged');
+   if(pact&&(s.level<3||s.choices.pact!=='blade'||(ranged&&(!s.invocations.includes('improved-pact-weapon')||!['shortbow','longbow','light-crossbow','heavy-crossbow'].includes(attack.id)))))continue;
+   const id=attack.id+(pact?'-pact-hex':'-hex'),bonus=pact&&s.invocations.includes('improved-pact-weapon')?1:0;if(attacks.some(x=>x.id===id))continue;
+   const note=pact?'Ведьмовской воин: атака и урон от Харизмы, только если эта форма оружия создана умением «Договор клинка». Обычное оружие в снаряжении не назначено оружием договора.':'Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.';
+   attacks.push({...withDamage(attack,attack.damageBonus+shift+bonus),id,label:(attack.label||attack.name||attack.id)+(pact?' (Договор клинка, ХАР)':' (Ведьмовской воин)'),ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+bonus+(attack.proficient?0:2),hexWarrior:true,...(pact?{pactWeapon:true}:{}),notes:[note,...(bonus?['Улучшенное оружие договора: +1 к атаке и урону созданного оружия уже учтён.']:[]),...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
   }
  }
  function battleReady(attacks,a,infusions){
@@ -374,6 +397,7 @@
    e.attacks.push({...withDamage(attack,attack.damageBonus+shift),id,label:(attack.label||attack.name||attack.id)+' (специальное оружие)',ability:'dexterity',attackBonus:attack.attackBonus+shift,dedicatedWeapon:true,notes:['Только если это единственное оружие, назначенное специальным после короткого или долгого отдыха; исходная атака остаётся доступной.',...(attack.notes||[])]});
   }
  }
+ function publishedOptions(ids,known=[]){const missing=ids.filter(id=>!known.includes(id));return missing.length?missing:ids;}
  function featureSkills(ids,context,anySkillFallback=true){const known=context.proficiencies?.skills||[],missing=ids.filter(id=>!known.includes(id));return missing.length?missing:anySkillFallback?Object.keys(R.SKILLS).filter(id=>!known.includes(id)):ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
  function createChoices(c,context={}){
@@ -476,7 +500,7 @@
     case 'ranger:beast-master':add('companion_rules','Животный спутник',['phb-beast','primal-companion']);if(s.choices.companion_rules==='primal-companion')add('companion','Первобытный спутник',['beast-of-land','beast-of-sea','beast-of-sky']);else add('companion','Зверь среднего размера или меньше, ПО не выше 1/4',(D.companions||[]).map(x=>option(x.id,(x.label||x.name)+' (ПО '+x.cr+')',x.source)));break;
     case 'ranger:fey-wanderer':add('fey_skill','Очарование фей: навык',featureSkills(['deception','performance','persuasion'],context,false),1,'proficiencies');break;
     case 'ranger:swarmkeeper':add('swarm','Облик роя (не меняет механику)',['insects','birds','pixies','twigs']);break;
-    case 'rogue:mastermind':add('gaming_set','Игровой набор',R.GAMING_SETS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');add('languages','Два языка',R.CHOICE_LANGUAGES.filter(id=>!context.proficiencies?.languages.includes(id)),2,'proficiencies');break;
+    case 'rogue:mastermind':add('gaming_set','Игровой набор',publishedOptions(R.GAMING_SETS,context.proficiencies?.tools),1,'proficiencies');add('languages','Два языка',R.CHOICE_LANGUAGES.filter(id=>!context.proficiencies?.languages.includes(id)),2,'proficiencies');break;
     case 'artificer:alchemist':add('specialist_tool','Инструменты алхимика',context.proficiencies?.tools.includes('alchemist')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['alchemist'],1,'proficiencies');break;
     case 'artificer:artillerist':add('specialist_tool','Инструменты резчика',context.proficiencies?.tools.includes('woodcarver')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['woodcarver'],1,'proficiencies');break;
     case 'artificer:armorer':case 'artificer:battle-smith':add('specialist_tool','Инструменты кузнеца',context.proficiencies?.tools.includes('smith')?R.ARTISAN_TOOLS.filter(id=>!context.proficiencies.tools.includes(id)):['smith'],1,'proficiencies');break;
@@ -632,7 +656,7 @@
     if(sc.id==='archfey')resource('fey-presence','Фейское присутствие',1,'short-rest');
     if(sc.id==='celestial'){spell('light','cantrip',sc.label,'charisma');spell('sacred-flame','cantrip',sc.label,'charisma');resource('healing-light','Исцеляющий свет (к6)',s.level+1);}
     if(sc.id==='undying')spell('spare-the-dying','cantrip',sc.label,'charisma');
-    if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a);}
+    if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a,s);}
     if(sc.id==='genie')resource('bottled-respite','Уединение в сосуде',1,'long-rest');
     if(sc.id==='fathomless'){e.swimOverride=40;resource('tentacle','Щупальце глубин',2);}
     if(sc.id==='undead')resource('form-of-dread','Облик ужаса',2);
@@ -712,7 +736,7 @@
    if(s.choices['variant_ki-fueled-attack']==='yes')feature('Атака за ци','Если потратили ци частью действия, можете бонусным действием атаковать безоружно или монашеским оружием.','TCE');
    if(s.choices['variant_cantrip-formulas']==='yes')feature('Формулы заговоров','После долгого отдыха и изучения формул в книге можно заменить один заговор волшебника другим из его списка. Не даёт свободную замену при повышении.','TCE');
    if(s.choices['variant_primal-awareness']==='yes'){e.features=e.features.filter(f=>f.id!=='primeval-awareness'&&f.name!=='Primeval Awareness'&&f.name!=='Первозданная осведомлённость');spell('speak-with-animals','feature','Первобытная осведомлённость','wisdom',true,'1 раз / долгий отдых; также можно использовать ячейку.');}
-   for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).filter(id=>key!=='fey_skill'||!context.proficiencies?.skills?.includes(id)).forEach(id=>gain(type,id));
+   for(const [key,type] of Object.entries({artisan_tool:'tool',archer_skill:'skill',bladesinger_weapon:'weapon',kensei_melee:'weapon',kensei_ranged:'weapon',kensei_tool:'tool',dragon_language:'language',fey_skill:'skill',gaming_set:'tool',languages:'language',giant_language:'language',drake_language:'language',specialist_tool:'tool',subclass_skills:'skill'}))arr(s.choices[key]).filter(id=>(key!=='fey_skill'||!context.proficiencies?.skills?.includes(id))&&(key!=='gaming_set'||!context.proficiencies?.tools?.includes(id))).forEach(id=>gain(type,id));
    for(const key of ['cavalier_proficiency','samurai_proficiency'])arr(s.choices[key]).forEach(id=>gain(R.SKILLS[id]?'skill':R.TOOLS[id]?'tool':'language',id));
    e.fixedExpertise=uniq([...(e.fixedExpertise||[]),...arr(s.choices.expertise)]);
    if(sc?.id==='rune-knight'){
@@ -873,7 +897,7 @@
  function entryExtras(c,p,context){
   const q=entryCharacter(c,p),e=optionsAPI().classExtras(q,context),source=NAMES[p.classId];
   for(const [type,ids] of Object.entries(SECONDARY[p.classId]||{}))ids.forEach(id=>e.fixedProficiencies.push({type,id,source,noReplacement:true}));
-  for(const id of arr(p.choices[p.classId+':entry_skill']))e.fixedProficiencies.push({type:'skill',id,source});
+  for(const id of arr(p.choices[p.classId+':entry_skill']).filter(id=>!context.proficiencies?.skills?.includes(id)))e.fixedProficiencies.push({type:'skill',id,source,noReplacement:true});
   for(const id of arr(p.choices[p.classId+':entry_instrument']))e.fixedProficiencies.push({type:'tool',id,source});
   if(p.classId==='druid')e.fixedProficiencies.push({type:'language',id:'druidic',source});
   if(p.classId==='rogue'){e.fixedProficiencies.push({type:'language',id:'thieves_cant',source});e.fixedExpertise=arr(p.choices[p.classId+':entry_expertise']);}
@@ -886,7 +910,7 @@
   const selectionContext={...context,proficiencies:{...prof,skills:uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill'])])}};
   const result=optionsAPI().classChoices(q,selectionContext).map(g=>({...g,id:prefix+g.id,options:g.options.map(o=>D.spells[o.value]?{...o,source:D.spells[o.value].source,url:D.spells[o.value].url}:o)}));
   const add=(id,name,ids,count=1)=>result.push(group(prefix+id,name,ids,count,'proficiencies'));
-  if(['bard','rogue','ranger'].includes(p.classId))add('entry_skill','Дополнительный навык',R.CLASSES[p.classId].choices[0].options.filter(id=>!prof.skills.includes(id)));
+  if(['bard','rogue','ranger'].includes(p.classId))add('entry_skill','Дополнительный навык',featureSkills(R.CLASSES[p.classId].choices[0].options,{proficiencies:prof},false));
   if(p.classId==='bard')add('entry_instrument','Музыкальный инструмент',R.INSTRUMENTS.filter(id=>!prof.tools.includes(id)));
   if(p.classId==='rogue')add('entry_expertise','Компетентность: два известных владения',uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill']),'thieves_tools']).filter(id=>!prof.expertise.includes(id)),2);
   const seed=optionsAPI().classExtras(q,context);
@@ -994,5 +1018,5 @@
   return e;
  }
  function setSpellNames(names){for(const [id,name] of Object.entries(names))if(D.spells[id]&&!D.spells[id].label&&/[А-Яа-яЁё]/.test(name))D.spells[id].label=name;for(const [id,s]of Object.entries(D.spells))names[id]=s.label||names[id]||s.name;}
- return {subclasses,subclass,foundation,spellList,automaticSpells,creationChoices:createChoices,creationExtras,getChoices,inspect,transition,begin,selectClass,classOptions,hpGain,commit,reset,derive,magic,label,optionList,eligible,setSpellNames};
+ return {subclasses,subclass,foundation,upgradeLegacyFoundation,spellList,automaticSpells,creationChoices:createChoices,creationExtras,getChoices,inspect,transition,begin,selectClass,classOptions,hpGain,commit,reset,derive,magic,label,optionList,eligible,setSpellNames};
 });

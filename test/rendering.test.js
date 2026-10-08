@@ -927,7 +927,7 @@ test('PR26 round fifteen: invalid restored creation blocks pending advancement u
    vm.runInContext('restoreDraft();renderPage();',context);
    assert.ok(vm.runInContext('currentPageIndex<config.pages.length',context));assert.ok(dom.root.querySelector('.wizard-next'));
    assert.ok(!dom.root.textContent.includes('Применить повышение'));assert.equal(vm.runInContext('JSON.stringify(character.pendingAdvancement)',context),pending);
-   assert.equal(vm.runInContext('character.level',context),1);assert.throws(()=>context.getExportData(),/не завершён/);
+   assert.equal(vm.runInContext('character.level',context),1);assert.throws(()=>context.getExportData(),/не завершён|выборы изменились/);
    vm.runInContext('saveDraft();',context);
   }
   vm.runInContext(`character.${field}=${saved};renderPage();`,context);
@@ -939,4 +939,75 @@ test('PR26 round fifteen: invalid restored creation blocks pending advancement u
   vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);
   assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,2);
  }
+});
+
+
+function legacyRoundSixteen(c,version){
+ const hero=JSON.parse(JSON.stringify(c)),foundation=JSON.stringify(Object.fromEntries(Object.keys(hero).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature'].includes(k)||k.startsWith('creation_')||k.startsWith('race_')).sort().map(k=>[k,hero[k]])));
+ if(hero.advancement){hero.advancement.version=version;for(const p of hero.advancement.entries){p.version=version;p.foundation=foundation;if(version===1)delete p.classId;}}
+ if(hero.pendingAdvancement){hero.pendingAdvancement.version=version;hero.pendingAdvancement.foundation=foundation;if(version===1)delete hero.pendingAdvancement.classId;}
+ return hero;
+}
+function storeRoundSixteen(dom,hero){dom.window.localStorage.setItem('dnd-character-draft-v2',JSON.stringify({version:3,edition:readConfig().meta.edition,pageId:'result',character:hero}));}
+
+test('PR26 round sixteen: real final sheet retains ordinary and conditional pact attacks with native CHA export',async()=>{
+ const H=require('./fixtures/characters'),c=H.advance(H.advance(H.create('warlock','hexblade',{creation_weapon:'greatclub',abilityMethod:'manual'})),null,{pact:'blade'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+ assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);const e=H.extras(c),pact=e.attacks.find(a=>a.id==='greatclub-pact-hex'),ordinary=e.attacks.find(a=>a.id==='greatclub');assert.ok(dom.root.textContent.includes(pact.label));assert.ok(dom.root.textContent.includes(pact.notes[0]));assert.ok(dom.root.textContent.includes(ordinary.label));const data=JSON.parse(context.getExportData()[0].data);assert.ok(data.weaponsList.some(w=>w.name.value===pact.label&&w.ability==='cha'));assert.ok(data.weaponsList.some(w=>w.name.value===ordinary.label&&w.ability==='str'));
+});
+
+test('PR26 round sixteen: legacy v1/v2 drafts migrate once before editing and resume or export with original HP',async()=>{
+ const H=require('./fixtures/characters'),second=H.advance(H.create('fighter',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt',abilityMethod:'manual'}));
+ for(const version of [1,2])for(const pending of [true,false]){
+  const c=pending?{...second,pendingAdvancement:{...H.fill(second,require('../levelup-rules').begin(second,H.context(second)),{subclass:'champion'}),step:3}}:H.advance(second,'champion'),old=legacyRoundSixteen(c,version),dom=createDOM();storeRoundSixteen(dom,old);let writes=0;const write=dom.window.localStorage.setItem;dom.window.localStorage.setItem=(...args)=>{writes++;return write(...args);};const context=loadScript(dom,readConfig());await flush();
+  assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);const stored=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.ok(stored.advancement.entries.every(p=>p.foundation.startsWith('foundation:v2:')));assert.equal(writes,pending?1:2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(c).hp);assert.equal(vm.runInContext('character.level',context),c.level);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,c.level);
+  if(pending){assert.deepEqual({...stored.pendingAdvancement,foundation:old.pendingAdvancement.foundation},old.pendingAdvancement);assert.ok(dom.root.textContent.includes('шаг '+(version===1?5:4)+' из 5'));vm.runInContext('character.pendingAdvancement.step=4;renderPage();',context);const commit=dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение');assert.ok(commit);assert.equal(commit.disabled,false);commit.click();assert.equal(vm.runInContext('character.level',context),3);}
+  const committed=vm.runInContext('JSON.stringify(character.advancement)',context);vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),committed);
+  vm.runInContext("character.high_elf_cantrip='light';saveDraft('result');restoreDraft();renderPage();",context);assert.ok(vm.runInContext("LevelUpRules.inspect(character,getAdvancementContext()).errors.some(e=>e.field==='foundation')",context));assert.equal(vm.runInContext('getCreationExtras().effectiveLevel',context),1);assert.throws(()=>context.getExportData(),/выборы изменились/);
+ }
+});
+
+test('PR26 round sixteen: migration persists before invalid creation routing and never blesses later edits',async()=>{
+ const H=require('./fixtures/characters'),second=H.advance(H.create('fighter',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt',abilityMethod:'manual'})),c={...second,pendingAdvancement:{...H.fill(second,require('../levelup-rules').begin(second,H.context(second)),{subclass:'champion'}),step:2}};delete c.name;const old=legacyRoundSixteen(c,2),dom=createDOM();storeRoundSixteen(dom,old);const context=loadScript(dom,readConfig());await flush();
+ assert.ok(vm.runInContext('currentPageIndex<config.pages.length',context));const saved=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.ok(saved.advancement.entries[0].foundation.startsWith('foundation:v2:'));assert.equal(saved.pendingAdvancement.step,2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);
+ vm.runInContext("character.high_elf_cantrip='light';saveDraft();restoreDraft();renderPage();",context);assert.equal(vm.runInContext('character.advancement.entries[0].foundation',context),saved.advancement.entries[0].foundation);assert.throws(()=>context.getExportData(),/выборы изменились/);
+});
+
+test('PR26 round sixteen: unavailable storage keeps migrated hero and partial or corrupt pending remains repairable',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules'),second=H.advance(H.create('fighter',null,{abilityMethod:'manual'}));
+ for(const mode of ['quota','roll','corrupt']){
+  const c={...second,pendingAdvancement:{...H.fill(second,L.begin(second,H.context(second)),{subclass:'champion'}),step:1}},old=legacyRoundSixteen(c,2);if(mode==='roll')old.pendingAdvancement.hp={mode:'roll',value:null};if(mode==='corrupt')old.pendingAdvancement={version:2,foundation:'broken',choices:null};
+  const dom=createDOM();storeRoundSixteen(dom,old);if(mode==='quota')dom.window.localStorage.setItem=()=>{throw new Error('QuotaExceededError');};const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('character.name',context),second.name);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);assert.ok(vm.runInContext("character.advancement.entries[0].foundation.startsWith('foundation:v2:')",context));assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.inspect(character,getAdvancementContext()).errors)',context)),[]);
+  if(mode==='roll'){assert.equal(vm.runInContext('character.pendingAdvancement.hp.value',context),null);vm.runInContext('character.pendingAdvancement.hp.value=5;character.pendingAdvancement.step=4;renderPage();',context);const commit=dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение');assert.equal(commit.disabled,false);commit.click();assert.equal(vm.runInContext('character.level',context),3);}
+  else{vm.runInContext('cancelAdvancement();',context);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,2);}
+ }
+});
+
+test('PR26 round sixteen: mismatching historical foundation and corrupt ledger stay blocked after reload',async()=>{
+ const H=require('./fixtures/characters'),second=H.advance(H.create('fighter',null,{abilityMethod:'manual'}));
+ for(const corrupt of [false,true]){const old=legacyRoundSixteen(second,2);if(corrupt)old.advancement={version:2,entries:null};else old.creation_style='defense';const dom=createDOM();storeRoundSixteen(dom,old);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getCreationExtras().effectiveLevel',context),1);assert.throws(()=>context.getExportData(),corrupt?/Повреждён/:/выборы изменились/);const before=vm.runInContext('JSON.stringify(character.advancement)',context);vm.runInContext("saveDraft('result');restoreDraft();renderPage();",context);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),before);assert.throws(()=>context.getExportData(),corrupt?/Повреждён/:/выборы изменились/);}
+});
+
+
+test('PR26 round sixteen: first-level legacy pending signatures bind once and protect all new mechanical fields',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules');
+ for(const version of [1,2])for(const [field,overrides,value] of [['high_elf_cantrip',{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt'},'light'],['astral_elf_astral_fire',{race:'astral-elf',astral_elf_astral_fire:'light',abilityBonusPlan:'two_one',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}},'sacred-flame'],['abilityBonusPlan',{race:'astral-elf',astral_elf_astral_fire:'light',abilityBonusPlan:'two_one',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}},'three_ones']]){
+  const first=H.create('fighter',null,{abilityMethod:'manual',...overrides}),c={...first,pendingAdvancement:{...H.fill(first,L.begin(first,H.context(first))),step:1}},old=legacyRoundSixteen(c,version),dom=createDOM();storeRoundSixteen(dom,old);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.advancement',context),undefined);const stored=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.ok(stored.pendingAdvancement.foundation.startsWith('foundation:v2:'));assert.equal(stored.pendingAdvancement.step,1);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,1);
+  vm.runInContext(`character[${JSON.stringify(field)}]=${JSON.stringify(value)};saveDraft('result');restoreDraft();renderPage();`,context);assert.equal(vm.runInContext('character.pendingAdvancement.foundation',context),stored.pendingAdvancement.foundation);assert.ok(vm.runInContext("LevelUpRules.transition(character,character.pendingAdvancement,getAdvancementContext()).errors.some(e=>e.field==='foundation')",context));assert.throws(()=>context.getExportData(),/выборы изменились/);assert.equal(vm.runInContext('getCreationExtras().effectiveLevel',context),1);
+  vm.runInContext(`character[${JSON.stringify(field)}]=${JSON.stringify(first[field])};cancelAdvancement();`,context);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,1);
+ }
+});
+
+
+test('PR26 round sixteen review fixes: improved summoned melee and ranged numbers reach the actual sheet and native export',async()=>{
+ const H=require('./fixtures/characters');
+ for(const weapon of ['greatclub','shortbow']){
+  const second=H.advance(H.create('warlock','hexblade',{creation_weapon:weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma:16}})),c=H.advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+  const e=H.extras(c),pact=e.attacks.find(a=>a.pactWeapon),ordinary=e.attacks.find(a=>a.id===weapon);assert.ok(dom.root.textContent.includes(pact.label+': +6 к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(ordinary.label+': +4 к попаданию, '+ordinary.damage+' урона'));assert.equal(pact.damage,(weapon==='greatclub'?'1d8':'1d6')+'+4');const data=JSON.parse(context.getExportData()[0].data),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.dmg.value,pact.damage);assert.equal(native.ability,'cha');assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
+ }
+});
+
+test('PR26 round sixteen review fixes: failed initial migration shows unsaved across rerenders and recovers after save',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules'),second=H.advance(H.create('fighter',null,{abilityMethod:'manual'})),c={...second,pendingAdvancement:{...H.fill(second,L.begin(second,H.context(second)),{subclass:'champion'}),step:1}},dom=createDOM();storeRoundSixteen(dom,legacyRoundSixteen(c,2));const write=dom.window.localStorage.setItem;dom.window.localStorage.setItem=()=>{throw new Error('QuotaExceededError');};const context=loadScript(dom,readConfig());await flush();
+ const indicator=()=>dom.root.querySelector('.save-indicator');for(let render=0;render<3;render++){assert.ok(dom.root.querySelector('.advancement-sheet'));assert.equal(indicator().textContent,'Автосохранение недоступно');assert.equal(indicator().classList.contains('is-off'),true);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);assert.equal(vm.runInContext('character.name',context),second.name);vm.runInContext('renderPage();',context);}
+ dom.window.localStorage.setItem=write;vm.runInContext("saveDraft('result');",context);assert.equal(indicator().textContent,'Черновик сохранён');assert.equal(indicator().classList.contains('is-off'),false);vm.runInContext('renderPage();',context);assert.equal(indicator().textContent,'Черновик сохранён');assert.equal(indicator().classList.contains('is-off'),false);const saved=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.equal(saved.level,2);assert.ok(saved.advancement.entries[0].foundation.startsWith('foundation:v2:'));assert.deepEqual(saved.pendingAdvancement.choices,c.pendingAdvancement.choices);
 });

@@ -738,3 +738,65 @@ test('PR26 round fifteen: Drakewarden Bite ignores ranger Wisdom and essence gra
   assert.ok(!e.features.some(f=>/сопротивление/i.test(f.name+' '+f.description)));assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));
  }
 });
+
+
+test('PR26 round sixteen: Blade Pact exposes conditional two-handed CHA attacks',()=>{
+ for(const charisma of [10,14,18])for(const weapon of ['greatclub','light-crossbow','shortbow']){
+  const first=create('warlock','hexblade',{creation_weapon:weapon,abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma}}),second=advance(first),blade=advance(second,null,{pact:'blade'});
+  for(const c of [first,second,advance(second,null,{pact:'tome'})])assert.ok(!extras(c).attacks.some(a=>a.id===weapon+'-pact-hex'));
+  const e=extras(blade),ordinary=e.attacks.find(a=>a.id===weapon),pact=e.attacks.find(a=>a.id===weapon+'-pact-hex');
+  if(weapon!=='greatclub'){assert.equal(pact,undefined);const improved=advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'});assert.ok(extras(improved).attacks.some(a=>a.id===weapon+'-pact-hex'));continue;}
+  assert.ok(pact);assert.equal(ordinary.ability,'strength');assert.equal(ordinary.attackBonus,2+stats(blade).modifiers.strength);assert.equal(pact.ability,'charisma');assert.equal(pact.attackBonus,2+stats(blade).modifiers.charisma);assert.equal(pact.damageBonus,stats(blade).modifiers.charisma);assert.match(pact.notes[0],/создан.*Договор.*клинка/i);assert.ok(!e.attacks.some(a=>a.group==='unarmed'&&a.hexWarrior));
+  const data=exported(blade);assert.ok(data.weaponsList.some(w=>w.name.value===pact.label&&w.ability==='cha'));assert.ok(JSON.stringify(data.text.attacks).includes(pact.notes[0]));
+ }
+ const other=advance(advance(create('warlock','fiend',{creation_weapon:'greatclub'})),null,{pact:'blade'});assert.ok(!extras(other).attacks.some(a=>a.hexWarrior));
+});
+
+function exhaustedRanger(){return create('rogue',null,{human_feature:'human_alt',creation_feat:'skilled',background:'folk-hero',proficiencyChoices:{'class:rogue:0:0':'athletics','class:rogue:0:1':'insight','class:rogue:0:2':'investigation','class:rogue:0:3':'perception','human-alt:0:0':'stealth','creation:skilled:0':'nature'}});}
+function exhaustedGaming(){return create('rogue',null,{human_feature:'human_alt',creation_feat:'skilled',background:'soldier',proficiencyChoices:{'background:soldier:0:0':'dice','creation:skilled:0':'dragonchess','creation:skilled:1':'playing_cards','creation:skilled:2':'three_dragon_ante'}});}
+
+test('PR26 round sixteen: exhausted Ranger and Mastermind published lists permit harmless repeats',()=>{
+ const ranger=exhaustedRanger(),rp=fill(ranger,L.selectClass(ranger,L.begin(ranger,context(ranger)),'ranger',context(ranger))),rg=L.getChoices(ranger,rp,context(ranger)).find(g=>g.id==='ranger:entry_skill');
+ assert.deepEqual(rg.options.map(o=>o.value),R.CLASSES.ranger.choices[0].options);assert.deepEqual(L.transition(ranger,rp,context(ranger)).errors,[]);const next=L.commit(ranger,rp,context(ranger));assert.deepEqual(stats(next).proficiencies.skills.sort(),stats(ranger).proficiencies.skills.sort());assert.deepEqual(stats(next).proficiencies.errors,[]);assert.equal(exported(next).info.level.value,2);
+ const bad=copy(rp);bad.choices['ranger:entry_skill']='arcana';assert.ok(L.transition(ranger,bad,context(ranger)).errors.some(e=>e.field==='ranger:entry_skill'));
+ const rogue=advance(exhaustedGaming()),mp=fill(rogue,L.begin(rogue,context(rogue)),{subclass:'mastermind'}),mg=L.getChoices(rogue,mp,context(rogue)).find(g=>g.id==='gaming_set');assert.deepEqual(mg.options.map(o=>o.value),R.GAMING_SETS);assert.deepEqual(L.transition(rogue,mp,context(rogue)).errors,[]);const mastermind=L.commit(rogue,mp,context(rogue));assert.deepEqual(stats(mastermind).proficiencies.errors,[]);assert.equal(stats(mastermind).proficiencies.tools.filter(id=>R.GAMING_SETS.includes(id)).length,4);assert.ok(!extras(mastermind).fixedProficiencies.some(g=>g.id===mp.choices.gaming_set));assert.equal(exported(mastermind).info.level.value,3);const invalid=copy(mp);invalid.choices.gaming_set='alchemist';assert.ok(L.transition(rogue,invalid,context(rogue)).errors.some(e=>e.field==='gaming_set'));
+ for(const [c,cls] of [[create('rogue'),'ranger'],[advance(create('rogue')),'mastermind']]){const p=cls==='ranger'?fill(c,L.selectClass(c,L.begin(c,context(c)),'ranger',context(c))):fill(c,L.begin(c,context(c)),{subclass:cls}),g=L.getChoices(c,p,context(c)).find(g=>g.id===(cls==='ranger'?'ranger:entry_skill':'gaming_set'));assert.ok(g.options.length>0);assert.ok(g.options.every(o=>!(cls==='ranger'?stats(c).proficiencies.skills:stats(c).proficiencies.tools).includes(o.value)));}
+});
+
+test('PR26 round sixteen: racial spells and ability bonus plans protect committed and pending foundations',()=>{
+ for(const [field,overrides,value] of [['high_elf_cantrip',{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt'},'light'],['astral_elf_astral_fire',{race:'astral-elf',astral_elf_astral_fire:'light',abilityBonusPlan:'two_one',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}},'sacred-flame'],['abilityBonusPlan',{race:'astral-elf',abilityBonusPlan:'two_one',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}},'three_ones']]){
+  const c=advance(create('fighter',null,overrides)),p=fill(c,L.begin(c,context(c)),{subclass:'champion'});
+  for(const change of [x=>x[field]=value,x=>delete x[field]]){const altered=copy(c);change(altered);assert.notEqual(L.foundation(altered),L.foundation(c),field);assert.ok(L.inspect(altered,context(altered)).errors.some(e=>e.field==='foundation'));assert.ok(L.transition(altered,p,context(altered),L.inspect(c,context(c)).state).errors.some(e=>e.field==='foundation'));assert.equal(extras(altered).effectiveLevel,1);assert.throws(()=>exported(altered),/выборы изменились/);}
+  const narrative={...c,name:'Новое имя',concept:'История'};assert.equal(L.foundation(narrative),L.foundation(c));assert.deepEqual(L.inspect(narrative,context(narrative)).errors,[]);
+ }
+ const first=create('fighter'),p=L.begin(first,context(first)),added={...first,high_elf_cantrip:'light'};assert.ok(L.transition(added,p,context(added)).errors.some(e=>e.field==='foundation'));
+});
+
+
+function historicalFoundation(c){return JSON.stringify(Object.fromEntries(Object.keys(c).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature'].includes(k)||k.startsWith('creation_')||k.startsWith('race_')).sort().map(k=>[k,c[k]])));}
+function historicalHero(c,version){const old=copy(c),signature=historicalFoundation(c);if(old.advancement){old.advancement.version=version;for(const p of old.advancement.entries){p.version=version;p.foundation=signature;if(version===1)delete p.classId;}}if(old.pendingAdvancement){old.pendingAdvancement.version=version;old.pendingAdvancement.foundation=signature;if(version===1)delete old.pendingAdvancement.classId;}return old;}
+
+test('PR26 round sixteen: one-time legacy v1/v2 migration preserves decisions, HP, pending step and strict inspectors',()=>{
+ const second=advance(create('fighter',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt'})),third=advance(second,'champion');
+ for(const version of [1,2])for(const committed of [second,third]){
+  const c=copy(committed);if(c.level===2)c.pendingAdvancement={...fill(c,L.begin(c,context(c)),{subclass:'champion'}),step:3};
+  const old=historicalHero(c,version);assert.ok(L.inspect(old,context(old)).errors.some(e=>e.field==='foundation'));const upgraded=L.upgradeLegacyFoundation(old,context(old));assert.notEqual(upgraded,old);assert.deepEqual(L.inspect(upgraded,context(upgraded)).errors,[]);assert.deepEqual(stats(upgraded),stats(c));assert.deepEqual(exported(upgraded),exported(c));
+  for(let i=0;i<old.advancement.entries.length;i++){const before=old.advancement.entries[i],after=upgraded.advancement.entries[i];assert.deepEqual({...after,foundation:before.foundation},before);}
+  if(c.pendingAdvancement){assert.deepEqual({...upgraded.pendingAdvancement,foundation:old.pendingAdvancement.foundation},old.pendingAdvancement);assert.deepEqual(L.transition(upgraded,upgraded.pendingAdvancement,context(upgraded)).errors,[]);assert.equal(L.commit(upgraded,upgraded.pendingAdvancement,context(upgraded)).level,3);}
+  assert.equal(L.upgradeLegacyFoundation(upgraded,context(upgraded)),upgraded);const edited=copy(upgraded);edited.high_elf_cantrip='light';assert.equal(L.upgradeLegacyFoundation(edited,context(edited)),edited);assert.ok(L.inspect(edited,context(edited)).errors.some(e=>e.field==='foundation'));assert.throws(()=>exported(edited),/выборы изменились/);
+  const mismatch=copy(old);mismatch.creation_weapon='greatsword';assert.equal(L.upgradeLegacyFoundation(mismatch,context(mismatch)),mismatch);assert.ok(L.inspect(mismatch,context(mismatch)).errors.some(e=>e.field==='foundation'));
+ }
+ const multi=enter(create('fighter'),'ranger');const old=historicalHero(multi,2),upgraded=L.upgradeLegacyFoundation(old,context(old));assert.deepEqual(stats(upgraded),stats(multi));assert.deepEqual(upgraded.advancement.entries.map(p=>p.classId),['ranger']);
+ for(const advancement of [null,{version:2,entries:null},{version:7,entries:[]}]){const bad={...second,advancement};assert.equal(L.upgradeLegacyFoundation(bad,context(bad)),bad);assert.ok(L.inspect(bad,context(bad)).errors.length);}
+ for(const change of [p=>p.hp.value=null,p=>p.choices=null,p=>p.foundation='corrupt']){const old=historicalHero({...second,pendingAdvancement:{...fill(second,L.begin(second,context(second)),{subclass:'champion'}),step:2}},2);change(old.pendingAdvancement);const next=L.upgradeLegacyFoundation(old,context(old));assert.deepEqual(L.inspect(next,context(next)).errors,[]);assert.equal(stats(next).hp,stats(second).hp);assert.ok(L.transition(next,next.pendingAdvancement,context(next)).errors.length);delete next.pendingAdvancement;assert.deepEqual(L.inspect(next,context(next)).errors,[]);assert.equal(exported(next).info.level.value,2);}
+});
+
+
+test('PR26 round sixteen review fixes: Improved Pact Weapon adds one only to explicit summoned variants',()=>{
+ for(const weapon of ['greatclub','shortbow']){
+  const second=advance(create('warlock','hexblade',{creation_weapon:weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma:16}})),plain=advance(second,null,{pact:'blade'}),improved=advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),e=extras(improved),ordinary=e.attacks.find(a=>a.id===weapon),pact=e.attacks.find(a=>a.id===weapon+'-pact-hex');
+  assert.deepEqual(ordinary,extras(plain).attacks.find(a=>a.id===weapon));assert.equal(ordinary.attackBonus,4);assert.equal(ordinary.damageBonus,2);assert.equal(pact.attackBonus,6);assert.equal(pact.damageBonus,4);assert.equal(pact.damage,(weapon==='greatclub'?'1d8':'1d6')+'+4');assert.match(pact.notes.join(' '),/Улучшенное оружие договора.*\+1/);
+  if(weapon==='greatclub'){const base=extras(plain).attacks.find(a=>a.id===weapon+'-pact-hex');assert.equal(base.attackBonus,5);assert.equal(base.damageBonus,3);}else assert.ok(!extras(plain).attacks.some(a=>a.pactWeapon));
+  const data=exported(improved),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,pact.damage);assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));assert.ok(JSON.stringify(data.text.attacks).includes(pact.label+': атака +6, урон '+pact.damage));
+ }
+});
