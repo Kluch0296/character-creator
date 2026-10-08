@@ -237,12 +237,22 @@ test('PR26 Death domain Reaper excludes restricted or classless cantrips',()=>{
  c.creation_domain_cantrips='sapping-sting';assert.ok(O.validate(c,context(c)).some(e=>e.field==='creation_domain_cantrips'));
 });
 
-test('PR26 multiclass barbarian grants light and medium armor and shields',()=>{
- const wizard=create('wizard'),c=enter(wizard,'barbarian'),armor=stats(c).proficiencies.armor;
- assert.ok(!stats(wizard).proficiencies.armor.includes('light'));
- for(const id of ['light','medium','shield'])assert.ok(armor.includes(id),id);
- const prof=JSON.stringify(exported(c).text.prof);
- for(const label of ['Лёгкие доспехи','Средние доспехи','Щиты'])assert.ok(prof.includes(label),label);
+test('PR26 round nineteen: barbarian dip grants shields and weapons, preserving existing armor and saves',()=>{
+ for(const cls of ['wizard','sorcerer']){
+  const first=create(cls,null,{abilityMethod:'manual'}),second=enter(first,'barbarian');
+  for(const c of [second,enter(second,'barbarian')]){
+   assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(stats(c).proficiencies.armor,['shield']);
+   for(const id of ['simple','martial'])assert.ok(stats(c).proficiencies.weapons.includes(id));
+   assert.deepEqual(stats(c).proficiencies.savingThrows,stats(first).proficiencies.savingThrows);
+   const prof=JSON.stringify(exported(c).text.prof);assert.match(prof,/Щиты/);assert.doesNotMatch(prof,/Лёгкие доспехи|Средние доспехи/);
+  }
+ }
+ for(const first of [create('barbarian',null,{abilityMethod:'manual'}),create('fighter',null,{abilityMethod:'manual'}),create('wizard',null,{abilityMethod:'manual',race:'dwarf',race_sub:'mountain-dwarf'})]){
+  const c=enter(first,first.class==='barbarian'?'wizard':'barbarian');
+  assert.deepEqual(L.inspect(c,context(c)).errors,[]);
+  for(const id of stats(first).proficiencies.armor)assert.ok(stats(c).proficiencies.armor.includes(id),first.class+': '+id);
+  for(const name of ['Лёгкие доспехи','Средние доспехи'])assert.ok(JSON.stringify(exported(c).text.prof).includes(name));
+ }
 });
 
 test('PR26 Glamour and Whispers bards track their short-rest abilities',()=>{
@@ -566,6 +576,7 @@ test('PR26 round twelve: Wild Surge exports all eight conditional outcomes with 
   const second=advance(create('barbarian',null,{abilities:{strength:16,dexterity:14,constitution,intelligence:12,wisdom:10,charisma:8}})),c=advance(second,'wild-magic'),e=extras(c),text=e.features.find(f=>f.name==='Дикий всплеск').description;
   assert.ok(text.includes('Сл '+(10+stats(c).modifiers.constitution)));assert.match(text,/модификатор Телосложения/);assert.match(text,/к8/);
   const outcomes=text.split(/(?:^|\n)[1-8]\. /).slice(1);assert.equal(outcomes.length,8);
+  assert.match(outcomes[0],/Вам — 1к12 временных хитов\./);assert.doesNotMatch(outcomes[0],/1к12\s*\+|уровень|уровня/);
   const checks=[[/30 фут/,/Телосложения/,/1к12.*некротическ/,/1к12 временных/],[/30 фут/,/свободн/,/видим/,/бонусным действием/],[/фламф/,/пикси/,/5 фут/,/30 фут/,/конце.*хода/,/Ловкости/,/1к6.*силов/,/бонусным действием/],[/силов/,/лёгкое/,/метательное/,/20\/60/,/конце.*хода/],[/попадан/,/1к6.*силов/],[/союзник/,/10 фут/,/\+1.*КД/],[/15 фут/,/труднопроходим/,/врагов/],[/30 фут/,/Телосложения/,/1к6.*излучен/,/ослеп/,/начала.*следующего хода/,/бонусным действием/]];
   checks.forEach((patterns,i)=>patterns.forEach(p=>assert.match(outcomes[i],p)));text.split("\n").forEach(line=>assert.ok(JSON.stringify(exported(c).text.traits).includes(line)));assert.equal(stats(c).ac,stats(second).ac);assert.equal(stats(c).speed,stats(second).speed);
  }
@@ -871,20 +882,23 @@ test('PR26 round eighteen: one-handed summoned Hexblade attacks receive Improved
  }
 });
 
-test('PR26 round eighteen: generic pact variants use base profiles and grant only summoned proficiency',()=>{
+test('PR26 round nineteen: default Blade heroes can summon every legal catalogue form without owning it',()=>{
  for(const patron of L.subclasses('warlock').map(s=>s.id)){
-  const second=advance(round18Warlock(patron,{abilities:{strength:14,dexterity:18,constitution:14,intelligence:14,wisdom:14,charisma:16}})),plain=round18Blade(second,false),c=round18Blade(second),ctx=context(c);
-  // The legal saved hero stays intact; existing catalogue profiles cover martial
-  // forms that the level-one warlock equipment chooser cannot supply.
-  const profiles=Object.values(O.WEAPONS).map(w=>{const ability=w.properties.includes('ranged')||w.properties.includes('finesse')?'dexterity':'strength',bonus=stats(c).modifiers[ability],proficient=w.group==='simple';return {...w,ability,proficient,attackBonus:bonus+(proficient?2:0),damageBonus:w.damage==='0'?0:bonus,damage:w.damage==='0'?'0':w.damage+'+'+bonus,notes:proficient?[]:['Нет владения: бонус мастерства к атаке не добавлен.']};});
-  const synthetic={...profiles[0],id:'club-synthetic',damage:'1d4+20',damageBonus:20,attackBonus:22},natural={...profiles[0],id:'natural-claw',properties:['natural']},base={...ctx.baseExtras,attacks:[...profiles,synthetic,natural,...ctx.baseExtras.attacks.filter(a=>a.group==='unarmed')]};
-  const before=copy(c),baseBefore=copy(base),e=L.derive(c,ctx,base),without=L.derive(plain,context(plain),base),nativeData=JSON.parse(E.buildLssExport(c,{},R.derivedStats(c,e),e)[0].data),allowedRanged=['shortbow','longbow','light-crossbow','heavy-crossbow'];
-  for(const original of profiles){const eligible=!original.properties.includes('ranged')||allowedRanged.includes(original.id),suffix=patron==='hexblade'?'-pact-hex':'-pact',pact=e.attacks.find(a=>a.id===original.id+suffix);assert.equal(!!pact,eligible,patron+': '+original.id);if(!eligible)continue;
-   assert.equal(pact.proficient,true);assert.equal(pact.ability,patron==='hexblade'?'charisma':original.ability);assert.equal(pact.attackBonus,3+stats(c).modifiers[pact.ability]);assert.equal(pact.damageBonus,1+stats(c).modifiers[pact.ability]);assert.ok(!pact.notes.some(n=>n.startsWith('Нет владения')));
-   assert.deepEqual(e.attacks.find(a=>a.id===original.id),without.attacks.find(a=>a.id===original.id));assert.equal(!!without.attacks.find(a=>a.id===pact.id),!original.properties.includes('ranged'));
-   const native=nativeData.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.isProf,true);assert.equal(native.ability,{strength:'str',dexterity:'dex',charisma:'cha'}[pact.ability]);assert.equal(native.dmg.value,pact.damage);assert.ok(nativeData.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
+  const second=advance(round18Warlock(patron,{abilities:{strength:14,dexterity:18,constitution:14,intelligence:14,wisdom:14,charisma:16}})),plain=round18Blade(second,false),c=round18Blade(second),before=copy(c);
+  const e=extras(c),without=extras(plain),nativeData=exported(c),allowedRanged=['shortbow','longbow','light-crossbow','heavy-crossbow'];
+  assert.equal(without.attacks.filter(a=>a.pactWeapon).length,28);assert.equal(e.attacks.filter(a=>a.pactWeapon).length,32);
+  assert.ok(!context(c).baseExtras.attacks.some(a=>a.id==='greatsword'||a.id==='longbow'));
+  for(const weapon of Object.values(O.WEAPONS)){
+   const eligible=['simple','martial'].includes(weapon.group)&&(!weapon.properties.includes('ranged')||allowedRanged.includes(weapon.id)),suffix=patron==='hexblade'?'-pact-hex':'-pact',pact=e.attacks.find(a=>a.id===weapon.id+suffix);
+   assert.equal(!!pact,eligible,patron+': '+weapon.id);if(!eligible)continue;
+   const ability=patron==='hexblade'?'charisma':weapon.properties.includes('ranged')||weapon.properties.includes('finesse')?'dexterity':'strength';
+   assert.equal(pact.proficient,true);assert.equal(pact.ability,ability);assert.equal(pact.attackBonus,3+stats(c).modifiers[ability]);assert.equal(pact.damageBonus,1+stats(c).modifiers[ability]);assert.equal(pact.damage,weapon.damage+'+'+pact.damageBonus);
+   assert.ok(!pact.notes.some(n=>n.startsWith('Нет владения')));assert.match(pact.notes[0],/только если.*создана.*Договор клинка/);
+   assert.equal(!!without.attacks.find(a=>a.id===pact.id),!weapon.properties.includes('ranged'));
+   const native=nativeData.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.isProf,true);assert.equal(native.ability,{strength:'str',dexterity:'dex',charisma:'cha'}[ability]);assert.equal(native.dmg.value,pact.damage);assert.ok(nativeData.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
+   if(weapon.properties.includes('versatile')){const note='Двумя руками: '+(weapon.damage==='1d6'?'1d8':'1d10')+'.';assert.ok(pact.notes.includes(note));assert.ok(native.notes.value.includes(note));}
   }
-  assert.ok(!e.attacks.some(a=>a.pactWeapon&&['club-synthetic','natural-claw','unarmed'].some(id=>a.id.startsWith(id))));assert.equal(new Set(e.attacks.map(a=>a.id)).size,e.attacks.length);assert.deepEqual(c,before);assert.deepEqual(copy(base),baseBefore);
+  assert.deepEqual(e.attacks.filter(a=>!a.pactWeapon),without.attacks.filter(a=>!a.pactWeapon));assert.equal(new Set(e.attacks.map(a=>a.id)).size,e.attacks.length);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(c,before);
  }
 });
 

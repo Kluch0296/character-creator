@@ -328,8 +328,6 @@
   const base=attacks?.find(x=>x.id==='unarmed');if(!base||attacks.some(x=>x.id==='unarmed-d8'))return;
   attacks.push({...base,id:'unarmed-d8',label:'Безоружный удар (свободные руки, к8)',damage:base.damage.replace(/^1d6/,'1d8'),notes:['Только если в руках нет ни оружия, ни щита; владение предметами не означает, что они в руках.',...(base.notes||[])]});
  }
- // Start only from existing equipment profiles, never from conditional/synthetic attacks.
- function baseWeaponAttack(attack){return optionsAPI().WEAPONS[attack.id]&&['simple','martial'].includes(attack.group)&&!(attack.properties||[]).some(p=>['natural','unarmed'].includes(p));}
  function hexWarrior(attacks,a){
   for(const attack of [...attacks]){const props=attack.properties||[],shift=mod(a.charisma)-mod(a[attack.ability]);
    if(!['simple','martial'].includes(attack.group)||attack.hexWarrior||props.includes('two-handed'))continue;
@@ -341,15 +339,16 @@
  function pactWeaponAttacks(attacks,a,s,hexblade){
   if(s.level<3||s.choices.pact!=='blade')return;
   const bonus=s.invocations.includes('improved-pact-weapon')?1:0;
-  for(const attack of [...attacks]){
-   if(!baseWeaponAttack(attack))continue;
-   const weapon=optionsAPI().WEAPONS[attack.id],props=weapon.properties||[];
+  // Summoned forms are independent of carried equipment and other attack variants.
+  for(const weapon of Object.values(optionsAPI().WEAPONS)){
+   const props=weapon.properties||[];
+   if(!['simple','martial'].includes(weapon.group)||props.some(p=>['natural','unarmed'].includes(p)))continue;
    if(props.includes('ranged')&&(!bonus||!['shortbow','longbow','light-crossbow','heavy-crossbow'].includes(weapon.id)))continue;
    const id=weapon.id+(hexblade?'-pact-hex':'-pact');if(attacks.some(x=>x.id===id))continue;
    const normalAbility=props.includes('ranged')||(props.includes('finesse')&&mod(a.dexterity)>mod(a.strength))?'dexterity':'strength',ability=hexblade?'charisma':normalAbility,damageBonus=mod(a[ability])+bonus;
    const note=hexblade?'Ведьмовской воин: атака и урон от Харизмы, только если эта форма оружия создана умением «Договор клинка». Обычное оружие в снаряжении не назначено оружием договора.':'Договор клинка: только если эта форма оружия создана умением «Договор клинка»; владение действует при её использовании. Обычное оружие в снаряжении не назначено оружием договора.';
    // The catalogue die and ordinary ability prevent copying another variant's bonuses.
-   attacks.push({...weapon,id,label:weapon.label+(hexblade?' (Договор клинка, ХАР)':' (Договор клинка)'),ability,proficient:true,attackBonus:2+mod(a[ability])+bonus,damageBonus,damage:weapon.damage+(damageBonus>=0?'+':'')+damageBonus,pactWeapon:true,...(hexblade?{hexWarrior:true}:{}),notes:[note,...(bonus?['Улучшенное оружие договора: +1 к атаке и урону созданного оружия уже учтён; оружие служит фокусировкой колдуна. Бонус не складывается с собственным магическим бонусом оружия.']:[]),'Созданное оружие считается магическим для преодоления сопротивления и иммунитета к немагическим атакам и урону.',...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+   attacks.push({...weapon,id,label:weapon.label+(hexblade?' (Договор клинка, ХАР)':' (Договор клинка)'),ability,proficient:true,attackBonus:2+mod(a[ability])+bonus,damageBonus,damage:weapon.damage+(damageBonus>=0?'+':'')+damageBonus,pactWeapon:true,...(hexblade?{hexWarrior:true}:{}),notes:[note,...(bonus?['Улучшенное оружие договора: +1 к атаке и урону созданного оружия уже учтён; оружие служит фокусировкой колдуна. Бонус не складывается с собственным магическим бонусом оружия.']:[]),'Созданное оружие считается магическим для преодоления сопротивления и иммунитета к немагическим атакам и урону.',...(props.includes('versatile')?['Двумя руками: '+(weapon.damage==='1d6'?'1d8':'1d10')+'.']:[])]});
   }
  }
  function battleReady(attacks,a,infusions){
@@ -916,7 +915,7 @@
  }
  const ABILITY_NAMES={strength:'Сила',dexterity:'Ловкость',constitution:'Телосложение',intelligence:'Интеллект',wisdom:'Мудрость',charisma:'Харизма'};
  const REQUIREMENTS={barbarian:[['strength']],bard:[['charisma']],cleric:[['wisdom']],druid:[['wisdom']],fighter:[['strength','dexterity']],monk:[['dexterity'],['wisdom']],paladin:[['strength'],['charisma']],ranger:[['dexterity'],['wisdom']],rogue:[['dexterity']],sorcerer:[['charisma']],warlock:[['charisma']],wizard:[['intelligence']],artificer:[['intelligence']]};
- const SECONDARY={barbarian:{armor:['light','medium','shield'],weapon:['simple','martial']},bard:{armor:['light']},cleric:{armor:['light','medium','shield']},druid:{armor:['light','medium','shield']},fighter:{armor:['light','medium','shield'],weapon:['simple','martial']},monk:{weapon:['simple','shortsword']},paladin:{armor:['light','medium','shield'],weapon:['simple','martial']},ranger:{armor:['light','medium','shield'],weapon:['simple','martial']},rogue:{armor:['light'],tool:['thieves_tools']},sorcerer:{},warlock:{armor:['light'],weapon:['simple']},wizard:{},artificer:{armor:['light','medium','shield'],tool:['thieves_tools','tinker']}};
+ const SECONDARY={barbarian:{armor:['shield'],weapon:['simple','martial']},bard:{armor:['light']},cleric:{armor:['light','medium','shield']},druid:{armor:['light','medium','shield']},fighter:{armor:['light','medium','shield'],weapon:['simple','martial']},monk:{weapon:['simple','shortsword']},paladin:{armor:['light','medium','shield'],weapon:['simple','martial']},ranger:{armor:['light','medium','shield'],weapon:['simple','martial']},rogue:{armor:['light'],tool:['thieves_tools']},sorcerer:{},warlock:{armor:['light'],weapon:['simple']},wizard:{},artificer:{armor:['light','medium','shield'],tool:['thieves_tools','tinker']}};
  const canonicalStyle=id=>({great_weapon:'great-weapon-fighting',two_weapon:'two-weapon-fighting'}[id]||id);
  const optionsAPI=()=>typeof module==='object'&&module.exports?require('./creation-options'):rootOptions();
  function rootOptions(){return globalThis.CreationOptions;}

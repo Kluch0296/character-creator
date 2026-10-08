@@ -1089,3 +1089,24 @@ test('PR26 round eighteen: legal thrown-style Hex Warrior remains on actual shee
  const H=require('./fixtures/characters'),first=H.create('fighter',null,{creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes',abilityMethod:'manual'}),c=H.enter(first,'warlock',{'warlock:creation_patron':'hexblade'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
  const hex=H.extras(c).attacks.find(a=>a.id==='handaxe-thrown-hex');assert.ok(hex);assert.equal(hex.damage,'1d6+5');assert.ok(dom.root.textContent.includes(hex.label+': +5 к попаданию, 1d6+5 урона'));const native=JSON.parse(context.getExportData()[0].data).weaponsList.find(w=>w.name.value===hex.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,'1d6+5');
 });
+
+
+test('PR26 round nineteen: uncarried pact forms and barbarian proficiencies reach actual sheet and LSS',async()=>{
+ const H=require('./fixtures/characters');
+ for(const patron of ['fiend','hexblade'])for(const improved of [false,true]){
+  const second=H.advance(H.create('warlock',patron,{abilityMethod:'manual'})),c=H.advance(second,null,{pact:'blade',...(improved?{invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}:{})}),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+  assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),data=JSON.parse(ctx.getExportData()[0].data);assert.ok(!H.context(c).baseExtras.attacks.some(a=>a.id==='greatsword'||a.id==='longbow'));
+  for(const id of ['greatsword','rapier','quarterstaff','longsword','shortbow','longbow','light-crossbow','heavy-crossbow']){
+   const pact=e.attacks.find(a=>a.id===id+(patron==='hexblade'?'-pact-hex':'-pact')),present=['greatsword','rapier','quarterstaff','longsword'].includes(id)||improved;assert.equal(!!pact,present);
+   if(present){assert.ok(dom.root.textContent.includes(pact.label+': +'+pact.attackBonus+' к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(pact.notes[0]));const native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.dmg.value,pact.damage);assert.equal(native.isProf,true);if(['quarterstaff','longsword'].includes(id)){const note='Двумя руками: '+(id==='quarterstaff'?'1d8':'1d10')+'.';assert.ok(dom.root.textContent.includes(pact.label+': +'+pact.attackBonus+' к попаданию, '+pact.damage+' урона. '+pact.notes.join(' ')));assert.ok(native.notes.value.includes(note));}}
+  }
+  assert.equal(JSON.stringify(c),before);
+ }
+ for(const cls of ['wizard','barbarian']){
+  const first=H.create(cls,null,{abilityMethod:'manual'}),c=H.enter(first,cls==='wizard'?'barbarian':'wizard'),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);
+  const prof=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.prof);assert.match(prof,/Щиты/);assert.ok(dom.root.textContent.includes('Щиты'));
+  for(const name of ['Лёгкие доспехи','Средние доспехи']){assert.equal(prof.includes(name),cls==='barbarian');assert.equal(dom.root.textContent.includes(name),cls==='barbarian');}
+ }
+ const c=H.advance(H.advance(H.create('barbarian',null,{abilityMethod:'manual'})),'wild-magic'),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+ const rule='Вам — 1к12 временных хитов.';assert.ok(dom.root.textContent.includes(rule));assert.ok(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).includes(rule));
+});
