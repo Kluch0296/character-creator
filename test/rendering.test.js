@@ -1002,7 +1002,7 @@ test('PR26 round sixteen review fixes: improved summoned melee and ranged number
  const H=require('./fixtures/characters');
  for(const weapon of ['greatclub','shortbow']){
   const second=H.advance(H.create('warlock','hexblade',{creation_weapon:weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma:16}})),c=H.advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
-  const e=H.extras(c),pact=e.attacks.find(a=>a.pactWeapon),ordinary=e.attacks.find(a=>a.id===weapon);assert.ok(dom.root.textContent.includes(pact.label+': +6 к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(ordinary.label+': +4 к попаданию, '+ordinary.damage+' урона'));assert.equal(pact.damage,(weapon==='greatclub'?'1d8':'1d6')+'+4');const data=JSON.parse(context.getExportData()[0].data),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.dmg.value,pact.damage);assert.equal(native.ability,'cha');assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
+  const e=H.extras(c),pact=e.attacks.find(a=>a.id===weapon+'-pact-hex'),ordinary=e.attacks.find(a=>a.id===weapon);assert.ok(dom.root.textContent.includes(pact.label+': +6 к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(ordinary.label+': +4 к попаданию, '+ordinary.damage+' урона'));assert.equal(pact.damage,(weapon==='greatclub'?'1d8':'1d6')+'+4');const data=JSON.parse(context.getExportData()[0].data),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.dmg.value,pact.damage);assert.equal(native.ability,'cha');assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
  }
 });
 
@@ -1054,4 +1054,38 @@ test('PR26 round seventeen: Homunculus final sheet and native LSS preserve class
   assert.deepEqual(data.weaponsList,nativePlain.weaponsList);assert.deepEqual(data.saves,nativePlain.saves);assert.deepEqual(data.vitality,nativePlain.vitality);assert.ok(!JSON.stringify(data.text.attacks).includes('Силовой удар'));
   assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(plain).hp);assert.equal(vm.runInContext('getDerivedCharacter().ac',context),H.stats(plain).ac);assert.equal(vm.runInContext('getDerivedCharacter().speed',context),H.stats(plain).speed);assert.equal(JSON.stringify(c),before);
  }
+});
+
+test('PR26 round eighteen: actual sheet and native LSS retain one-handed pact and ordinary attacks',async()=>{
+ const H=require('./fixtures/characters');
+ for(const patron of ['hexblade','fiend'])for(const creation_weapon of ['dagger','handaxe','quarterstaff','greatclub','shortbow','light-crossbow']){
+  const second=H.advance(H.create('warlock',patron,{creation_weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:14,wisdom:14,charisma:16}})),plain=H.advance(second,null,{pact:'blade'}),c=H.advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+  assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);const e=H.extras(c),data=JSON.parse(context.getExportData()[0].data),pact=e.attacks.find(a=>a.id===creation_weapon+(patron==='hexblade'?'-pact-hex':'-pact')),ordinary=e.attacks.find(a=>a.id===creation_weapon);assert.ok(pact,patron+': '+creation_weapon);
+  assert.deepEqual(ordinary,H.extras(plain).attacks.find(a=>a.id===creation_weapon));assert.ok(dom.root.textContent.includes(pact.label+': +'+pact.attackBonus+' к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(pact.notes[0]));assert.ok(dom.root.textContent.includes(ordinary.label+': +'+ordinary.attackBonus+' к попаданию, '+ordinary.damage+' урона'));
+  const native=data.weaponsList.filter(w=>w.name.value===pact.label);assert.equal(native.length,1);assert.equal(native[0].ability,patron==='hexblade'?'cha':pact.ability==='strength'?'str':'dex');assert.equal(native[0].dmg.value,pact.damage);assert.equal(native[0].isProf,true);assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native[0].id+'.attack'&&b.expr==='1'));
+  if(creation_weapon==='dagger'&&patron==='hexblade'){assert.equal(pact.attackBonus,6);assert.equal(pact.damage,'1d4+4');const hex=e.attacks.find(a=>a.id==='dagger-hex');assert.ok(dom.root.textContent.includes(hex.label));assert.deepEqual(hex,H.extras(plain).attacks.find(a=>a.id===hex.id));}
+  assert.equal(JSON.stringify(c),before);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),JSON.stringify(c.advancement));
+ }
+});
+
+test('PR26 round eighteen: actual sheet and native LSS preserve class-sensitive warlock summaries once',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [patron,name] of [['hexblade','Проклятие ведьмовского клинка'],['genie','Гнев гения'],['undead','Облик ужаса']])for(const genie of patron==='genie'?['dao','djinni','efreeti','marid']:['dao']){
+  const first=H.create('warlock',patron,{abilityMethod:'manual',...(patron==='genie'?{creation_genie:genie}:{})}),second=H.advance(first),entry=H.enter(H.create('fighter',null,{abilityMethod:'manual'}),'warlock',{'warlock:creation_patron':patron,...(patron==='genie'?{'warlock:creation_genie':genie}:{})});
+  for(const [c,level] of [[first,1],[second,2],[H.advance(second,null,{pact:'blade'}),3],[H.enter(first,'fighter'),1],[H.enter(second,'fighter'),2],[entry,1],[H.enter(entry,'warlock'),2]]){
+   const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+   const profiles=H.extras(c).features.filter(f=>f.name===name),data=JSON.parse(context.getExportData()[0].data);assert.equal(profiles.length,1);const text=profiles[0].description;assert.ok(dom.root.textContent.includes(text));assert.equal(JSON.stringify(data.text.traits).split(text).length-1,1);
+   if(patron==='hexblade')assert.ok(text.includes('восстановите '+(level+H.stats(c).modifiers.charisma)+' хит'));
+   if(patron==='genie')assert.ok(text.includes({dao:'дробящий',djinni:'звуком',efreeti:'огнём',marid:'холодом'}[genie]));
+   if(patron==='undead'){assert.ok(text.includes('1к10 + '+level+' временных хитов'));assert.ok(text.includes('Мудрости Сл '+(10+H.stats(c).modifiers.charisma)));}
+   assert.equal(JSON.stringify(c),before);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),JSON.stringify(c.advancement));
+  }
+ }
+ const c=H.create('warlock','fiend',{abilityMethod:'manual'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();const text=dom.root.textContent+JSON.stringify(JSON.parse(context.getExportData()[0].data).text.traits);for(const name of ['Проклятие ведьмовского клинка','Гнев гения','Облик ужаса'])assert.ok(!text.includes(name));
+});
+
+
+test('PR26 round eighteen: legal thrown-style Hex Warrior remains on actual sheet and native LSS',async()=>{
+ const H=require('./fixtures/characters'),first=H.create('fighter',null,{creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes',abilityMethod:'manual'}),c=H.enter(first,'warlock',{'warlock:creation_patron':'hexblade'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+ const hex=H.extras(c).attacks.find(a=>a.id==='handaxe-thrown-hex');assert.ok(hex);assert.equal(hex.damage,'1d6+5');assert.ok(dom.root.textContent.includes(hex.label+': +5 к попаданию, 1d6+5 урона'));const native=JSON.parse(context.getExportData()[0].data).weaponsList.find(w=>w.name.value===hex.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,'1d6+5');
 });

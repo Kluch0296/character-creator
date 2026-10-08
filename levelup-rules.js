@@ -328,14 +328,28 @@
   const base=attacks?.find(x=>x.id==='unarmed');if(!base||attacks.some(x=>x.id==='unarmed-d8'))return;
   attacks.push({...base,id:'unarmed-d8',label:'Безоружный удар (свободные руки, к8)',damage:base.damage.replace(/^1d6/,'1d8'),notes:['Только если в руках нет ни оружия, ни щита; владение предметами не означает, что они в руках.',...(base.notes||[])]});
  }
- function hexWarrior(attacks,a,s){
+ // Start only from existing equipment profiles, never from conditional/synthetic attacks.
+ function baseWeaponAttack(attack){return optionsAPI().WEAPONS[attack.id]&&['simple','martial'].includes(attack.group)&&!(attack.properties||[]).some(p=>['natural','unarmed'].includes(p));}
+ function hexWarrior(attacks,a){
   for(const attack of [...attacks]){const props=attack.properties||[],shift=mod(a.charisma)-mod(a[attack.ability]);
-   if(!['simple','martial'].includes(attack.group)||attack.hexWarrior)continue;
-   const pact=props.includes('two-handed'),ranged=props.includes('ranged');
-   if(pact&&(s.level<3||s.choices.pact!=='blade'||(ranged&&(!s.invocations.includes('improved-pact-weapon')||!['shortbow','longbow','light-crossbow','heavy-crossbow'].includes(attack.id)))))continue;
-   const id=attack.id+(pact?'-pact-hex':'-hex'),bonus=pact&&s.invocations.includes('improved-pact-weapon')?1:0;if(attacks.some(x=>x.id===id))continue;
-   const note=pact?'Ведьмовской воин: атака и урон от Харизмы, только если эта форма оружия создана умением «Договор клинка». Обычное оружие в снаряжении не назначено оружием договора.':'Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.';
-   attacks.push({...withDamage(attack,attack.damageBonus+shift+bonus),id,label:(attack.label||attack.name||attack.id)+(pact?' (Договор клинка, ХАР)':' (Ведьмовской воин)'),ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+bonus+(attack.proficient?0:2),hexWarrior:true,...(pact?{pactWeapon:true}:{}),notes:[note,...(bonus?['Улучшенное оружие договора: +1 к атаке и урону созданного оружия уже учтён.']:[]),...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+   if(!['simple','martial'].includes(attack.group)||attack.hexWarrior||props.includes('two-handed'))continue;
+   const id=attack.id+'-hex';if(attacks.some(x=>x.id===id))continue;
+   const note='Ведьмовской воин: атака и урон от Харизмы, если это оружие выбрано после долгого отдыха.';
+   attacks.push({...withDamage(attack,attack.damageBonus+shift),id,label:(attack.label||attack.name||attack.id)+' (Ведьмовской воин)',ability:'charisma',proficient:true,attackBonus:attack.attackBonus+shift+(attack.proficient?0:2),hexWarrior:true,notes:[note,...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
+  }
+ }
+ function pactWeaponAttacks(attacks,a,s,hexblade){
+  if(s.level<3||s.choices.pact!=='blade')return;
+  const bonus=s.invocations.includes('improved-pact-weapon')?1:0;
+  for(const attack of [...attacks]){
+   if(!baseWeaponAttack(attack))continue;
+   const weapon=optionsAPI().WEAPONS[attack.id],props=weapon.properties||[];
+   if(props.includes('ranged')&&(!bonus||!['shortbow','longbow','light-crossbow','heavy-crossbow'].includes(weapon.id)))continue;
+   const id=weapon.id+(hexblade?'-pact-hex':'-pact');if(attacks.some(x=>x.id===id))continue;
+   const normalAbility=props.includes('ranged')||(props.includes('finesse')&&mod(a.dexterity)>mod(a.strength))?'dexterity':'strength',ability=hexblade?'charisma':normalAbility,damageBonus=mod(a[ability])+bonus;
+   const note=hexblade?'Ведьмовской воин: атака и урон от Харизмы, только если эта форма оружия создана умением «Договор клинка». Обычное оружие в снаряжении не назначено оружием договора.':'Договор клинка: только если эта форма оружия создана умением «Договор клинка»; владение действует при её использовании. Обычное оружие в снаряжении не назначено оружием договора.';
+   // The catalogue die and ordinary ability prevent copying another variant's bonuses.
+   attacks.push({...weapon,id,label:weapon.label+(hexblade?' (Договор клинка, ХАР)':' (Договор клинка)'),ability,proficient:true,attackBonus:2+mod(a[ability])+bonus,damageBonus,damage:weapon.damage+(damageBonus>=0?'+':'')+damageBonus,pactWeapon:true,...(hexblade?{hexWarrior:true}:{}),notes:[note,...(bonus?['Улучшенное оружие договора: +1 к атаке и урону созданного оружия уже учтён; оружие служит фокусировкой колдуна. Бонус не складывается с собственным магическим бонусом оружия.']:[]),'Созданное оружие считается магическим для преодоления сопротивления и иммунитета к немагическим атакам и урону.',...(attack.notes||[]).filter(x=>!x.startsWith('Нет владения'))]});
   }
  }
  function battleReady(attacks,a,infusions){
@@ -656,10 +670,23 @@
     if(sc.id==='archfey')resource('fey-presence','Фейское присутствие',1,'short-rest');
     if(sc.id==='celestial'){spell('light','cantrip',sc.label,'charisma');spell('sacred-flame','cantrip',sc.label,'charisma');resource('healing-light','Исцеляющий свет (к6)',s.level+1);}
     if(sc.id==='undying')spell('spare-the-dying','cantrip',sc.label,'charisma');
-    if(sc.id==='hexblade'){['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a,s);}
-    if(sc.id==='genie')resource('bottled-respite','Уединение в сосуде',1,'long-rest');
+    const warlockPB=2+Math.floor((Math.max(1,c.level||s.level)-1)/4);
+    if(sc.id==='hexblade'){
+     ['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a);
+     const healing=Math.max(1,s.level+mod(a.charisma));
+     feature('Проклятие ведьмовского клинка','Бонусное действие: выберите одно видимое существо в 30 футах; проклятие длится 1 минуту. Заканчивается раньше, если цель умирает, вы умираете или становитесь недееспособны. Пока действует: +'+warlockPB+' (бонус мастерства) к броскам урона по проклятой цели; ваши броски атаки по ней критические при 19–20 на к20. Если проклятая цель умирает, восстановите '+healing+' '+(healing===1?'хит':healing<=4?'хита':'хитов')+' (уровень колдуна + модификатор Харизмы, минимум 1). Одно применение; восстановление после короткого или долгого отдыха.',sc.source,1);
+    }
+    if(e.attacks)pactWeaponAttacks(e.attacks,a,s,sc.id==='hexblade');
+    if(sc.id==='genie'){
+     resource('bottled-respite','Уединение в сосуде',1,'long-rest');
+     const genie={dao:['Дао','дробящий урон'],djinni:['Джинн','урон звуком'],efreeti:['Ифрит','урон огнём'],marid:['Марид','урон холодом']}[c.creation_genie];
+     feature('Гнев гения','Один раз в каждый свой ход после попадания атакой по цели можете нанести ей '+warlockPB+' дополнительного урона (бонус мастерства). '+(genie?'Выбранный гений: '+genie[0]+'; '+genie[1]+'.':'Вид урона: Дао — дробящий, Джинн — звуком, Ифрит — огнём, Марид — холодом; определяется выбранным гением.'),sc.source,1);
+    }
     if(sc.id==='fathomless'){e.swimOverride=40;resource('tentacle','Щупальце глубин',2);}
-    if(sc.id==='undead')resource('form-of-dread','Облик ужаса',2);
+    if(sc.id==='undead'){
+     resource('form-of-dread','Облик ужаса',warlockPB);
+     feature('Облик ужаса','Бонусное действие: примите облик на 1 минуту. При превращении получите 1к10 + '+s.level+' временных хитов (1к10 + уровень колдуна); иммунитет к испугу действует, пока активен облик. Один раз в каждый свой ход после попадания атакой по существу можете заставить его совершить спасбросок Мудрости Сл '+(8+warlockPB+mod(a.charisma))+' (Сл заклинаний колдуна: 8 + бонус мастерства + модификатор Харизмы); только при провале оно испугано вами до конца вашего следующего хода. '+warlockPB+' применения (бонус мастерства); восстановление после долгого отдыха.',sc.source,1);
+    }
    }
    if(c.class==='sorcerer'){
     if(sc.id==='wild')resource('tides-of-chaos','Поток хаоса',1,'long-rest','восстановление после долгого отдыха или после броска по таблице дикой магии по решению Мастера сразу после заклинания чародея 1-го круга или выше');
@@ -1024,7 +1051,7 @@
     if(attack.group==='unarmed'&&!/^1d[468]/.test(attack.damage))attack.damage='1d4'+(attack.damageBonus>=0?'+':'')+attack.damageBonus;
    }
   }
-  const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;if(allowed)attack.notes=(attack.notes||[]).filter(note=>!note.startsWith('Нет владения'));}
+  const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.pactWeapon||attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;if(allowed)attack.notes=(attack.notes||[]).filter(note=>!note.startsWith('Нет владения'));}
   const abilities=context.abilities||R.finalAbilities(c,base);
   if(s.classStates.monk?.state.choices['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(e,abilities);
   subclassAttacks(e,abilities);

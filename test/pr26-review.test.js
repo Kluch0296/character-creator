@@ -796,7 +796,7 @@ test('PR26 round sixteen review fixes: Improved Pact Weapon adds one only to exp
  for(const weapon of ['greatclub','shortbow']){
   const second=advance(create('warlock','hexblade',{creation_weapon:weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma:16}})),plain=advance(second,null,{pact:'blade'}),improved=advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),e=extras(improved),ordinary=e.attacks.find(a=>a.id===weapon),pact=e.attacks.find(a=>a.id===weapon+'-pact-hex');
   assert.deepEqual(ordinary,extras(plain).attacks.find(a=>a.id===weapon));assert.equal(ordinary.attackBonus,4);assert.equal(ordinary.damageBonus,2);assert.equal(pact.attackBonus,6);assert.equal(pact.damageBonus,4);assert.equal(pact.damage,(weapon==='greatclub'?'1d8':'1d6')+'+4');assert.match(pact.notes.join(' '),/Улучшенное оружие договора.*\+1/);
-  if(weapon==='greatclub'){const base=extras(plain).attacks.find(a=>a.id===weapon+'-pact-hex');assert.equal(base.attackBonus,5);assert.equal(base.damageBonus,3);}else assert.ok(!extras(plain).attacks.some(a=>a.pactWeapon));
+  if(weapon==='greatclub'){const base=extras(plain).attacks.find(a=>a.id===weapon+'-pact-hex');assert.equal(base.attackBonus,5);assert.equal(base.damageBonus,3);}else assert.ok(!extras(plain).attacks.some(a=>a.pactWeapon&&(a.properties||[]).includes('ranged')));
   const data=exported(improved),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,pact.damage);assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));assert.ok(JSON.stringify(data.text.attacks).includes(pact.label+': атака +6, урон '+pact.damage));
  }
 });
@@ -853,4 +853,63 @@ test('PR26 round seventeen: every Storm environment retains its targets, Sea sav
  }
  const density=extras(advance(create('wizard'),'graviturgy')).features.find(f=>f.name==='Изменение плотности').description;assert.doesNotMatch(density,/согласн|цель.*делает спасбросок/i);
  const danger=extras(second).features.find(f=>f.name==='Чувство опасности').description;assert.doesNotMatch(danger,/оглушены/);
+});
+
+function round18Warlock(patron,overrides={}){return create('warlock',patron,{abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:14,wisdom:14,charisma:16},...overrides});}
+function round18Blade(second,improved=true){return advance(second,null,{pact:'blade',...(improved?{invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}:{})});}
+
+test('PR26 round eighteen: one-handed summoned Hexblade attacks receive Improved Pact Weapon separately',()=>{
+ for(const creation_weapon of ['dagger','handaxe','quarterstaff','greatclub'])for(const charisma of [10,16,18]){
+  const first=round18Warlock('hexblade',{creation_weapon,abilities:{strength:14,dexterity:14,constitution:14,intelligence:14,wisdom:14,charisma}}),second=advance(first),plain=round18Blade(second,false),improved=round18Blade(second),before=copy(improved);
+  const base=extras(plain),e=extras(improved),ordinary=e.attacks.find(a=>a.id===creation_weapon),pact=e.attacks.find(a=>a.id===creation_weapon+'-pact-hex');
+  assert.ok(pact,creation_weapon);assert.equal(pact.ability,'charisma');assert.equal(pact.proficient,true);assert.equal(pact.attackBonus,3+stats(improved).modifiers.charisma);assert.equal(pact.damageBonus,1+stats(improved).modifiers.charisma);
+  assert.equal(base.attacks.find(a=>a.id===pact.id).attackBonus,pact.attackBonus-1);assert.deepEqual(ordinary,base.attacks.find(a=>a.id===ordinary.id));
+  assert.deepEqual(e.attacks.filter(a=>a.id.endsWith('-hex')&&!a.pactWeapon),base.attacks.filter(a=>a.id.endsWith('-hex')&&!a.pactWeapon));assert.equal(new Set(e.attacks.map(a=>a.id)).size,e.attacks.length);
+  assert.match(pact.notes[0],/только если.*создана.*Договор клинка/);assert.match(pact.notes.join(' '),/Улучшенное оружие договора.*\+1/);assert.ok(!e.attacks.some(a=>a.pactWeapon&&a.group==='unarmed'));
+  for(const c of [first,second,advance(second,null,{pact:'tome'}),advance(second,null,{pact:'chain'}),advance(second,null,{pact:'talisman'})])assert.ok(!extras(c).attacks.some(a=>a.pactWeapon));
+  const native=exported(improved).weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,pact.damage);assert.deepEqual(L.inspect(improved,context(improved)).errors,[]);assert.deepEqual(improved,before);
+ }
+});
+
+test('PR26 round eighteen: generic pact variants use base profiles and grant only summoned proficiency',()=>{
+ for(const patron of L.subclasses('warlock').map(s=>s.id)){
+  const second=advance(round18Warlock(patron,{abilities:{strength:14,dexterity:18,constitution:14,intelligence:14,wisdom:14,charisma:16}})),plain=round18Blade(second,false),c=round18Blade(second),ctx=context(c);
+  // The legal saved hero stays intact; existing catalogue profiles cover martial
+  // forms that the level-one warlock equipment chooser cannot supply.
+  const profiles=Object.values(O.WEAPONS).map(w=>{const ability=w.properties.includes('ranged')||w.properties.includes('finesse')?'dexterity':'strength',bonus=stats(c).modifiers[ability],proficient=w.group==='simple';return {...w,ability,proficient,attackBonus:bonus+(proficient?2:0),damageBonus:w.damage==='0'?0:bonus,damage:w.damage==='0'?'0':w.damage+'+'+bonus,notes:proficient?[]:['Нет владения: бонус мастерства к атаке не добавлен.']};});
+  const synthetic={...profiles[0],id:'club-synthetic',damage:'1d4+20',damageBonus:20,attackBonus:22},natural={...profiles[0],id:'natural-claw',properties:['natural']},base={...ctx.baseExtras,attacks:[...profiles,synthetic,natural,...ctx.baseExtras.attacks.filter(a=>a.group==='unarmed')]};
+  const before=copy(c),baseBefore=copy(base),e=L.derive(c,ctx,base),without=L.derive(plain,context(plain),base),nativeData=JSON.parse(E.buildLssExport(c,{},R.derivedStats(c,e),e)[0].data),allowedRanged=['shortbow','longbow','light-crossbow','heavy-crossbow'];
+  for(const original of profiles){const eligible=!original.properties.includes('ranged')||allowedRanged.includes(original.id),suffix=patron==='hexblade'?'-pact-hex':'-pact',pact=e.attacks.find(a=>a.id===original.id+suffix);assert.equal(!!pact,eligible,patron+': '+original.id);if(!eligible)continue;
+   assert.equal(pact.proficient,true);assert.equal(pact.ability,patron==='hexblade'?'charisma':original.ability);assert.equal(pact.attackBonus,3+stats(c).modifiers[pact.ability]);assert.equal(pact.damageBonus,1+stats(c).modifiers[pact.ability]);assert.ok(!pact.notes.some(n=>n.startsWith('Нет владения')));
+   assert.deepEqual(e.attacks.find(a=>a.id===original.id),without.attacks.find(a=>a.id===original.id));assert.equal(!!without.attacks.find(a=>a.id===pact.id),!original.properties.includes('ranged'));
+   const native=nativeData.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.isProf,true);assert.equal(native.ability,{strength:'str',dexterity:'dex',charisma:'cha'}[pact.ability]);assert.equal(native.dmg.value,pact.damage);assert.ok(nativeData.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
+  }
+  assert.ok(!e.attacks.some(a=>a.pactWeapon&&['club-synthetic','natural-claw','unarmed'].some(id=>a.id.startsWith(id))));assert.equal(new Set(e.attacks.map(a=>a.id)).size,e.attacks.length);assert.deepEqual(c,before);assert.deepEqual(copy(base),baseBefore);
+ }
+});
+
+test('PR26 round eighteen: curse healing uses warlock class level with a minimum of one',()=>{
+ for(const charisma of [6,16,18]){
+  const first=round18Warlock('hexblade',{...(charisma===18?{race:'half-elf',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}}:{}),abilities:{strength:14,dexterity:14,constitution:14,intelligence:14,wisdom:14,charisma}}),second=advance(first),cases=[[first,1],[second,2],[advance(second,null,{pact:'blade'}),3]];
+  if(charisma>=13){const entry=enter(create('fighter',null,{abilityMethod:'manual',abilities:first.abilities}),'warlock',{'warlock:creation_patron':'hexblade'});cases.push([enter(first,'fighter'),1],[enter(second,'fighter'),2],[entry,1],[enter(entry,'warlock'),2]);}
+  for(const [c,level] of cases){const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name==='Проклятие ведьмовского клинка');assert.deepEqual(R.validateAbilities(c,context(c).baseExtras),[]);assert.equal(features.length,1);const text=features[0].description;assert.match(text,new RegExp('восстановите '+Math.max(1,level+stats(c).modifiers.charisma)+' хит'));assert.match(text,/уровень колдуна \+ модификатор Харизмы.*минимум 1/);assert.match(text,/Бонусное действие.*видим.*30 фут.*1 минут/);assert.match(text,/умирает.*умираете.*недееспособны/);assert.match(text,/броскам урона.*проклятой цели/);assert.match(text,/19–20/);assert.ok(JSON.stringify(exported(c).text.traits).includes(text));const resources=e.resources.filter(r=>r.name==='Проклятие ведьмовского клинка');assert.equal(resources.length,1);assert.equal(resources[0].max,1);assert.equal(resources[0].rest,'short-rest');assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);}
+ }
+});
+
+test('PR26 round eighteen: Genie Wrath and Form of Dread keep complete conditional class rules',()=>{
+ for(const [patron,name] of [['genie','Гнев гения'],['undead','Облик ужаса']])for(const genie of patron==='genie'?['dao','djinni','efreeti','marid']:['dao']){
+  const first=round18Warlock(patron,patron==='genie'?{creation_genie:genie}:{}),second=advance(first),entry=enter(create('fighter',null,{abilityMethod:'manual'}),'warlock',{'warlock:creation_patron':patron,...(patron==='genie'?{'warlock:creation_genie':genie}:{})}),cases=[[first,1],[second,2],[advance(second,null,{pact:'blade'}),3],[enter(first,'fighter'),1],[enter(second,'fighter'),2],[entry,1],[enter(entry,'warlock'),2]];
+  for(const [c,level] of cases){const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name===name);assert.equal(features.length,1);const text=features[0].description;assert.match(text,/Один раз в каждый свой ход.*попадания атакой.*можете/);
+   if(patron==='genie'){const expected={dao:['Дао','дробящий'],djinni:['Джинн','звуком'],efreeti:['Ифрит','огнём'],marid:['Марид','холодом']}[genie];for(const part of expected)assert.ok(text.includes(part),text);assert.match(text,/2.*бонус мастерства/);assert.ok(!e.resources.some(r=>/wrath/.test(r.id)));}
+   else{assert.match(text,/Бонусное действие.*1 минут/);assert.match(text,new RegExp('1к10 \\+ '+level+' временных хитов'));assert.match(text,/уровень колдуна/);assert.match(text,/иммунитет к испугу.*пока.*облик/);assert.match(text,new RegExp('Мудрости Сл '+(10+stats(c).modifiers.charisma)));assert.match(text,/Сл заклинаний колдуна/);assert.match(text,/при провале.*испугано.*конца вашего следующего хода/);const resources=e.resources.filter(r=>r.name==='Облик ужаса');assert.equal(resources.length,1);assert.equal(resources[0].max,stats(c).proficiencyBonus);assert.equal(resources[0].rest,'long-rest');}
+   assert.ok(JSON.stringify(exported(c).text.traits).includes(text));const damageProfiles=attacks=>attacks.filter(a=>!a.pactWeapon).map(({id,damage,damageBonus,type})=>({id,damage,damageBonus,type}));assert.deepEqual(damageProfiles(e.attacks),damageProfiles(context(c).baseExtras.attacks));assert.equal(e.tempHp,undefined);assert.equal(e.resistances,context(c).baseExtras.resistances);const baseline=R.derivedStats(c,{...e,features:[],resources:[]});assert.equal(stats(c).hp,baseline.hp);assert.equal(stats(c).ac,baseline.ac);assert.equal(stats(c).speed,baseline.speed);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);
+  }
+ }
+ for(const patron of ['fiend','hexblade','genie','undead']){const e=extras(round18Warlock(patron));for(const [owner,name] of [['hexblade','Проклятие ведьмовского клинка'],['genie','Гнев гения'],['undead','Облик ужаса']])if(patron!==owner)assert.ok(!e.features.some(f=>f.name===name));}
+});
+
+
+test('PR26 round eighteen: ordinary Hex Warrior preserves legal multiclass thrown-style variants',()=>{
+ const first=create('fighter',null,{creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes',abilityMethod:'manual'}),c=enter(first,'warlock',{'warlock:creation_patron':'hexblade'}),before=copy(c),e=extras(c),thrown=e.attacks.find(a=>a.id==='handaxe-thrown'),hex=e.attacks.find(a=>a.id==='handaxe-thrown-hex');
+ assert.ok(hex);assert.equal(hex.ability,'charisma');assert.equal(hex.damage,'1d6+5');assert.equal(hex.attackBonus,5);assert.equal(thrown.damage,'1d6+5');assert.ok(!e.attacks.some(a=>a.pactWeapon));const native=exported(c).weaponsList.find(w=>w.name.value===hex.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,hex.damage);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);
 });
