@@ -1011,3 +1011,47 @@ test('PR26 round sixteen review fixes: failed initial migration shows unsaved ac
  const indicator=()=>dom.root.querySelector('.save-indicator');for(let render=0;render<3;render++){assert.ok(dom.root.querySelector('.advancement-sheet'));assert.equal(indicator().textContent,'Автосохранение недоступно');assert.equal(indicator().classList.contains('is-off'),true);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);assert.equal(vm.runInContext('character.name',context),second.name);vm.runInContext('renderPage();',context);}
  dom.window.localStorage.setItem=write;vm.runInContext("saveDraft('result');",context);assert.equal(indicator().textContent,'Черновик сохранён');assert.equal(indicator().classList.contains('is-off'),false);vm.runInContext('renderPage();',context);assert.equal(indicator().textContent,'Черновик сохранён');assert.equal(indicator().classList.contains('is-off'),false);const saved=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.equal(saved.level,2);assert.ok(saved.advancement.entries[0].foundation.startsWith('foundation:v2:'));assert.deepEqual(saved.pendingAdvancement.choices,c.pendingAdvancement.choices);
 });
+
+test('PR26 round seventeen: seven conditional descriptions reach the actual final sheet at legal levels',async()=>{
+ const H=require('./fixtures/characters'),cases=[['wizard','graviturgy','Изменение плотности'],['wizard','enchantment','Гипнотический взгляд'],['wizard','transmutation','Малая алхимия'],['paladin','vengeance','Изгнание врага'],['barbarian','storm-herald','Аура бури'],['barbarian','berserker','Чувство опасности'],['bard','lore','Песнь отдыха (к6)']];
+ for(const [cls,branch,name] of cases){
+  const first=H.create(cls,null,{abilityMethod:'manual'}),second=H.advance(first,cls==='wizard'?branch:null),third=H.advance(second,cls==='wizard'?null:branch),positive=cls==='paladin'||name==='Аура бури'?[third]:[second,third];
+  if(cls==='wizard'||cls==='bard')positive.push(H.enter(second,'fighter'));
+  if(name==='Аура бури')for(const storm_environment of ['sea','tundra'])positive.push(H.advance(second,'storm-herald',{storm_environment}));
+  const negative=[first];if(cls==='paladin'||name==='Аура бури')negative.push(second);
+  if(!['Чувство опасности','Песнь отдыха (к6)'].includes(name))negative.push(H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual'}),cls==='wizard'?'evocation':null),cls==='paladin'?'devotion':cls==='barbarian'?'zealot':null));
+  for(const c of [...positive,...negative]){
+   const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+   const profiles=H.extras(c).features.filter(f=>f.name===name),data=JSON.parse(context.getExportData()[0].data);assert.equal(profiles.length,positive.includes(c)?1:0,name);
+   if(profiles.length){assert.ok(dom.root.textContent.includes(profiles[0].description),name+': actual sheet');assert.ok(JSON.stringify(data.text.traits).includes(profiles[0].description),name+': native LSS');}
+   else{assert.ok(!dom.root.textContent.includes(name));assert.ok(!JSON.stringify(data.text.traits).includes(name));}
+   assert.equal(JSON.stringify(c),before);
+  }
+ }
+});
+
+test('PR26 round seventeen: Homunculus final sheet and native LSS preserve class scaling and hero ownership',async()=>{
+ const H=require('./fixtures/characters'),infusions=['homunculus-servant','enhanced-weapon','repeating-shot','returning-weapon'],none=['enhanced-defense',...infusions.slice(1)],cases=[];
+ for(const intelligence of [10,16,20]){
+  const first=H.create('artificer',null,{abilityMethod:'manual',race:'gnome',race_sub:'rock-gnome',abilities:{strength:16,dexterity:16,constitution:16,intelligence:intelligence-2,wisdom:16,charisma:16}}),second=H.advance(first,null,{infusions}),plain=H.advance(first,null,{infusions:none});
+  cases.push([second,plain,2,intelligence]);
+  for(const subclass of ['alchemist','armorer','artillerist','battle-smith'])cases.push([H.advance(second,subclass),H.advance(plain,subclass),3,intelligence]);
+  if(intelligence===16){
+   cases.push([first,first,0,intelligence],[plain,plain,0,intelligence]);
+   cases.push([H.advance(second,'alchemist',{infusion_remove:'homunculus-servant',infusion_add:'enhanced-defense'}),H.advance(plain,'alchemist'),0,intelligence]);
+   cases.push([H.advance(plain,'alchemist',{infusion_remove:'enhanced-defense',infusion_add:'homunculus-servant'}),H.advance(plain,'alchemist'),3,intelligence]);
+   cases.push([H.enter(second,'fighter'),H.enter(plain,'fighter'),2,intelligence],[H.enter(first,'fighter'),H.enter(first,'fighter'),0,intelligence]);
+  }
+ }
+ const fighter=H.create('fighter',null,{abilityMethod:'manual'}),one=H.enter(fighter,'artificer');cases.push([one,one,0,16],[H.enter(one,'artificer',{infusions}),H.enter(one,'artificer',{infusions:none}),2,16]);
+ for(const [c,plain,classLevel,intelligence] of cases){
+  const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+  const profile=H.extras(c).features.find(f=>f.name==='Слуга-гомункул'),data=JSON.parse(context.getExportData()[0].data),nativePlain=JSON.parse(require('../lss-export').buildLssExport(plain,{},H.stats(plain),H.extras(plain))[0].data);
+  if(classLevel){
+   assert.ok(profile);assert.equal(dom.root.textContent.split(profile.description).length-1,1);assert.ok(profile.description.includes('Хиты '+(1+Math.floor((intelligence-10)/2)+classLevel)+' ('));assert.ok(profile.description.includes('кости хитов '+classLevel+'к4'));assert.ok(profile.description.includes('бонус атаки +'+(2+Math.floor((intelligence-10)/2))));
+   for(const line of profile.description.split('\n'))assert.ok(JSON.stringify(data.text.traits).includes(line));
+  }else{assert.equal(profile,undefined);assert.ok(!dom.root.textContent.includes('Слуга-гомункул'));assert.ok(!JSON.stringify(data.text.traits).includes('Слуга-гомункул'));}
+  assert.deepEqual(data.weaponsList,nativePlain.weaponsList);assert.deepEqual(data.saves,nativePlain.saves);assert.deepEqual(data.vitality,nativePlain.vitality);assert.ok(!JSON.stringify(data.text.attacks).includes('Силовой удар'));
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(plain).hp);assert.equal(vm.runInContext('getDerivedCharacter().ac',context),H.stats(plain).ac);assert.equal(vm.runInContext('getDerivedCharacter().speed',context),H.stats(plain).speed);assert.equal(JSON.stringify(c),before);
+ }
+});

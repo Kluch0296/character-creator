@@ -800,3 +800,57 @@ test('PR26 round sixteen review fixes: Improved Pact Weapon adds one only to exp
   const data=exported(improved),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,pact.damage);assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));assert.ok(JSON.stringify(data.text.attacks).includes(pact.label+': атака +6, урон '+pact.damage));
  }
 });
+
+const ROUND17_CASES=[
+ ['wizard','graviturgy','Изменение плотности',[/Действие.*видим.*30 футов/,/Большой или меньше/,/вдвое.*1 минут.*концентрац/,/скорость \+10 футов.*прыжк.*вдвое.*помех.*провер.*спасброс.*Силы/,/скорость −10 футов.*преимуществ.*провер.*спасброс.*Силы/]],
+ ['wizard','enchantment','Гипнотический взгляд',[/Действие.*видим.*5 футов/,/видеть или слышать вас/,/Мудрости.*Сл.*волшебника/,/очарован.*недееспособ.*скорость 0.*конца.*следующего хода/,/действием.*продл/,/более.*5 фут/,/ни видеть, ни слышать/,/урон/,/не поддерживаете/,/успешного спасброска.*окончания эффекта.*этой цели.*долгого отдыха/]],
+ ['wizard','transmutation','Малая алхимия',[/один немагический предмет.*целиком/,/дерев.*камн.*кроме драгоценн.*желез.*мед.*серебр/,/10 минут.*1 кубическ.*фут/,/1 час.*потер.*концентрац.*заклинани/]],
+ ['paladin','vengeance','Изгнание врага',[/Божественный канал.*действие.*священный символ/,/видим.*60 футов/,/Мудрости.*иммунитет.*испугу/,/исчадия и нежить.*помех/,/провал.*испуган.*скорость 0.*бонус.*скорости/i,/успех.*скорость.*вдвое/i,/оба.*1 минут.*урон/i]],
+ ['barbarian','storm-herald','Аура бури',[/ярост.*10 футов.*входе.*бонусным действием/,/Пустыня.*все остальные существа.*союзник.*2 урона огнём/,/Тундра.*каждое выбранное существо.*вас.*2 временных хита/,/Море.*другое видимое.*10 футов.*Ловкости Сл.*1к6.*половину/,/Полное укрытие/]],
+ ['barbarian','berserker','Чувство опасности',[/спасброск.*Ловкости.*видим/,/ослеплены.*оглохли.*недееспособны/]],
+ ['bard','lore','Песнь отдыха (к6)',[/Вы и каждое дружественное существо.*слыш.*исполнение/,/короткого отдыха.*хотя бы одну кость хитов/,/1к6.*один раз.*существо.*не за каждую кость/]]
+];
+for(const [cls,subclass,name,patterns] of ROUND17_CASES)test('PR26 round seventeen: complete '+name+' conditions survive native export',()=>{
+ const first=create(cls,null,{abilityMethod:'manual'}),second=advance(first,cls==='wizard'?subclass:null),third=advance(second,cls==='wizard'?null:subclass),available=cls==='paladin'||name==='Аура бури'?[third]:[second,third];
+ for(const c of available){const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name===name);assert.equal(features.length,1,name);for(const pattern of patterns)assert.match(features[0].description,pattern,name);assert.ok(JSON.stringify(exported(c).text.traits).includes(features[0].description));assert.deepEqual(c,before);assert.equal(stats(c).speed,stats(first).speed);assert.equal(stats(c).ac,stats(first).ac);assert.ok(!e.resources.some(r=>/hypnotic-gaze|adjust-density|song-of-rest/.test(r.id)));}
+ assert.ok(!extras(first).features.some(f=>f.name===name));
+ const wrong=advance(advance(create(cls,null,{abilityMethod:'manual'})),cls==='wizard'?'evocation':cls==='paladin'?'devotion':cls==='barbarian'?'zealot':'valor');
+ if(!['Чувство опасности','Песнь отдыха (к6)'].includes(name))assert.ok(!extras(wrong).features.some(f=>f.name===name));
+ if(cls==='wizard'||cls==='bard'){const multi=enter(second,'fighter'),f=extras(multi).features.find(f=>f.name===name);assert.ok(f);for(const pattern of patterns)assert.match(f.description,pattern);assert.ok(JSON.stringify(exported(multi).text.traits).includes(f.description));}
+});
+
+const ROUND17_INFUSIONS=['homunculus-servant','enhanced-weapon','repeating-shot','returning-weapon'];
+function round17Artificer(score=16){return create('artificer',null,{abilityMethod:'manual',race:'gnome',race_sub:'rock-gnome',abilities:{strength:16,dexterity:16,constitution:16,intelligence:score-2,wisdom:16,charisma:16}});}
+function round17Homunculus(c){return extras(c).features.filter(f=>f.name==='Слуга-гомункул');}
+test('PR26 round seventeen: learned Homunculus has class-scaled TCE profile without changing hero statistics',()=>{
+ for(const score of [10,16,20]){
+  const first=round17Artificer(score),second=advance(first,null,{infusions:ROUND17_INFUSIONS}),plainSecond=advance(first,null,{infusions:['enhanced-defense',...ROUND17_INFUSIONS.slice(1)]});assert.equal(stats(second).abilities.intelligence,score);assert.deepEqual(round17Homunculus(first),[]);assert.deepEqual(round17Homunculus(plainSecond),[]);
+  for(const [c,plain,classLevel] of [[second,plainSecond,2],...['alchemist','armorer','artillerist','battle-smith'].map(branch=>[advance(second,branch),advance(plainSecond,branch),3])]){
+   const before=copy(c),[profile,...duplicates]=round17Homunculus(c);assert.ok(profile);assert.deepEqual(duplicates,[]);assert.equal(profile.source,'TCE');assert.equal(profile.level,2);const text=profile.description;
+   for(const pattern of [/Инфузия изучена.*применении/,/камень или кристалл.*100 зм.*сердц/,/дружелюбен.*спутник/,/Крошечный конструкт.*КД 13/,/ходьба 20 футов.*полёт 30 футов/,/СИЛ 4, ЛОВ 15, ТЕЛ 12, ИНТ 10, МДР 10, ХАР 7/,/ЛОВ \+4.*Скрытность \+4.*Восприятие \+4/,/пассивное Восприятие 14/,/яд.*отравлени.*истощени/,/Тёмное зрение 60 футов.*понимает ваши языки/,/Увёртливость.*Ловкости.*половин.*успех.*0.*провал.*половин.*недееспособ/,/Силовой удар.*дальнобойная атака оружием.*30 футов.*видим.*1к4\+2.*силов/,/Канал магии.*реакция.*касани.*120 футов/,/инициатив.*сразу после вас.*самостоятельно.*реакци/,/Уклонение.*бонусным действием.*другое действие/,/вашей недееспособности.*сам/,/Починка.*2к6/,/смерти.*исчезает.*сердц/])assert.match(text,pattern);
+   assert.ok(text.includes('Хиты '+(1+Math.floor((score-10)/2)+classLevel)+' (1 + модификатор Интеллекта + уровень изобретателя)'));assert.ok(text.includes('кости хитов '+classLevel+'к4'));assert.ok(text.includes('бонус атаки +'+(2+Math.floor((score-10)/2))));assert.doesNotMatch(text,/требован.*6.*уров/i);
+   assert.deepEqual(stats(c),stats(plain));assert.deepEqual(extras(c).attacks,extras(plain).attacks);assert.deepEqual(extras(c).resources,extras(plain).resources);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);for(const line of text.split('\n'))assert.ok(JSON.stringify(exported(c).text.traits).includes(line));assert.deepEqual(exported(c).weaponsList,exported(plain).weaponsList);assert.ok(!JSON.stringify(exported(c).text.attacks).includes('Силовой удар'));
+  }
+ }
+});
+test('PR26 round seventeen: infusion replacement adds and removes conditional profile with immutable replay',()=>{
+ const first=round17Artificer(),known=advance(first,null,{infusions:ROUND17_INFUSIONS}),unknown=advance(first,null,{infusions:['enhanced-defense',...ROUND17_INFUSIONS.slice(1)]});
+ for(const [old,choices,count] of [[known,{infusion_remove:'homunculus-servant',infusion_add:'enhanced-defense'},0],[unknown,{infusion_remove:'enhanced-defense',infusion_add:'homunculus-servant'},1]]){
+  const snapshot=copy(old),pending=fill(old,L.begin(old,context(old)),{subclass:'alchemist',...choices}),pendingBefore=copy(pending);assert.deepEqual(L.transition(old,pending,context(old)).errors,[]);const next=L.commit(old,pending,context(old));assert.deepEqual(old,snapshot);assert.deepEqual(pending,pendingBefore);assert.deepEqual(next.advancement.entries[0],old.advancement.entries[0]);assert.equal(round17Homunculus(next).length,count);assert.deepEqual(L.inspect(next,context(next)).errors,[]);assert.equal(JSON.stringify(exported(next).text.traits).includes('Слуга-гомункул'),Boolean(count));
+ }
+});
+test('PR26 round seventeen: both artificer multiclass orders use class level two and level one has no profile',()=>{
+ const first=round17Artificer(),artificerFirst=enter(advance(first,null,{infusions:ROUND17_INFUSIONS}),'fighter'),fighterFirst=enter(enter(create('fighter',null,{abilityMethod:'manual'}),'artificer'),'artificer',{infusions:ROUND17_INFUSIONS});
+ for(const c of [artificerFirst,fighterFirst]){const before=copy(c),profiles=round17Homunculus(c);assert.equal(profiles.length,1);assert.match(profiles[0].description,/Хиты 6 .*кости хитов 2к4/);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.ok(JSON.stringify(exported(c).text.traits).includes('Хиты 6'));assert.deepEqual(c,before);}
+ for(const c of [enter(first,'fighter'),enter(create('fighter',null,{abilityMethod:'manual'}),'artificer')])assert.deepEqual(round17Homunculus(c),[]);
+});
+test('PR26 round seventeen: every Storm environment retains its targets, Sea save and conditional benefits',()=>{
+ const first=create('barbarian',null,{abilityMethod:'manual'}),second=advance(first);
+ for(const storm_environment of ['desert','sea','tundra']){
+  const c=advance(second,'storm-herald',{storm_environment}),before=copy(c),e=extras(c),f=e.features.find(f=>f.name==='Аура бури');assert.equal(e.features.filter(f=>f.name==='Аура бури').length,1);
+  assert.match(f.description,/все остальные существа.*союзников.*2 урона огнём/);assert.match(f.description,/каждое выбранное существо.*включая вас.*2 временных хита/);assert.match(f.description,new RegExp('Море: одно другое видимое существо в пределах 10 футов проходит спасбросок Ловкости Сл '+(10+stats(c).modifiers.constitution)));assert.match(f.description,/1к6 урона молнией при провале или половину при успехе.*Полное укрытие/);
+  assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));assert.equal(stats(c).hp,stats(advance(second,'zealot')).hp);assert.equal(stats(c).speed,stats(first).speed);assert.equal(stats(c).ac,stats(first).ac);assert.deepEqual(c,before);
+ }
+ const density=extras(advance(create('wizard'),'graviturgy')).features.find(f=>f.name==='Изменение плотности').description;assert.doesNotMatch(density,/согласн|цель.*делает спасбросок/i);
+ const danger=extras(second).features.find(f=>f.name==='Чувство опасности').description;assert.doesNotMatch(danger,/оглушены/);
+});
