@@ -1120,3 +1120,12 @@ test('PR26 round twenty: source-verified feature conditions reach actual sheet a
  const c=H.advance(H.create('paladin',null,{abilityMethod:'manual',creation_weapon:'longbow',creation_shield_weapon:'greatsword'}),null,{style:'great-weapon-fighting'}),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();const data=JSON.parse(ctx.getExportData()[0].data),attacks=H.extras(c).attacks;
  for(const id of ['longbow','greatsword']){const attack=attacks.find(a=>a.id===id),native=data.weaponsList.find(w=>w.name.value===attack.label);assert.ok(dom.root.textContent.includes(attack.label+': +'+attack.attackBonus+' к попаданию, '+attack.damage+' урона'+(attack.notes.length?'. '+attack.notes.join(' '):'')));assert.equal(/переброс/.test(native.notes.value),id==='greatsword');}
 });
+
+
+test('PR26 round twenty-one: complete subclass timing and targets appear on actual saved sheet',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,name,condition] of [['barbarian','ancestral-guardian','Защитники предков','До начала вашего следующего хода'],['bard','glamour','Мантия вдохновения','модификатора Харизмы'],['bard','whispers','Психические клинки','один раз за раунд'],['warlock','fathomless','Щупальце глубин','до 30 футов'],['cleric','order','Голос власти','расходуя ячейку'],['paladin','redemption','Обличение жестокости','атака заклинанием']]){
+  const first=H.create(cls,['warlock','cleric'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=H.advance(first),third=H.advance(second,branch),heroes=[third];if(['warlock','cleric'].includes(cls))heroes.push(first,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name);assert.ok(f.description.includes(condition));const section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.ok(section);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(JSON.stringify(c),before);}
+ }
+});

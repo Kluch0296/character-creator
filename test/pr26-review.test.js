@@ -966,3 +966,30 @@ test('PR26 round twenty: completed summaries remain restricted to their class an
  }
  for(const cls of ['fighter','wizard','warlock'])assert.ok(!extras(create(cls,null,{abilityMethod:'manual'})).features.some(f=>f.name==='Ярость'||f.description.startsWith('Ярость:')));
 });
+
+
+const round21Cases=[
+ ['Защитники предков',()=>[advance(advance(create('barbarian',null,{abilityMethod:'manual'})),'ancestral-guardian')],[/В ярости.*в каждый свой ход.*первое существо.*попали атакой/,/До начала вашего следующего хода/,/помехой.*по существам, кроме вас; если такая атака попадает.*сопротивление урону этой атаки/,/раньше.*ярость заканчивается/]],
+ ['Мантия вдохновения',()=>[6,16,18].map(charisma=>advance(advance(create('bard',null,{abilityMethod:'manual',abilities:{strength:16,dexterity:16,constitution:16,intelligence:16,wisdom:16,charisma}})),'glamour')),[/Бонусным действием.*одно.*Вдохновения барда/,/существ.*модификатора Харизмы.*минимум 1/,/60 футов/,/вы видите.*видят вас/,/5 временных хитов/,/немедленно.*реакцией.*своей скорости.*без провоцированных атак/]],
+ ['Психические клинки',()=>[advance(advance(create('bard',null,{abilityMethod:'manual'})),'whispers')],[/попадании.*существу атакой оружием/,/можете потратить одно.*Вдохновения барда/,/2к6.*психическ/,/один раз за раунд.*свой ход/]],
+ ['Щупальце глубин',()=>{const first=create('warlock','fathomless',{abilityMethod:'manual'}),second=advance(first),entry=enter(create('fighter',null,{abilityMethod:'manual'}),'warlock',{'warlock:creation_patron':'fathomless'});return [first,second,advance(second,null,{pact:'blade'}),enter(first,'fighter'),enter(second,'fighter'),entry,enter(entry,'warlock')];},[/Бонусным действием.*10-футовое щупальце.*видимом.*60 футов/,/1 минуту.*нового/,/При создании.*можете.*рукопашную атаку заклинанием.*10 футах от щупальца/,/1к8 урона холодом/,/скорость.*10 футов до начала вашего следующего хода/,/Бонусным действием в свой ход.*до 30 футов.*повторить атаку/,/Число призывов.*бонусу мастерства/,/долгого отдыха/]],
+ ['Голос власти',()=>{const first=create('cleric','order',{abilityMethod:'manual'}),second=advance(first),entry=enter(create('fighter',null,{abilityMethod:'manual'}),'cleric',{'cleric:creation_domain':'order'});return [first,second,advance(second),enter(first,'fighter'),enter(second,'fighter'),entry,enter(entry,'cleric')];},[/заклинание на союзника.*расходуя ячейку.*1-го уровня или выше/,/сразу после заклинания.*реакцией.*одну атаку оружием/,/выбранному вами существу, которое вы видите/,/несколько союзников.*только одного/,/без расхода ячейки.*не запускает/]],
+ ['Обличение жестокости',()=>[advance(advance(create('paladin',null,{abilityMethod:'manual'})),'redemption')],[/Сразу после.*атакующий в пределах 30 футов.*урон атакой.*кроме вас/,/реакцией.*Божественного канала/,/Мудрости.*Сл заклинаний паладина/,/провале.*урона излучением.*нанёс/,/успехе.*половину/,/атака заклинанием/]]
+];
+for(const [name,build,patterns] of round21Cases)test('PR26 round twenty-one: '+name+' targeting and timing reach legal characters and native LSS',()=>{
+ for(const c of build()){
+  const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name===name);assert.equal(features.length,1,name);const text=features[0].description;
+  for(const p of patterns)assert.match(text,p,name);assert.equal(JSON.stringify(exported(c).text.traits).split(text).length-1,1);
+  if(name==='Щупальце глубин'){const pool=e.resources.filter(r=>r.name===name);assert.equal(pool.length,1);assert.equal(pool[0].max,stats(c).proficiencyBonus);assert.equal(pool[0].rest,'long-rest');}
+  if(name==='Обличение жестокости'){assert.doesNotMatch(text,/врага оружием|видимого атакующего/);const channel=e.resources.filter(r=>r.name==='Божественный канал');assert.equal(channel.length,1);assert.equal(channel[0].max,1);assert.equal(channel[0].rest,'short-rest');assert.ok(!e.resources.some(r=>r.name===name));}
+  if(name==='Мантия вдохновения'||name==='Психические клинки')assert.ok(!e.resources.some(r=>r.name===name));
+  assert.equal(e.tempHp,undefined);assert.equal(e.resistances,context(c).baseExtras.resistances);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(R.validateAbilities(c,context(c).baseExtras),[]);assert.deepEqual(c,before);
+ }
+});
+test('PR26 round twenty-one: revised rules keep unlocks and Soulknife separate',()=>{
+ for(const [cls,branch,name] of [['barbarian','berserker','Защитники предков'],['bard','lore','Мантия вдохновения'],['bard','valor','Психические клинки'],['paladin','devotion','Обличение жестокости'],['warlock','fiend','Щупальце глубин'],['cleric','life','Голос власти']]){
+  const first=create(cls,['warlock','cleric'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=advance(first),third=advance(second,branch);for(const c of [first,second,third])assert.ok(!extras(c).features.some(f=>f.name===name));
+ }
+ for(const cls of ['barbarian','bard','paladin'])for(const c of [create(cls,null,{abilityMethod:'manual'}),advance(create(cls,null,{abilityMethod:'manual'}))])for(const name of ['Защитники предков','Мантия вдохновения','Психические клинки','Обличение жестокости'])assert.ok(!extras(c).features.some(f=>f.name===name));
+ const rogue=advance(advance(create('rogue',null,{abilityMethod:'manual'})),'soulknife'),text=extras(rogue).features.find(f=>f.name==='Психические клинки').description;assert.match(text,/Пси-клинки/);assert.doesNotMatch(text,/Вдохновения барда|один раз за раунд/);
+});
