@@ -1026,3 +1026,57 @@ test('PR26 round twenty-two: changed features retain unlock and subclass boundar
  }
  assert.ok(!extras(create('sorcerer','draconic')).resources.some(r=>r.id.endsWith('strength-of-the-grave')));
 });
+
+
+const round23Adept={human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['precision','rally']};
+test('PR26 round twenty-three: creation rejects aliases and shared maneuver repeats in both picking orders',()=>{
+ for(const [legacy,shared] of Object.entries({disarming:'disarming-attack',distracting:'distracting-strike',evasive:'evasive-footwork',feinting:'feinting-attack',goading:'goading-attack',lunging:'lunging-attack',maneuvering:'maneuvering-attack',menacing:'menacing-attack',precision:'precision-attack',pushing:'pushing-attack',sweeping:'sweeping-attack',trip:'trip-attack',rally:'rally',parry:'parry','commanders-strike':'commanders-strike',riposte:'riposte'})){
+  const other=legacy==='rally'?'parry':'rally',c=create('fighter',null,{...round23Adept,creation_maneuvers:[legacy,other],creation_style:'superior-technique',creation_superior_maneuver:'ambush'}),before=copy(c);
+  const group=(hero,id)=>O.getChoices(hero,context(hero)).find(g=>g.id===id);
+  assert.ok(!group(c,'creation_superior_maneuver').options.some(o=>o.value===shared));
+  const bad={...c,creation_superior_maneuver:shared};assert.ok(!group(bad,'creation_maneuvers').options.some(o=>o.value===legacy));
+  for(const field of ['creation_maneuvers','creation_superior_maneuver'])assert.ok(O.validate(bad,context(bad)).some(e=>e.field===field));
+  // Start with the style, then select a feat; either sequence recomputes the same exclusions.
+  const styleFirst={...c,creation_maneuvers:[] ,creation_superior_maneuver:shared};assert.ok(!group(styleFirst,'creation_maneuvers').options.some(o=>o.value===legacy));
+  const repaired={...bad,creation_superior_maneuver:'ambush'};assert.deepEqual(O.validate(repaired,context(repaired)),[]);assert.deepEqual(c,before);
+ }
+ const c=create('fighter',null,{...round23Adept,creation_style:'superior-technique',creation_superior_maneuver:'parry'});
+ for(const patch of [{creation_feat:'alert'},{human_feature:'human_stats'},{race:'elf'}])assert.ok(O.getChoices({...c,...patch},context(c)).find(g=>g.id==='creation_superior_maneuver').options.some(o=>o.value==='precision-attack'));
+ for(const patch of [{creation_style:'defense'},{class:'wizard'}])assert.ok(O.getChoices({...c,...patch},context(c)).find(g=>g.id==='creation_maneuvers').options.some(o=>o.value==='parry'));
+ const next=advance(advance(c),'battle-master'),snapshot=copy(next);assert.deepEqual(L.inspect(next,context(next)).errors,[]);assert.deepEqual(next,snapshot);assert.deepEqual(next.creation_maneuvers,['precision','rally']);
+ const pools=extras(next).resources.filter(r=>['martial-adept','superior-technique','superiority-dice'].includes(r.id));assert.deepEqual(pools.map(r=>r.max),[1,1,4]);
+});
+
+test('PR26 round twenty-three: secondary fighter excludes original Martial Adept and rejects forged entry/replay',()=>{
+ for(const cls of ['wizard','cleric']){
+  const c=create(cls,cls==='cleric'?'arcana':null,round23Adept),before=copy(c);
+  const draft=L.selectClass(c,L.begin(c,context(c)),'fighter',context(c));draft.choices['fighter:creation_style']='superior-technique';
+  const g=L.getChoices(c,draft,context(c)).find(g=>g.id==='fighter:creation_superior_maneuver');assert.ok(!g.options.some(o=>['precision-attack','rally'].includes(o.value)));
+  const valid=fill(c,draft,{'fighter:creation_style':'superior-technique','fighter:creation_superior_maneuver':'parry'});assert.deepEqual(L.transition(c,valid,context(c)).errors,[]);
+  for(const id of ['precision-attack','rally']){const bad=copy(valid);bad.choices['fighter:creation_superior_maneuver']=id;assert.ok(L.transition(c,bad,context(c)).errors.some(e=>e.field==='fighter:creation_superior_maneuver'));assert.throws(()=>L.commit(c,bad,context(c)));const forged={...c,level:2,advancement:{version:2,entries:[bad]}};assert.ok(L.inspect(forged,context(forged)).errors.length);}
+  const next=L.commit(c,valid,context(c)),snapshot=copy(next);assert.deepEqual(L.inspect(next,context(next)).errors,[]);assert.deepEqual(next,snapshot);assert.deepEqual(c,before);assert.deepEqual(next.creation_maneuvers,['precision','rally']);
+  const pools=extras(next).resources.filter(r=>r.id.endsWith('martial-adept')||r.id.endsWith('superior-technique'));assert.equal(pools.length,2);assert.ok(pools.every(r=>r.max===1));
+  for(const patch of [{human_feature:'human_stats'},{creation_feat:'alert'}]){const inactive={...c,...patch},p=L.selectClass(inactive,L.begin(inactive,context(inactive)),'fighter',context(inactive));p.choices['fighter:creation_style']='superior-technique';assert.ok(L.getChoices(inactive,p,context(inactive)).find(g=>g.id==='fighter:creation_superior_maneuver').options.some(o=>o.value==='precision-attack'));}
+ }
+});
+
+const round23Features=[
+ ['cleric','arcana','Божественный канал: Магическое ограждение',[/Действием.*священный символ/,/небожитель, элементаль, фея или исчадие.*30 футов/,/видит и слышит вас/,/Мудрости против Сл заклинаний жреца/,/1 минуту или до получения любого урона/,/удалиться.*не приближается добровольно.*30 футов.*не совершает реакции/,/Рывок.*препятствия движению.*бежать некуда.*Уклонение/,/одно применение Божественного канала/]],
+ ['wizard','scribes','Пробуждённая книга заклинаний',[/Пока держите книгу в руках/,/фокусировкой для заклинаний волшебника/,/заклинание волшебника с использованием ячейки/,/другого заклинания в книге/,/кругу потраченной ячейки.*при повышении круга.*не исходному кругу/,/Заговоры и применение без ячейки не подходят/,/ритуал волшебника.*обычное время.*10 минут.*долгого отдыха/,/короткого отдыха.*пустой книге.*настроены.*все заклинания.*исчезая/]],
+];
+for(const [cls,branch,name,patterns] of round23Features)test('PR26 round twenty-three: '+name+' retains complete casting/turning conditions',()=>{
+ const first=create(cls,cls==='cleric'?branch:null),second=advance(first,cls==='wizard'?branch:null),third=advance(second),secondary=enter(enter(create('fighter',null,{background:'soldier'}),cls,cls==='cleric'?{'cleric:creation_domain':branch}:{}),cls,cls==='wizard'?{subclass:branch}:{});
+ for(const c of [second,third,enter(second,'fighter'),secondary]){const before=copy(c),e=extras(c),fs=e.features.filter(f=>f.name===name);assert.equal(fs.length,1);for(const pattern of patterns)assert.match(fs[0].description,pattern);assert.equal(JSON.stringify(exported(c).text.traits).split(fs[0].description).length-1,1);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));if(cls==='cleric'){assert.equal(e.resources.filter(r=>r.id.endsWith('channel-divinity')).length,1);assert.ok(!e.resources.some(r=>r.id.includes('arcane-abjuration')));assert.doesNotMatch(fs[0].description,/план|5-й/);}}
+ assert.ok(!extras(first).features.some(f=>f.name===name));assert.ok(!extras(advance(create(cls,cls==='cleric'?'light':null),cls==='wizard'?'evocation':null)).features.some(f=>f.name===name));
+});
+
+test('PR26 round twenty-three: all primal companion profiles explain both command options and exact revival',()=>{
+ const second=advance(create('ranger'));assert.ok(!extras(second).features.some(f=>f.name==='Первобытный спутник'));
+ for(const companion of ['beast-of-land','beast-of-sea','beast-of-sky']){
+  const c=advance(second,'beast-master',{companion_rules:'primal-companion',companion}),before=copy(c),e=extras(c),fs=e.features.filter(f=>f.name==='Первобытный спутник');assert.equal(fs.length,1);const text=fs[0].description;
+  for(const pattern of [/самостоятельно перемещается и использует реакции/,/По умолчанию.*Уклонение/,/бонусным действием.*любое другое действие/,/пожертвовать одной своей атакой действия Атака.*без траты бонусного действия/,/3-м уровне.*единственная атака/,/недееспособны.*любое действие самостоятельно/,/1 часа.*действием коснитесь.*1-го круга или выше.*через 1 минуту с полными хитами/,/долгого отдыха.*5 футах.*прежний зверь исчезает/])assert.match(text,pattern);
+  assert.match(text,companion==='beast-of-sky'?/хиты 16 \(3к6\)/:/хиты 20 \(3к8\)/);assert.ok(!e.features.some(f=>f.name==='Спутник следопыта'));assert.equal(JSON.stringify(exported(c).text.traits).split(text).length-1,1);assert.deepEqual(c,before);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+ }
+ assert.ok(!extras(advance(second,'hunter')).features.some(f=>f.name==='Первобытный спутник'));
+ const phb=advance(second,'beast-master',{companion_rules:'phb-beast'});assert.ok(!extras(phb).features.some(f=>f.name==='Первобытный спутник'));
+});

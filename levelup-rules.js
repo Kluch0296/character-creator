@@ -66,7 +66,7 @@
  'channel-divinity-destructive-wrath':['Божественный канал: Разрушительный гнев','Когда бросаете урон электричеством или звуком, можете потратить канал и нанести максимум вместо броска.'],
  'channel-divinity-invoke-duplicity':['Божественный канал: Двуличие','Действием создайте иллюзорного двойника в свободном видимом месте в пределах 30 футов. Он существует до 1 минуты с концентрацией как на заклинании. Бонусным действием в свой ход перемещайте его до 30 футов в видимое место, сохраняя расстояние до вас не более 120 футов. Можно накладывать заклинания из пространства двойника, используя собственные чувства. Если вы и двойник оба в пределах 5 футов от существа и оно видит двойника, ваши атаки по нему совершаются с преимуществом. Расходует одно применение Божественного канала.'],
  'channel-divinity-guided-strike':['Божественный канал: Направленный удар','После броска атаки, до объявления результата, добавьте +10.'],
- 'channel-divinity-arcane-abjuration':['Божественный канал: Магическое ограждение','Действие: изгоните одного исчадия, небожителя, элементаля или фею в 30 футах при провале спасброска Мудрости.'],
+ 'channel-divinity-arcane-abjuration':['Божественный канал: Магическое ограждение','Действием предъявите священный символ: один выбранный небожитель, элементаль, фея или исчадие в 30 футах, который видит и слышит вас, совершает спасбросок Мудрости против Сл заклинаний жреца. При провале цель изгнана на 1 минуту или до получения любого урона: старается удалиться от вас как можно дальше, не приближается добровольно в пределы 30 футов и не совершает реакции. Действие тратит только на Рывок или попытку устранить препятствия движению; если бежать некуда, совершает Уклонение. Расходует одно применение Божественного канала.'],
  'channel-divinity-orders-demand':['Божественный канал: Требование порядка','Действие: существа на ваш выбор в 30 футах очарованы до конца вашего следующего хода при провале Мудрости; можно потребовать уронить предмет.'],
  'channel-divinity-balm-of-peace':['Божественный канал: Бальзам мира','Действие: двигайтесь без провоцированных атак; пройденные союзники в 5 футах восстанавливают 2к6 + МДР хитов, каждый один раз.'],
  'channel-divinity-twilight-sanctuary':['Божественный канал: Сумеречное святилище','Действие: сфера тусклого света 30 футов на минуту; в конце хода существа дайте 1к6 + уровень жреца временных хитов либо снимите очарование/испуг.'],
@@ -138,7 +138,7 @@
  'sculpt-spells':['Формирование заклинаний','В заклинании Воплощения исключите от 1 до 1 + круг существ: они автоматически проходят спасбросок и не получают урон при его половине.'],
  'grim-harvest':['Мрачная жатва','Раз за ход, убив существо заклинанием от 1-го круга, лечитесь на 2 × круг, или 3 × круг для Некромантии; не работает на нежить и конструктов.'],
  'minor-alchemy':["Малая алхимия","Преобразуйте один немагический предмет, целиком состоящий из дерева, камня (кроме драгоценного), железа, меди или серебра, в другой материал из этого списка. Каждые 10 минут работы преобразуют до 1 кубического фута. Через 1 час или при потере концентрации, как на заклинании, материал возвращается в исходное состояние."],
- 'awakened-spellbook':['Пробуждённая книга заклинаний','Книга служит фокусировкой; меняйте тип урона заклинания на тип из книги того же круга; один ритуал без дополнительного времени за долгий отдых.'],
+ 'awakened-spellbook':['Пробуждённая книга заклинаний','Пока держите книгу в руках, доступны следующие преимущества: книга служит магической фокусировкой для заклинаний волшебника. Накладывая заклинание волшебника с использованием ячейки, можете временно заменить его вид урона на вид урона другого заклинания в книге: круг другого заклинания должен равняться кругу потраченной ячейки, в том числе при повышении круга, а не исходному кругу накладываемого заклинания. Заговоры и применение без ячейки не подходят. Один ритуал волшебника из книги можно наложить за обычное время без дополнительных 10 минут; повтор после долгого отдыха. Во время короткого отдыха Волшебным пером можно начертить печать на пустой книге или магической книге заклинаний, на которую настроены: после отдыха сознание и все заклинания переходят в неё, исчезая со страниц прежней книги.'],
  'wizardly-quill':['Волшебное перо','Бонусным действием создайте перо; запись заклинаний в книгу занимает 2 минуты за круг, запись можно стирать по правилам.'],
  'arcane-deflection':['Магическое отражение','Реакцией +2 КД против попадания или +4 к проваленному спасброску; до конца следующего хода только заговоры.'],
  'tactical-wit':['Тактическая смекалка','Интеллект добавляется к инициативе.'],
@@ -413,13 +413,20 @@
  function publishedOptions(ids,known=[]){const missing=ids.filter(id=>!known.includes(id));return missing.length?missing:ids;}
  function featureSkills(ids,context,anySkillFallback=true){const known=context.proficiencies?.skills||[],missing=ids.filter(id=>!known.includes(id));return missing.length?missing:anySkillFallback?Object.keys(R.SKILLS).filter(id=>!known.includes(id)):ids;}
  function knownElsewhere(context){return context.knownSpells||(context.baseExtras?.spells||[]).map(x=>x.id);}
+ // Compare legacy feat IDs with shared maneuver IDs without rewriting saved choices.
+ const MANEUVER_ALIASES={disarming:'disarming-attack',distracting:'distracting-strike',evasive:'evasive-footwork',feinting:'feinting-attack',goading:'goading-attack',lunging:'lunging-attack',maneuvering:'maneuvering-attack',menacing:'menacing-attack',precision:'precision-attack',pushing:'pushing-attack',sweeping:'sweeping-attack',trip:'trip-attack'};
+ const canonicalManeuver=id=>MANEUVER_ALIASES[id]||id;
+ const martialAdeptManeuvers=c=>c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='martial-adept'?arr(c.creation_maneuvers):[];
+ const superiorTechniqueManeuvers=c=>c.class==='fighter'&&c.creation_style==='superior-technique'?arr(c.creation_superior_maneuver):[];
+ const knownManeuvers=c=>[...martialAdeptManeuvers(c),...superiorTechniqueManeuvers(c)];
+ function distinctManeuverOptions(options,known){const learned=new Set(known.map(canonicalManeuver));return options.filter(o=>!learned.has(canonicalManeuver(o.value||o)));}
  function createChoices(c,context={}){
   const result=[],sc=subclass(c),add=(id,name,ids,count=1,section='class',source=sc?.source)=>result.push(group('creation_'+id,name,ids,count,section,source));
   if(FIELD[c.class])result.push(group(FIELD[c.class],'Подкласс · официальные книги 5e 2014',subclasses(c.class).map(s=>({...option(s.id,s.label,s.source),description:s.restrictions,url:s.url})),1));
   if(magic(c,firstState(c),context.abilities||c.abilities)){add('expanded_spells','Дополнительный список заклинаний TCE (с разрешения Мастера)',['no','yes']);result[result.length-1].optional=true;}
   if(c.class==='sorcerer'&&sc?.id==='divine-soul')add('affinity','Божественное родство',['good','evil','law','chaos','neutrality']);
   if(c.class==='warlock'&&sc?.id==='genie')add('genie','Вид гения',['dao','djinni','efreeti','marid']);
-  if(c.class==='fighter'&&c.creation_style==='superior-technique')add('superior_maneuver','Превосходная техника: один приём',optionList('MV:B',c,firstState(c)),1,'class','TCE');
+  if(c.class==='fighter'&&c.creation_style==='superior-technique')add('superior_maneuver','Превосходная техника: один приём',distinctManeuverOptions(optionList('MV:B',c,firstState(c)),[...martialAdeptManeuvers(c),...arr(context.knownManeuvers)]),1,'class','TCE');
   if(c.class==='cleric'&&sc?.id==='arcana')add('domain_cantrips','Заговоры домена Магии',spellList('wizard',0,c,firstState(c),true).filter(id=>!arr(c.creation_cantrips).includes(id)),2,'spells');
   if(c.class==='cleric'&&sc?.id==='death')add('domain_cantrips','Жнец: заговор некромантии',Object.values(D.spells).filter(s=>s.level===0&&s.school==='N'&&s.classes?.length&&!s.restrictions).map(s=>s.id).filter(id=>!arr(c.creation_cantrips).includes(id)),1,'spells');
   if(c.class==='cleric'&&['order','peace'].includes(sc?.id))add('domain_skill','Навык домена',{order:['intimidation','persuasion'],peace:['insight','performance','persuasion']}[sc.id]);
@@ -495,9 +502,8 @@
     case 'druid:land':add('bonus_cantrip','Дополнительный заговор',spellList('druid',0,c,s,true).filter(id=>!old.cantrips.includes(id)),1,'spells');break;
     case 'wizard:bladesinging':add('bladesinger_weapon','Одноручное рукопашное оружие',Object.keys(R.WEAPONS).filter(id=>!['simple','martial','firearms','improvised','greatclub','glaive','greataxe','greatsword','halberd','maul','pike','light_crossbow','dart','shortbow','sling','blowgun','hand_crossbow','heavy_crossbow','longbow','net'].includes(id)),1,'proficiencies');break;
     case 'wizard:illusion':{const known=new Set([...old.cantrips,...knownElsewhere(context)]);add('illusion_cantrip','Улучшенная малая иллюзия',known.has('minor-illusion')?spellList('wizard',0,c,s,true).filter(id=>!known.has(id)):['minor-illusion'],1,'spells');break;}
-    case 'fighter:battle-master':{const aliases={disarming:'disarming-attack',distracting:'distracting-strike',evasive:'evasive-footwork',feinting:'feinting-attack',goading:'goading-attack',lunging:'lunging-attack',maneuvering:'maneuvering-attack',menacing:'menacing-attack',precision:'precision-attack',pushing:'pushing-attack',sweeping:'sweeping-attack',trip:'trip-attack'};
-     const known=new Set([...(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='martial-adept'?arr(c.creation_maneuvers):[]),...(c.creation_style==='superior-technique'?arr(c.creation_superior_maneuver):[])].map(id=>aliases[id]||id));
-     add('maneuvers','Три боевых приёма',optionList('MV:B',c,s).filter(o=>!known.has(o.value)),3);add('artisan_tool','Ремесленный инструмент',R.ARTISAN_TOOLS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');break;}
+    case 'fighter:battle-master':{
+     add('maneuvers','Три боевых приёма',distinctManeuverOptions(optionList('MV:B',c,s),[...knownManeuvers(c),...arr(context.knownManeuvers)]),3);add('artisan_tool','Ремесленный инструмент',R.ARTISAN_TOOLS.filter(id=>!context.proficiencies?.tools.includes(id)),1,'proficiencies');break;}
     case 'fighter:arcane-archer':add('arcane_shots','Два варианта мистического выстрела',optionList('AS',c,s),2);add('archer_skill','Знания мистического лучника',featureSkills(['arcana','nature'],context),1,'proficiencies');add('archer_cantrip','Заговор мистического лучника',['prestidigitation','druidcraft'],1,'spells');break;
     case 'fighter:rune-knight':add('runes','Две доступные руны',optionList('RN',c,s),2);if((context.proficiencies?.languages||[]).includes('giant'))add('rune_knight_language','Великан уже известен: другой язык',R.CHOICE_LANGUAGES.filter(id=>!(context.proficiencies?.languages||[]).includes(id)),1,'proficiencies');break;
     case 'fighter:cavalier':add('cavalier_proficiency','Дополнительное владение',uniq(['animal_handling','history','insight','performance','persuasion',...R.CHOICE_LANGUAGES]).filter(id=>![...context.proficiencies?.skills||[],...context.proficiencies?.languages||[]].includes(id)),1,'proficiencies');break;
@@ -863,7 +869,7 @@
      'beast-of-sea':`Зверь моря (Средний): КД ${ac}, хиты ${5+5*n} (${n}к8), скорость 5 футов, плавание 60 футов; СИЛ 14, ЛОВ 14, ТЕЛ 15, ИНТ 8, МДР 14, ХАР 11. Амфибия. Связывающий удар: +${hit} к попаданию, 1к6 + ${2+pb} колющего или дробящего урона; цель схвачена (Сл высвобождения ${dc}), пока зверь держит её, он не атакует другую цель.`,
      'beast-of-sky':`Зверь неба (Маленький): КД ${ac}, хиты ${4+4*n} (${n}к6), скорость 10 футов, полёт 60 футов; СИЛ 6, ЛОВ 16, ТЕЛ 13, ИНТ 8, МДР 14, ХАР 11. Облёт: не провоцирует атак при выходе из досягаемости. Терзание: +${hit} к попаданию, 1к4 + ${3+pb} рубящего урона.`
     }[s.choices.companion];
-    if(beast)feature('Первобытный спутник',beast+` Тёмное зрение 60 футов; Первобытная связь: +${pb} к проверкам и спасброскам зверя. Действует в ваш ход и по умолчанию совершает Уклонение; другое действие — по вашему бонусному действию. Погибшего зверя можно вернуть в течение часа действием и ячейкой 1-го круга; нового — после долгого отдыха. Заменяет Спутника следопыта.`,'TCE');
+    if(beast)feature('Первобытный спутник',beast+` Тёмное зрение 60 футов; Первобытная связь: +${pb} к проверкам и спасброскам зверя. Действует в ваш ход; самостоятельно перемещается и использует реакции. По умолчанию совершает Уклонение; бонусным действием можно приказать любое другое действие, включая действие из профиля. Вместо этого можно пожертвовать одной своей атакой действия Атака и приказать зверю совершить действие Атака без траты бонусного действия; на 3-м уровне следопыта это единственная атака этого действия. Если вы недееспособны, зверь выбирает любое действие самостоятельно. В течение 1 часа после гибели зверя действием коснитесь его и потратьте ячейку 1-го круга или выше: он возвращается через 1 минуту с полными хитами. После долгого отдыха можно призвать нового зверя в свободном месте в 5 футах: выберите облик и профиль, прежний зверь исчезает. Зверь исчезает, если вы умираете. Заменяет Спутника следопыта.`,'TCE');
    }
    if(['war','chronurgy'].includes(sc?.id)&&c.class==='wizard')e.initiativeBonus=(e.initiativeBonus||0)+mod(a.intelligence);
    if(sc?.id==='swashbuckler')e.initiativeBonus=(e.initiativeBonus||0)+mod(a.charisma);
@@ -946,7 +952,7 @@
  }
  function entryChoices(c,p,context,s){
   const q=entryCharacter(c,p),prefix=p.classId+':',prof=context.proficiencies||R.resolveProficiencies(c,context.baseExtras||{});
-  const selectionContext={...context,proficiencies:{...prof,skills:uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill'])])}};
+  const selectionContext={...context,knownManeuvers:Object.values(s.classStates).flatMap(x=>[...knownManeuvers(x.character),...(x.state.subclass==='battle-master'?arr(x.state.choices.maneuvers):[])]),proficiencies:{...prof,skills:uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill'])])}};
   const result=optionsAPI().classChoices(q,selectionContext).map(g=>({...g,id:prefix+g.id,options:g.options.map(o=>D.spells[o.value]?{...o,source:D.spells[o.value].source,url:D.spells[o.value].url}:o)}));
   const add=(id,name,ids,count=1)=>result.push(group(prefix+id,name,ids,count,'proficiencies'));
   if(['bard','rogue','ranger'].includes(p.classId))add('entry_skill','Дополнительный навык',featureSkills(R.CLASSES[p.classId].choices[0].options,{proficiencies:prof},false));
@@ -1057,5 +1063,5 @@
   return e;
  }
  function setSpellNames(names){for(const [id,name] of Object.entries(names))if(D.spells[id]&&!D.spells[id].label&&/[А-Яа-яЁё]/.test(name))D.spells[id].label=name;for(const [id,s]of Object.entries(D.spells))names[id]=s.label||names[id]||s.name;}
- return {subclasses,subclass,foundation,upgradeLegacyFoundation,spellList,automaticSpells,creationChoices:createChoices,creationExtras,getChoices,inspect,transition,begin,selectClass,classOptions,hpGain,commit,reset,derive,magic,label,optionList,eligible,setSpellNames};
+ return {canonicalManeuver,martialAdeptManeuvers,superiorTechniqueManeuvers,distinctManeuverOptions,subclasses,subclass,foundation,upgradeLegacyFoundation,spellList,automaticSpells,creationChoices:createChoices,creationExtras,getChoices,inspect,transition,begin,selectClass,classOptions,hpGain,commit,reset,derive,magic,label,optionList,eligible,setSpellNames};
 });

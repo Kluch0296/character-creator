@@ -1143,3 +1143,40 @@ test('PR26 round twenty-two: corrected limits and conditional recovery reach act
   }
  }
 });
+
+
+test('PR26 round twenty-three: complete Arcana, Scribes and all primal profiles reach persisted sheet and LSS once',async()=>{
+ const H=require('./fixtures/characters'),heroes=[];
+ for(const [cls,branch,name] of [['cleric','arcana','Божественный канал: Магическое ограждение'],['wizard','scribes','Пробуждённая книга заклинаний']]){const second=H.advance(H.create(cls,cls==='cleric'?branch:null,{abilityMethod:'manual'}),cls==='wizard'?branch:null);for(const c of [second,H.advance(second),H.enter(second,'fighter')])heroes.push([c,name]);}
+ for(const companion of ['beast-of-land','beast-of-sea','beast-of-sky'])heroes.push([H.advance(H.advance(H.create('ranger',null,{abilityMethod:'manual'})),'beast-master',{companion_rules:'primal-companion',companion}),'Первобытный спутник']);
+ for(const [c,name] of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);}
+});
+
+test('PR26 round twenty-three: maneuver picker backtracking and secondary fighter cancellation preserve saved foundation',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules'),c=H.create('wizard',null,{abilityMethod:'manual',abilityBonusChoices:{slot_0:'strength',slot_1:'constitution'},human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['precision','rally']}),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+ vm.runInContext("currentPageIndex=config.pages.length;startAdvancement();character.pendingAdvancement=LevelUpRules.selectClass(character,character.pendingAdvancement,'fighter',getAdvancementContext());character.pendingAdvancement.choices['fighter:creation_style']='superior-technique';character.pendingAdvancement.step=2;renderPage();",ctx);
+ const options=()=>JSON.parse(vm.runInContext("JSON.stringify(LevelUpRules.getChoices(character,character.pendingAdvancement,getAdvancementContext()).find(g=>g.id==='fighter:creation_superior_maneuver')?.options.map(o=>o.value)||null)",ctx));
+ assert.ok(!options().some(id=>['precision-attack','rally'].includes(id)));const field=dom.document.getElementById('field-fighter:creation_superior_maneuver');assert.ok(field);assert.ok(!field.querySelectorAll('button').some(b=>b.getAttribute('data-focus-key')==='fighter:creation_superior_maneuver:precision-attack'));
+ vm.runInContext("character.pendingAdvancement.choices['fighter:creation_style']='defense';renderPage();",ctx);assert.equal(options(),null);
+ vm.runInContext("character.pendingAdvancement.choices['fighter:creation_style']='superior-technique';renderPage();",ctx);assert.ok(!options().includes('precision-attack'));
+ vm.runInContext("character.pendingAdvancement.choices['fighter:creation_superior_maneuver']='precision-attack';renderPage();",ctx);
+ const staleClear=dom.root.querySelectorAll('button').find(b=>b.getAttribute('data-focus-key')==='clear:fighter:creation_superior_maneuver:precision-attack');assert.ok(staleClear);staleClear.click();assert.equal(vm.runInContext("character.pendingAdvancement.choices['fighter:creation_superior_maneuver']",ctx),'');
+ dom.root.querySelectorAll('button').find(b=>b.getAttribute('data-focus-key')==='fighter:creation_superior_maneuver:parry').click();assert.equal(vm.runInContext("character.pendingAdvancement.choices['fighter:creation_superior_maneuver']",ctx),'parry');
+ dom.root.querySelectorAll('button').find(b=>b.textContent==='Отменить повышение').click();assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);
+ const draft=H.fill(c,L.selectClass(c,L.begin(c,H.context(c)),'fighter',H.context(c)),{'fighter:creation_style':'superior-technique','fighter:creation_superior_maneuver':'parry'});
+ vm.runInContext(`character.pendingAdvancement=${JSON.stringify({...draft,step:4})};renderPage();`,ctx);dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение').click();
+ vm.runInContext("saveDraft('result');restoreDraft();renderPage();",ctx);assert.equal(vm.runInContext('character.level',ctx),2);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_maneuvers)',ctx)),['precision','rally']);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.inspect(character,getAdvancementContext()).errors)',ctx)),[]);assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);assert.doesNotThrow(()=>ctx.getExportData());
+});
+
+
+test('PR26 round twenty-three: combined creation picker recomputes distinct choices after style backtracking',async()=>{
+ const H=require('./fixtures/characters'),c=H.create('fighter',null,{abilityMethod:'manual',abilityBonusChoices:{slot_0:'strength',slot_1:'constitution'},human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['precision','rally'],creation_style:'superior-technique',creation_superior_maneuver:'parry'}),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+ assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);
+ vm.runInContext("currentPageIndex=config.pages.findIndex(p=>p.id==='mechanics');renderPage();",ctx);
+ const card=(id,value)=>dom.root.querySelectorAll('button').find(b=>b.getAttribute('data-choice-option')===id+':'+value);
+ assert.equal(card('creation_superior_maneuver','precision-attack'),undefined);assert.equal(card('creation_maneuvers','parry'),undefined);
+ assert.ok(card('creation_superior_maneuver','ambush'));card('creation_superior_maneuver','ambush').click();assert.ok(card('creation_maneuvers','parry'));
+ card('creation_style','defense').click();assert.equal(card('creation_superior_maneuver','ambush'),undefined);assert.ok(card('creation_maneuvers','parry'));
+ card('creation_style','superior-technique').click();assert.equal(card('creation_superior_maneuver','precision-attack'),undefined);card('creation_superior_maneuver','parry').click();assert.equal(card('creation_maneuvers','parry'),undefined);
+ vm.runInContext("currentPageIndex=config.pages.length;saveDraft('result');restoreDraft();renderPage();",ctx);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_maneuvers)',ctx)),['precision','rally']);assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);assert.doesNotThrow(()=>ctx.getExportData());
+});

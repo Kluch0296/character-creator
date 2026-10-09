@@ -178,7 +178,7 @@
       if(feat?.text) result[result.length-1].description=feat.text;
       if(feat?.ability) add('feat_ability','Характеристика черты: +1',feat.ability,1,ABILITIES,'feat');
       if(activeFeat(c)==='elemental-adept') add('feat_element','Стихия',['acid','cold','fire','lightning','thunder'],1,{acid:'Кислота',cold:'Холод',fire:'Огонь',lightning:'Электричество',thunder:'Звук'},'feat');
-      if(activeFeat(c)==='martial-adept') add('maneuvers','Два боевых приёма',Object.keys(MANEUVERS),2,MANEUVERS,'feat');
+      if(activeFeat(c)==='martial-adept') add('maneuvers','Два боевых приёма',levelup().distinctManeuverOptions(Object.keys(MANEUVERS),levelup().superiorTechniqueManeuvers(c)),2,MANEUVERS,'feat');
       if(['magic-initiate','ritual-caster','spell-sniper'].includes(activeFeat(c))) {
         add('feat_class','Класс заклинаний черты',Object.keys(CLASSES).filter(k=>k!=='artificer'&&(activeFeat(c)!=='spell-sniper'||spellList(k,0).some(id=>ATTACK_CANTRIPS.includes(id)))),1,CLASSES,'feat');
         const cls=c.creation_feat_class;
