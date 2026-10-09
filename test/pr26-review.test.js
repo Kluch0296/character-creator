@@ -194,7 +194,7 @@ test('PR26 Shadow sorcerers track Strength of the Grave from level one',()=>{
  for(const c of [first,advance(first),advance(advance(first))]){
   const pool=extras(c).resources.find(r=>r.id==='strength-of-the-grave');assert.ok(pool);
   assert.equal(pool.max,1);assert.equal(pool.rest,'long-rest');
-  assert.ok(JSON.stringify(exported(c).text.traits).includes('Сила могилы: 1; восстановление после долгого отдыха.'));
+  assert.match(pool.recovery,/только при успешном спасброске/);assert.ok(JSON.stringify(exported(c).text.traits).includes('Сила могилы: 1; '+pool.recovery+'.'));
  }
  const multi=enter(create('fighter'),'sorcerer',{'sorcerer:creation_origin':'shadow'});
  assert.ok(extras(multi).resources.some(r=>r.id==='sorcerer:strength-of-the-grave'&&r.max===1));
@@ -992,4 +992,37 @@ test('PR26 round twenty-one: revised rules keep unlocks and Soulknife separate',
  }
  for(const cls of ['barbarian','bard','paladin'])for(const c of [create(cls,null,{abilityMethod:'manual'}),advance(create(cls,null,{abilityMethod:'manual'}))])for(const name of ['Защитники предков','Мантия вдохновения','Психические клинки','Обличение жестокости'])assert.ok(!extras(c).features.some(f=>f.name===name));
  const rogue=advance(advance(create('rogue',null,{abilityMethod:'manual'})),'soulknife'),text=extras(rogue).features.find(f=>f.name==='Психические клинки').description;assert.match(text,/Пси-клинки/);assert.doesNotMatch(text,/Вдохновения барда|один раз за раунд/);
+});
+
+
+const round22Build=(cls,branch)=>{
+ const first=create(cls,['cleric','sorcerer'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=advance(first),third=advance(second,['bard','paladin'].includes(cls)?branch:null);
+ if(['bard','paladin'].includes(cls))return [third];
+ const entry=enter(create('fighter',null,{abilityMethod:'manual'}),cls,{[cls+':'+(cls==='cleric'?'creation_domain':'creation_origin')]:branch});
+ return cls==='cleric'?[second,third,enter(second,'fighter'),enter(entry,cls)]:[first,second,third,enter(first,'fighter'),enter(second,'fighter'),entry,enter(entry,cls)];
+};
+const round22Cases=[
+ ['bard','glamour','Завораживающее представление',[/не менее 1 минуты/,/модификатора Харизмы.*минимум 1/,/гуманоидов.*60 футов/,/смотревших и слушавших всё выступление/,/Мудрости.*Сл заклинаний барда/,/очаровывает.*1 час/,/без насилия/,/цель получает любой урон/,/вы атакуете.*замечает.*союзнику/,/Успешный спасбросок не выдаёт/,/короткий или долгий отдых/]],
+ ['bard','whispers','Слова ужаса',[/наедине с гуманоидом.*1 минуты/,/Мудрости.*Сл заклинаний барда/,/вами или другим.*существом.*1 час/,/цель атакована или получает урон/,/замечает.*союзники атакованы или получили урон/,/Успешный спасбросок не выдаёт/,/короткий или долгий отдых/]],
+ ['cleric','life','Божественный канал: Сохранение жизни',[/Действием.*священный символ/,/5 × уровень жреца/,/30 футов/,/половины.*максимума/,/Нежить и конструкты не могут/,/одно применение Божественного канала/]],
+ ['cleric','trickery','Божественный канал: Двуличие',[/свободном видимом.*30 футов/,/1 минуты с концентрацией/,/Бонусным действием.*до 30 футов.*120 футов/,/собственные чувства/,/вы и двойник оба.*5 футов.*оно видит двойника/,/атаки.*преимуществом/,/одно применение Божественного канала/]],
+ ['sorcerer','shadow','Сила могилы',[/урон снижает хиты до 0/,/Харизмы Сл 5 \+ полученный урон/,/успех оставляет 1 хит/,/излучением или критическом/,/Только успешный спасбросок расходует ресурс/,/до долгого отдыха/,/неудачные попытки не расходуют ресурс/]],
+ ['sorcerer','aberrant-mind','Телепатическая речь',[/Бонусным действием.*видимое.*30 футов/,/двустороннюю/,/Каждый участник.*языке.*знает другой/,/минут.*уровню чародея/,/модификатора Харизмы миль.*минимум 1 миля/,/если вы становитесь недееспособны, умираете или создаёте связь с другим/]],
+ ['paladin','watchers','Изгнание экстрапланарных',[/Действием.*священный символ/,/аберрации, небожители, элементали, феи и исчадия/,/30 футов.*слышат вас/,/Мудрости.*Сл заклинаний паладина/,/1 минуту или до получения урона/,/не приближается добровольно.*30 футов/,/Рывок.*препятствия движению/,/бежать некуда.*Уклонение/,/одно применение Божественного канала/]]
+];
+for(const [cls,branch,name,patterns] of round22Cases)test('PR26 round twenty-two: '+name+' limits survive class levels and LSS',()=>{
+ for(const c of round22Build(cls,branch)){
+  const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name===name);assert.equal(features.length,1);const text=features[0].description;for(const pattern of patterns)assert.match(text,pattern);assert.equal(JSON.stringify(exported(c).text.traits).split(text).length-1,1);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);
+  if(cls==='cleric'||cls==='paladin'){const pools=e.resources.filter(r=>r.id.endsWith('channel-divinity'));assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.ok(!e.resources.some(r=>/preserve-life|invoke-duplicity|extraplanar/.test(r.id)));}
+  if(branch==='shadow'){const pools=e.resources.filter(r=>r.id.endsWith('strength-of-the-grave'));assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.equal(pools[0].rest,'long-rest');assert.match(pools[0].recovery,/только при успешном спасброске/);assert.match(pools[0].recovery,/неудачные попытки не расходуют ресурс/);assert.ok(JSON.stringify(exported(c).text.traits).includes(pools[0].recovery));assert.ok(!text.includes('1 / долгий отдых'));}
+  assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+ }
+});
+test('PR26 round twenty-two: changed features retain unlock and subclass boundaries',()=>{
+ for(const [cls,branch,name] of round22Cases){
+  if(cls!=='sorcerer')assert.ok(!extras(create(cls,cls==='cleric'?branch:null,{abilityMethod:'manual'})).features.some(f=>f.name===name));
+  const wrong=cls==='sorcerer'?create(cls,'draconic',{abilityMethod:'manual'}):cls==='cleric'?advance(create(cls,'light',{abilityMethod:'manual'})):advance(advance(create(cls,null,{abilityMethod:'manual'})),cls==='bard'?'lore':'devotion');assert.ok(!extras(wrong).features.some(f=>f.name===name));
+  if(cls==='bard'||cls==='paladin')assert.ok(!extras(advance(create(cls,null,{abilityMethod:'manual'}))).features.some(f=>f.name===name));
+ }
+ assert.ok(!extras(create('sorcerer','draconic')).resources.some(r=>r.id.endsWith('strength-of-the-grave')));
 });

@@ -876,7 +876,7 @@ test('multiclass advancement selects class, explains +7 HP and renders independe
 });
 
 test('advancement confirmation preserves daily and conditional resource recovery',async()=>{
- for(const overrides of [{class:'wizard'},{class:'sorcerer',creation_origin:'wild'}]){
+ for(const overrides of [{class:'wizard'},{class:'sorcerer',creation_origin:'wild'},{class:'sorcerer',creation_origin:'shadow'}]){
   const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,overrides);
   vm.runInContext(`for(let pass=0;pass<5;pass++)for(const g of CreationOptions.getChoices(character,getCreationContext())){const chosen=[].concat(character[g.id]||[]);if(chosen.length!==g.count||chosen.some(id=>!g.options.some(o=>o.value===id)))character[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);}currentPageIndex=config.pages.length;startAdvancement();const p=character.pendingAdvancement;for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);p.step=4;renderPage();resourceProbe=getCreationExtras().resources.filter(r=>r.recovery);`,context);
   const resources=JSON.parse(vm.runInContext('JSON.stringify(resourceProbe)',context));assert.equal(resources.length,1);for(const r of resources)assert.ok(dom.root.textContent.includes(`${r.name}: ${r.max}, ${r.recovery}`));assert.equal(vm.runInContext('character.level',context),1);
@@ -1127,5 +1127,19 @@ test('PR26 round twenty-one: complete subclass timing and targets appear on actu
  for(const [cls,branch,name,condition] of [['barbarian','ancestral-guardian','Защитники предков','До начала вашего следующего хода'],['bard','glamour','Мантия вдохновения','модификатора Харизмы'],['bard','whispers','Психические клинки','один раз за раунд'],['warlock','fathomless','Щупальце глубин','до 30 футов'],['cleric','order','Голос власти','расходуя ячейку'],['paladin','redemption','Обличение жестокости','атака заклинанием']]){
   const first=H.create(cls,['warlock','cleric'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=H.advance(first),third=H.advance(second,branch),heroes=[third];if(['warlock','cleric'].includes(cls))heroes.push(first,H.enter(second,'fighter'));
   for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name);assert.ok(f.description.includes(condition));const section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.ok(section);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(JSON.stringify(c),before);}
+ }
+});
+
+
+test('PR26 round twenty-two: corrected limits and conditional recovery reach actual sheet and export',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,name,condition] of [['bard','glamour','Завораживающее представление','смотревших и слушавших всё выступление'],['bard','whispers','Слова ужаса','наедине с гуманоидом'],['cleric','life','Божественный канал: Сохранение жизни','Нежить и конструкты'],['cleric','trickery','Божественный канал: Двуличие','вы и двойник оба'],['sorcerer','shadow','Сила могилы','Только успешный спасбросок'],['sorcerer','aberrant-mind','Телепатическая речь','языке, который знает другой'],['paladin','watchers','Изгнание экстрапланарных','1 минуту или до получения урона']]){
+  const first=H.create(cls,['cleric','sorcerer'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=H.advance(first),third=H.advance(second,['bard','paladin'].includes(cls)?branch:null),heroes=[third];if(cls==='cleric')heroes.push(second,H.enter(second,'fighter'));if(cls==='sorcerer')heroes.push(first,H.enter(first,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),f=e.features.find(f=>f.name===name);assert.ok(f.description.includes(condition));const section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);const native=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);assert.equal(native.split(f.description).length-1,1);
+   if(branch==='shadow'){const pool=e.resources.find(r=>r.id.endsWith('strength-of-the-grave'));assert.ok(dom.root.textContent.includes(pool.recovery));assert.ok(native.includes(pool.recovery));
+    vm.runInContext("const left=document.createElement('div'),right=document.createElement('aside');renderMechanicalSummary(left);renderCharacterSheet(right,getStepStates());round22Sheets={left:left.textContent,right:right.textContent};",ctx);const sheets=JSON.parse(vm.runInContext('JSON.stringify(round22Sheets)',ctx));for(const text of Object.values(sheets))assert.ok(text.includes(pool.recovery));
+   }
+   assert.equal(JSON.stringify(c),before);
+  }
  }
 });
