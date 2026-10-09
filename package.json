@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node dev-server.js",
     "test": "node --test",
-    "check": "node --check script.js && node --check rules.js && node --check creation-options.js && node --check levelup-data.js && node --check levelup-rules.js && node --check levelup-ui.js && node --check lss-export.js && node --check wizard-steps.js && node --check spell-info.js && node --check wizard-ui.js && node --check dev-server.js && node --test"
+    "check": "npm run catalogue:check && node --check script.js && node --check rules.js && node --check creation-options.js && node --check levelup-data.js && node --check levelup-rules.js && node --check levelup-ui.js && node --check lss-export.js && node --check wizard-steps.js && node --check spell-info.js && node --check wizard-ui.js && node --check dev-server.js && node --test",
+    "catalogue:build": "node docs/build-levelup-catalogue.cjs",
+    "catalogue:check": "node docs/build-levelup-catalogue.cjs --check",
+    "catalogue:update": "node docs/update-catalogue-sources.cjs"
   },
   "engines": {
     "node": ">=20"

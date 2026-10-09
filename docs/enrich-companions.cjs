@@ -1,7 +1,7 @@
 /* Exact legacy beast profiles with concise Russian mechanics; no 2024 sources.
  * Standalone: node docs/enrich-companions.cjs; also used by the catalogue rebuild. */
 const fs=require('node:fs'),path=require('node:path');
-const base='https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/';
+const {readSources,serialize}=require('./catalogue-sources.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
 function resolveMonster(x,all,seen=new Set()){
  if(!x)throw new Error('Missing exact legacy monster');if(!x._copy)return clone(x);
@@ -76,15 +76,17 @@ function actionProfile(a,id){
  if(['giant-centipede','giant-wolf-spider'].includes(id))attack.text+=(attack.text?' ':'')+'Если яд снизил хиты цели до 0, она стабильна, отравлена на 1 час даже после лечения и парализована, пока действует это отравление.';
  return attack;
 }
-function profile(c,all){
+function profile(c,all,base=readSources().base){
  const x=resolveMonster(all.find(x=>x.name===c.name&&x.source===c.source),all);
  const p={source:x.source,page:x.page,dataUrl:base+'bestiary/bestiary-'+x.source.toLowerCase()+'.json',size:x.size[0],ac:typeof x.ac[0]==='number'?x.ac[0]:x.ac[0].ac,hp:x.hp.average,hitDice:x.hp.formula,abilities:Object.fromEntries(['str','dex','con','int','wis','cha'].map(k=>[k,x[k]])),speed:x.speed,skills:x.skill||{},saves:x.save||{},senses:x.senses||[],passive:x.passive,languages:x.languages||[],traits:(x.trait||[]).map(t=>traitSummary(t,c.id)),actions:(x.action||[]).map(a=>actionProfile(a,c.id))};
  if(x.spellcasting){if(c.id!=='deep-roth')throw new Error('Unknown companion spellcasting');p.traits.push('Пляшущие огоньки: неограниченно, без компонентов, заклинательная характеристика МУД.');}
  return p;
 }
-async function enrich(companions,get=async p=>{const r=await fetch(base+p);if(!r.ok)throw new Error(p+': '+r.status);return r.json();}){
+async function enrich(companions,get,base){
+ if(!get){const sourceSet=readSources();get=sourceSet.get;base=sourceSet.base;}
+ base??=readSources().base;
  const index=await get('bestiary/index.json'),all=[];for(const s of new Set(['MM',...companions.map(c=>c.source)]))all.push(...(await get('bestiary/'+index[s])).monster);
- for(const c of companions)c.profile=profile(c,all);return companions;
+ for(const c of companions)c.profile=profile(c,all,base);return companions;
 }
 module.exports={enrich,profile,resolveMonster,actionProfile};
-if(require.main===module)(async()=>{const dest=path.join(__dirname,'..','levelup-data.js'),d=require(dest);await enrich(d.companions);fs.writeFileSync(dest,'/* Published-source allowlist: docs/levelup-audit.md. Factual metadata and paraphrased companion mechanics. */\n(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.LevelUpData=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){return '+JSON.stringify(d,null,2)+';});\n');console.log('Enriched '+d.companions.length+' exact legacy companions.');})().catch(e=>{console.error(e);process.exitCode=1;});
+if(require.main===module)(async()=>{const dest=path.join(__dirname,'..','levelup-data.js'),d=require(dest);await enrich(d.companions);fs.writeFileSync(dest,serialize(d));console.log('Enriched '+d.companions.length+' exact legacy companions from verified offline sources.');})().catch(e=>{console.error(e.message);process.exitCode=1;});

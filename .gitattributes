@@ -1,0 +1,5 @@
+# Catalogue generation and hash-verified inputs must be identical on Windows/Linux.
+levelup-data.js text eol=lf
+docs/*.cjs text eol=lf
+docs/catalogue-sources/*.json text eol=lf
+test/catalogue-reproducibility.test.js text eol=lf
