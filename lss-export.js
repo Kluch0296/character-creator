@@ -89,6 +89,10 @@
     if(options.jackOfAllTrades) for(const [name,skill] of Object.entries(data.skills)) {
       if(skill.isProf===0) data.bonuses.push({id:`bonus-creator-jack-${name.replaceAll(' ','-')}`,label:'Мастер на все руки',target:`skill.${name}`,expr:String(Math.floor(data.proficiency/2)),source:{kind:'user'}});
     }
+    // Otherworldly Glamour adds to all Charisma checks, including proficient/expert skills.
+    if(options.charismaCheckBonus) for(const [name,skill] of Object.entries(data.skills)) {
+      if(skill.baseStat==='cha') data.bonuses.push({id:`bonus-creator-fey-${name}`,label:'Потустороннее очарование',target:`skill.${name}`,expr:String(options.charismaCheckBonus),source:{kind:'user'}});
+    }
     if(pools.length>1) {
       data.vitality['hit-die'].value='multiclass';
       data.vitality['hp-dice-multi']=Object.fromEntries(pools.map(p=>[`d${p.die}`,{max:p.count,current:p.count}]));

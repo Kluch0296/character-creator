@@ -87,7 +87,10 @@ function assertLssSchema(exported,{level,label}){
  assert.equal(new Set(data.bonuses.map(b=>b.id)).size,data.bonuses.length,label+': duplicate bonus IDs');
  for(const bonus of data.bonuses){
   const weapon=/^weapon\.(.+)\.attack$/.exec(bonus.target),skill=/^skill\.(.+)$/.exec(bonus.target);
-  if(skill){assert.ok(Object.hasOwn(SKILLS,skill[1]),label+': native skill target');assert.equal(data.skills[skill[1]].isProf,0,label+': Jack on trained skill');assert.match(bonus.expr,/^-?\d+$/);assert.equal(Number(bonus.expr),Math.floor(data.proficiency/2));}
+  if(skill){assert.ok(Object.hasOwn(SKILLS,skill[1]),label+': native skill target');assert.match(bonus.expr,/^-?\d+$/);
+   if(bonus.id.startsWith('bonus-creator-jack-')){assert.equal(data.skills[skill[1]].isProf,0,label+': Jack on trained skill');assert.equal(Number(bonus.expr),Math.floor(data.proficiency/2));}
+   else {assert.equal(bonus.id,'bonus-creator-fey-'+skill[1],label+': unknown skill bonus');assert.equal(data.skills[skill[1]].baseStat,'cha',label+': Fey on non-Charisma skill');assert.equal(Number(bonus.expr),Math.max(1,Math.floor((data.stats.wis.score-10)/2)));}
+  }
   else {assert.ok(weapon&&weapons.has(weapon[1]),label+': bonus target');assert.match(bonus.expr,/^-?\d+$/);}
   assert.deepEqual(bonus.source,{kind:'user'});
  }
