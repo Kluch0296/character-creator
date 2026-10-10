@@ -1106,3 +1106,33 @@ for(const [cls,branch,name,patterns] of round24Cases)test('PR26 round twenty-fou
 test('PR26 round twenty-four: secondary cleric text and shared channel depend on cleric class level',()=>{
  for(const branch of ['light','order']){const first=create('fighter',null,{background:'soldier'}),entry=enter(first,'cleric',{'cleric:creation_domain':branch,...(branch==='order'?{'cleric:creation_domain_skill':'persuasion'}:{})}),next=enter(entry,'cleric'),e=extras(next),snapshot=copy(next);assert.ok(!extras(entry).features.some(f=>f.name==='Изгнание нежити'));assert.equal(L.inspect(next,context(next)).state.classStates.cleric.state.level,2);assert.equal(e.features.filter(f=>f.name==='Изгнание нежити').length,1);assert.equal(e.resources.filter(r=>r.id.endsWith('channel-divinity')).length,1);if(branch==='light'){const text=e.features.find(f=>f.name==='Божественный канал: Сияние рассвета').description;assert.match(text,/2к10 \+ уровень жреца/);assert.doesNotMatch(text,/уровень персонажа/);}assert.deepEqual(next,snapshot);}
 });
+
+
+const round25Cases=[
+ ['monk','sun-soul','Луч солнечного света',{},[/Дальнобойная атака заклинанием/,/Ловкость/,/30 футов/,/кость Боевых искусств \+ ЛОВ.*излучением/,/действия Атака в свой ход/,/1 ци/,/две.*атаки.*бонусным действием/]],
+ ['monk','ascendant-dragon','Дыхание дракона',{},[/замените одну атаку/,/20-футовый конус.*30 × 5/,/Каждое применение.*кислота, холод, огонь, молния или яд/,/2 кости Боевых искусств/,/Ловкости.*половин/,/бонусу мастерства.*долгого отдыха/,/2 ци/]],
+ ['ranger','swarmkeeper','Собранный рой',{},[/Раз в каждый свой ход после попадания/,/1к6 колющего/,/Силы.*Сл заклинаний следопыта/,/горизонтально.*до 15 футов/,/ваше.*горизонтально.*до 5 футов/]],
+ ['fighter','battle-master','Боевые приёмы',{maneuvers:['sweeping-attack','rally','parry']},[/попадания рукопашной атакой оружием/,/потратьте одну кость превосходства/,/5 футах от первой.*вашей досягаемости/,/исходный бросок атаки.*КД второго/,/результату кости.*того же типа/]],
+ ['fighter','arcane-archer','Мистические выстрелы',{arcane_shots:['bursting-arrow','banishing-arrow']},[/цель и все остальные существа.*10 футах/,/2к6 силового/]]
+];
+for(const [cls,branch,name,choices,patterns] of round25Cases)test('PR26 round twenty-five: '+branch+' carries complete combat conditions into LSS',()=>{
+ const second=advance(create(cls,null,{abilityMethod:'manual'})),c=advance(second,branch,choices),before=copy(c),e=extras(c),f=e.features.filter(f=>f.name===name);assert.equal(f.length,1);for(const pattern of patterns)assert.match(f[0].description,pattern);
+ const data=exported(c);assert.equal(JSON.stringify(data.text.traits).split(f[0].description).length-1,1);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+ if(branch==='sun-soul'){const bolt=e.attacks.filter(a=>a.id==='radiant-sun-bolt');assert.equal(bolt.length,1);assert.equal(bolt[0].ability,'dexterity');assert.equal(bolt[0].type,'radiant');assert.equal(bolt[0].attackBonus,stats(c).modifiers.dexterity+2);assert.equal(bolt[0].damage,'1d4+'+stats(c).modifiers.dexterity);for(const pattern of [/действия Атака в свой ход/,/1 ци/,/две.*атаки.*бонусным действием/])assert.match(bolt[0].notes.join(' '),pattern);assert.equal(data.weaponsList.filter(w=>w.name.value===bolt[0].label).length,1);assert.equal(data.weaponsList.find(w=>w.name.value===bolt[0].label).notes.value,bolt[0].notes.join('; '));assert.equal(e.resources.find(r=>r.id==='ki').max,3);}
+ if(branch==='ascendant-dragon'){assert.equal(e.resources.find(r=>r.id==='breath-of-the-dragon').max,2);assert.equal(e.resources.find(r=>r.id==='ki').max,3);}
+ if(branch==='swarmkeeper'){assert.equal(stats(c).fly,0);assert.equal(stats(c).speed,stats(second).speed);assert.deepEqual(e.attacks,extras(advance(second,'hunter')).attacks);}
+ if(branch==='battle-master'){const pool=e.resources.find(r=>r.id==='superiority-dice');assert.ok(pool);assert.equal(pool.max,4);assert.equal(pool.rest,'short-rest');}
+});
+
+test('PR26 round twenty-five: combat features retain class-level and subclass gates',()=>{
+ for(const [cls,branch,name] of round25Cases){const second=advance(create(cls,null,{abilityMethod:'manual'}));assert.ok(!extras(second).features.some(f=>f.name===name));const other=advance(second,cls==='monk'?'open-hand':cls==='ranger'?'hunter':'champion');assert.ok(!extras(other).features.some(f=>f.name===name));if(branch==='sun-soul')for(const c of [second,other])assert.ok(!extras(c).attacks.some(a=>a.id==='radiant-sun-bolt'));}
+});
+
+
+test('PR26 round twenty-five: Sweeping keeps legacy feat and style ownership and independent die pools',()=>{
+ const legacy=create('wizard',null,{abilityMethod:'manual',human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['sweeping','rally']}),style=create('fighter',null,{abilityMethod:'manual',creation_style:'superior-technique',creation_superior_maneuver:'sweeping-attack'});
+ const combined=advance(advance(create('fighter',null,{abilityMethod:'manual',human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['sweeping','rally'],creation_style:'superior-technique',creation_superior_maneuver:'precision-attack'})),'battle-master',{maneuvers:['parry','trip-attack','disarming-attack']});
+ for(const [c,name] of [[legacy,'Черта: Воинский адепт'],[style,'Превосходная техника'],[combined,'Черта: Воинский адепт']]){const before=copy(c),e=extras(c),f=e.features.find(f=>f.name===name);for(const pattern of round25Cases[3][4])assert.match(f.description,pattern);const native=JSON.stringify(exported(c).text.traits);assert.equal(native.split('исходный бросок атаки').length-1,1);assert.deepEqual(c,before);if(c===legacy||c===combined)assert.deepEqual(c.creation_maneuvers,['sweeping','rally']);}
+ assert.deepEqual(extras(combined).resources.filter(r=>['martial-adept','superior-technique','superiority-dice'].includes(r.id)).map(r=>[r.id,r.max,r.rest]),[['martial-adept',1,'short-rest'],['superior-technique',1,'short-rest'],['superiority-dice',4,'short-rest']]);
+ const inactive=create('fighter',null,{abilityMethod:'manual',creation_maneuvers:['sweeping','rally'],creation_superior_maneuver:'sweeping-attack'});assert.ok(!JSON.stringify(extras(inactive).features).includes('исходный бросок атаки'));
+});

@@ -84,7 +84,13 @@ function assertLssSchema(exported,{level,label}){
 
  const weapons=new Set();
  for(const weapon of data.weaponsList){assert.ok(!weapons.has(weapon.id),label);weapons.add(weapon.id);assert.equal(typeof weapon.name.value,'string');assert.ok(weapon.name.value.length,label);assert.equal(typeof weapon.isProf,'boolean');assert.ok(CODES.includes(weapon.ability),label);for(const key of ['dmg','dmgType','notes'])assert.equal(typeof weapon[key].value,'string',label);}
- for(const bonus of data.bonuses){const target=/^weapon\.(.+)\.attack$/.exec(bonus.target);assert.ok(target&&weapons.has(target[1]),label+': bonus target');assert.match(bonus.expr,/^-?\d+$/);assert.deepEqual(bonus.source,{kind:'user'});}
+ assert.equal(new Set(data.bonuses.map(b=>b.id)).size,data.bonuses.length,label+': duplicate bonus IDs');
+ for(const bonus of data.bonuses){
+  const weapon=/^weapon\.(.+)\.attack$/.exec(bonus.target),skill=/^skill\.(.+)$/.exec(bonus.target);
+  if(skill){assert.ok(Object.hasOwn(SKILLS,skill[1]),label+': native skill target');assert.equal(data.skills[skill[1]].isProf,0,label+': Jack on trained skill');assert.match(bonus.expr,/^-?\d+$/);assert.equal(Number(bonus.expr),Math.floor(data.proficiency/2));}
+  else {assert.ok(weapon&&weapons.has(weapon[1]),label+': bonus target');assert.match(bonus.expr,/^-?\d+$/);}
+  assert.deepEqual(bonus.source,{kind:'user'});
+ }
  for(const [key,doc] of Object.entries(data.text))richText(doc,label+': text.'+key);
  for(const [coin,value] of Object.entries(data.coins)){assert.ok(['cp','sp','gp','ep','pp'].includes(coin),label);assert.ok(isInt(value.value,0),label);}
  assert.deepEqual(data.resources,{});assert.deepEqual(data.conditions,[]);assert.deepEqual(data.attunementsList,[]);

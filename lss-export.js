@@ -84,6 +84,11 @@
       spellsInfo:{base:field('base'),save:field('save'),mod:field('mod')},spells:{},spellsPact:{},bonuses:[],
       weaponsList:[],attunementsList:[],text:{},coins:{},resources:{},conditions:[]
     };
+    // Published LSS skill totals consume user bonuses by the exact native key,
+    // including spaces. Jack applies only when the proficiency multiplier is zero.
+    if(options.jackOfAllTrades) for(const [name,skill] of Object.entries(data.skills)) {
+      if(skill.isProf===0) data.bonuses.push({id:`bonus-creator-jack-${name.replaceAll(' ','-')}`,label:'Мастер на все руки',target:`skill.${name}`,expr:String(Math.floor(data.proficiency/2)),source:{kind:'user'}});
+    }
     if(pools.length>1) {
       data.vitality['hit-die'].value='multiclass';
       data.vitality['hp-dice-multi']=Object.fromEntries(pools.map(p=>[`d${p.die}`,{max:p.count,current:p.count}]));

@@ -114,3 +114,25 @@ test('bonus cantrips and domain spells do not consume LSS class limits and retai
   assert.equal(data.spellsInfo.abilities[SPELL_IDS.prestidigitation],'cha');
   assert.equal(data.spellsInfo.abilities[SPELL_IDS['cure-wounds']],'wis');
 });
+
+
+// Mirrors published LSS module 72872: ability + native proficiency + target bonuses.
+function round25NativeSkill(data,name){const skill=data.skills[name];const bonuses=data.bonuses.filter(b=>b.target==='skill.'+name);for(const b of bonuses)assert.equal(Number(b.expr),Math.floor(data.proficiency/2));return Math.floor((data.stats[skill.baseStat].score-10)/2)+skill.isProf*data.proficiency+bonuses.reduce((sum,b)=>sum+Number(b.expr),0);}
+
+test('PR26 round twenty-five: Jack native totals agree for bard levels and both multiclass orders',()=>{
+ const H=require('./fixtures/characters'),first=H.create('bard',null,{abilityMethod:'manual',proficiencyChoices:{'class:bard:0:0':'stealth','class:bard:0:1':'perception','class:bard:0:2':'deception'}}),second=H.advance(first),third=H.advance(second,'valor'),fighterFirst=H.enter(H.enter(H.create('fighter',null,{abilityMethod:'manual',proficiencyChoices:{'class:fighter:0:0':'athletics','class:fighter:0:1':'perception'}}),'bard'),'bard');
+ for(const c of [second,third,H.enter(second,'fighter'),fighterFirst]){const e=H.extras(c),stats=H.stats(c),before=structuredClone({c,e,stats}),data=JSON.parse(buildLssExport(c,{},stats,e)[0].data);assert.equal(e.jackOfAllTrades,true);const bonuses=data.bonuses.filter(b=>b.target.startsWith('skill.'));assert.equal(bonuses.length,Object.values(data.skills).filter(s=>s.isProf===0).length);assert.equal(new Set(data.bonuses.map(b=>b.id)).size,data.bonuses.length);
+  for(const [name,skill] of Object.entries(data.skills)){const id=name.replaceAll(' ','_'),flag=stats.proficiencies.expertise.includes(id)?2:stats.proficiencies.skills.includes(id)?1:0;assert.equal(skill.isProf,flag);const targeted=bonuses.filter(b=>b.target==='skill.'+name);assert.equal(targeted.length,flag===0?1:0,name);if(targeted.length)assert.deepEqual(targeted[0].source,{kind:'user'});assert.equal(round25NativeSkill(data,name),stats.skills[id],name);}
+  for(const name of ['sleight of hand','animal handling']){assert.equal(data.skills[name].isProf,0);assert.ok(bonuses.some(b=>b.target==='skill.'+name));}
+  for(const [name,total] of [['perception',stats.passivePerception],['investigation',stats.passiveInvestigation]]){const native=10+round25NativeSkill(data,name);assert.equal(data.skills[name].customPassive??native,total);if(data.skills[name].customPassive!==undefined)assert.equal(data.skills[name].customPassive,total);}
+  assert.equal(data.vitality.initiative?.value??stats.modifiers.dexterity,stats.initiative);assert.deepEqual({c,e,stats},before);
+ }
+ const data=JSON.parse(buildLssExport(third,{},H.stats(third),H.extras(third))[0].data);assert.ok(Object.values(data.skills).some(s=>s.isProf===2));assert.ok(Object.values(data.skills).some(s=>s.isProf===1));
+});
+
+
+test('PR26 round twenty-five: no Jack inferred from class, stale derived skill totals or missing extras',()=>{
+ const H=require('./fixtures/characters'),bard=H.create('bard',null,{abilityMethod:'manual'}),fighter=H.create('fighter',null,{abilityMethod:'manual',creation_style:'archery'}),fighter2bard1=H.enter(H.advance(fighter),'bard');
+ for(const c of [bard,fighter,fighter2bard1,H.create('wizard',null,{abilityMethod:'manual'})]){const e=H.extras(c),stats=H.stats(c),before=H.copy(c),data=JSON.parse(buildLssExport(c,{},stats,e)[0].data);assert.ok(!data.bonuses.some(b=>b.target.startsWith('skill.')));assert.deepEqual(c,before);if(c===fighter)assert.ok(data.bonuses.some(b=>b.target.startsWith('weapon.')&&b.expr==='2'));}
+ const bard2=H.advance(bard),stats=H.stats(bard2),e=H.extras(bard2);delete e.jackOfAllTrades;stats.skills['animal_handling']+=9;const data=JSON.parse(buildLssExport(bard2,{},stats,e)[0].data);assert.ok(!data.bonuses.some(b=>b.target.startsWith('skill.')));assert.ok(!JSON.parse(buildLssExport(bard2,{},stats)[0].data).bonuses.some(b=>b.target.startsWith('skill.')));
+});
