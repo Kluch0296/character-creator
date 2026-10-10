@@ -1080,3 +1080,29 @@ test('PR26 round twenty-three: all primal companion profiles explain both comman
  assert.ok(!extras(advance(second,'hunter')).features.some(f=>f.name==='Первобытный спутник'));
  const phb=advance(second,'beast-master',{companion_rules:'phb-beast'});assert.ok(!extras(phb).features.some(f=>f.name==='Первобытный спутник'));
 });
+
+const round24Cases=[
+ ['cleric','life','Изгнание нежити',[/священный символ.*молитву/,/видящая или слышащая/,/Мудрости против Сл заклинаний жреца/,/минуту либо до любого урона/,/как можно дальше.*30 футов.*не совершает реакции/,/Рывок.*препятствий движению.*бежать некуда.*Уклонение/]],
+ ['cleric','light','Божественный канал: Сияние рассвета',[/магическая тьма в 30 футах/,/Враждебные существа.*Телосложения против Сл заклинаний жреца/,/2к10 \+ уровень жреца.*излучением.*половину/,/полным укрытием от вас не затронуты/]],
+ ['cleric','order','Божественный канал: Требование порядка',[/слышащие или видящие/,/Мудрости против Сл заклинаний жреца/,/очарованы вами до конца вашего следующего хода либо до любого полученного урона/,/Провалившую спасбросок очарованную цель.*выронить предметы из рук/]],
+ ['wizard','chronurgy','Хрональный сдвиг',[/вы или видимое вам существо в 30 футах/,/атаки, проверку характеристики или спасбросок.*реакцией/,/уже после того, как известен успех или провал/,/обязана использовать второй результат/,/Два применения.*долгого отдыха/]],
+ ['wizard','conjuration','Малый вызов',[/неодушевлённый предмет в руке.*на земле в 10 футах/,/ранее виденный немагический предмет/,/не более 3 футов.*не более 10 фунтов/,/явно магический.*тусклый свет на 5 футов/,/через 1 час.*новом использовании.*получает или наносит любой урон/]],
+ ['bard','valor','Боевое вдохновение',[/кости?.*броску урона оружием/,/реакцией.*КД против этой атаки/,/после броска атаки, но до того, как узнает.*попала.*промахнулась/,/Расходуется полученная кость/]],
+ ['paladin','vengeance','Обет вражды',[/Бонусным действием.*Божественный канал/,/одно видимое существо в 10 футах/,/Ваши броски атаки.*преимуществом на 1 минуту/,/до 0 или она теряет сознание/]],
+ ['paladin','crown','Вызов чемпиона',[/выбранные видимые существа в 30 футах/,/Мудрости против Сл заклинаний паладина/,/не может добровольно отойти.*дальше 30 футов/,/Для цели.*расстояние до вас превышает 30 футов/,/для всех целей.*недееспособности или смерти/]],
+ ['paladin','crown','Переломить ход битвы',[/Бонусным действием.*Божественный канал/,/30 футах, которые слышат вас/,/не более половины максимальных хитов/,/1к6 \+ модификатор Харизмы хитов \(минимум 1\)/]],
+];
+function round24Heroes(cls,branch){const first=create(cls,cls==='cleric'?branch:null),second=advance(first,cls==='wizard'?branch:null),third=advance(second,['bard','paladin'].includes(cls)?branch:null);return {first,second,third};}
+for(const [cls,branch,name,patterns] of round24Cases)test('PR26 round twenty-four: '+name+' preserves verified targets, timing and ending',()=>{
+ const {first,second,third}=round24Heroes(cls,branch),early=['bard','paladin'].includes(cls),heroes=[third];if(!early)heroes.push(second,enter(second,'fighter'));
+ for(const c of heroes){const before=copy(c),e=extras(c),fs=e.features.filter(f=>f.name===name);assert.equal(fs.length,1);for(const pattern of patterns)assert.match(fs[0].description,pattern);assert.equal(JSON.stringify(exported(c).text.traits).split(fs[0].description).length-1,1);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(c,before);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+  if(['cleric','paladin'].includes(cls)){const pools=e.resources.filter(r=>r.id.endsWith('channel-divinity'));assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.equal(pools[0].rest,'short-rest');}
+  if(branch==='chronurgy'){const pools=e.resources.filter(r=>r.id.endsWith('chronal-shift'));assert.equal(pools.length,1);assert.equal(pools[0].max,2);assert.equal(pools[0].rest,'long-rest');assert.doesNotMatch(fs[0].description,/до.*успех|до.*провал/);}
+  if(branch==='valor')assert.ok(!e.resources.some(r=>r.id.includes('combat-inspiration')));
+ }
+ assert.ok(!extras(first).features.some(f=>f.name===name));if(early)assert.ok(!extras(second).features.some(f=>f.name===name));
+ const other=round24Heroes(cls,{cleric:branch==='life'?'light':'life',wizard:'evocation',bard:'lore',paladin:'devotion'}[cls]).third;if(name!=='Изгнание нежити')assert.ok(!extras(other).features.some(f=>f.name===name));
+});
+test('PR26 round twenty-four: secondary cleric text and shared channel depend on cleric class level',()=>{
+ for(const branch of ['light','order']){const first=create('fighter',null,{background:'soldier'}),entry=enter(first,'cleric',{'cleric:creation_domain':branch,...(branch==='order'?{'cleric:creation_domain_skill':'persuasion'}:{})}),next=enter(entry,'cleric'),e=extras(next),snapshot=copy(next);assert.ok(!extras(entry).features.some(f=>f.name==='Изгнание нежити'));assert.equal(L.inspect(next,context(next)).state.classStates.cleric.state.level,2);assert.equal(e.features.filter(f=>f.name==='Изгнание нежити').length,1);assert.equal(e.resources.filter(r=>r.id.endsWith('channel-divinity')).length,1);if(branch==='light'){const text=e.features.find(f=>f.name==='Божественный канал: Сияние рассвета').description;assert.match(text,/2к10 \+ уровень жреца/);assert.doesNotMatch(text,/уровень персонажа/);}assert.deepEqual(next,snapshot);}
+});

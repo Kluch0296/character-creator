@@ -1180,3 +1180,14 @@ test('PR26 round twenty-three: combined creation picker recomputes distinct choi
  card('creation_style','superior-technique').click();assert.equal(card('creation_superior_maneuver','precision-attack'),undefined);card('creation_superior_maneuver','parry').click();assert.equal(card('creation_maneuvers','parry'),undefined);
  vm.runInContext("currentPageIndex=config.pages.length;saveDraft('result');restoreDraft();renderPage();",ctx);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_maneuvers)',ctx)),['precision','rally']);assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);assert.doesNotThrow(()=>ctx.getExportData());
 });
+
+test('PR26 round twenty-four: source-verified targeting and timing reach real saved sheets and LSS once',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,names] of [['cleric','light',['Изгнание нежити','Божественный канал: Сияние рассвета']],['cleric','order',['Изгнание нежити','Божественный канал: Требование порядка']],['wizard','chronurgy',['Хрональный сдвиг']],['wizard','conjuration',['Малый вызов']],['bard','valor',['Боевое вдохновение']],['paladin','vengeance',['Обет вражды']],['paladin','crown',['Вызов чемпиона','Переломить ход битвы']]]){
+  const first=H.create(cls,cls==='cleric'?branch:null,{abilityMethod:'manual'}),second=H.advance(first,cls==='wizard'?branch:null),third=H.advance(second,['bard','paladin'].includes(cls)?branch:null),heroes=[third];if(['cleric','wizard'].includes(cls))heroes.push(second,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания'),native=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);
+   for(const name of names){const f=e.features.find(f=>f.name===name);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(native.split(f.description).length-1,1);}
+   assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);
+  }
+ }
+});
