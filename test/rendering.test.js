@@ -1220,3 +1220,12 @@ test('PR26 round twenty-six: source-verified aura, form and target descriptions 
   for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);}
  }
 });
+
+test('PR26 round twenty-seven: verified ranger and arrow conditions reach saved sheets and LSS once',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,names,choices] of [['ranger','horizon-walker',['Планарный воин'],{}],['ranger','monster-slayer',['Чутьё охотника','Добыча убийцы'],{}],['fighter','arcane-archer',['Мистические выстрелы'],{arcane_shots:['banishing-arrow','grasping-arrow']}],['barbarian','wild-magic',['Дикий всплеск'],{}]]){
+  const c=H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual'})),branch,choices),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания'),text=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);
+  for(const name of names){const f=e.features.find(f=>f.name===name);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);for(const line of f.description.split('\n'))assert.equal(text.split(line).length-1,1);}
+  assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
+ }
+});

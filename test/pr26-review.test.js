@@ -1162,3 +1162,20 @@ for(const [cls,branch,name,patterns] of round26Cases)test('PR26 round twenty-six
  if(!['warlock','ranger'].includes(cls))assert.ok(!extras(first).features.some(f=>f.name===name));
  const other=cls==='ranger'?create(cls):create(cls,cls==='cleric'?'life':cls==='warlock'?'fiend':null),other2=advance(other,cls==='druid'?'land':cls==='wizard'?'evocation':null),other3=advance(other2,cls==='rogue'?'thief':null);assert.ok(!extras(other3).features.some(f=>f.name===name));
 });
+
+const round27Cases=[
+ ['ranger','horizon-walker','Планарный воин',{},[/Бонусным действием.*видимое.*30 футах/,/следующем попадании по этой цели атакой оружием на этом ходу/,/весь урон атаки.*силовым полем.*1к8/]],
+ ['ranger','monster-slayer','Чутьё охотника',{},[/Действием.*видимое.*60 футах/,/скрыта от магии Прорицания.*Необнаружением/,/нет иммунитетов, сопротивлений или уязвимостей, вместо настоящих защит/,/модификатору Мудрости, минимум 1.*долгого отдыха/]],
+ ['ranger','monster-slayer','Добыча убийцы',{},[/Бонусным действием.*видимое.*60 футах/,/Первое попадание.*атакой оружием в каждый ход.*1к6 урона оружия/,/промах не расходует.*чужой ход/,/вашего короткого или долгого отдыха.*другой цели/]],
+ ['fighter','arcane-archer','Мистические выстрелы',{arcane_shots:['banishing-arrow','bursting-arrow']},[/При попадании стрелой.*Харизмы против Сл Магического выстрела/,/При провале.*Страны Фей.*недееспособна, скорость 0/,/конце своего следующего хода.*прежнее место.*ближайшее свободное/]],
+ ['fighter','arcane-archer','Мистические выстрелы',{arcane_shots:['grasping-arrow','bursting-arrow']},[/При попадании стрелой: \+2к6 урона ядом, скорость −10 футов/,/первый раз в каждый ход.*хотя бы на 1 фут без телепортации.*2к6 рубящего/,/телепортация этот урон не вызывает/,/Цель или существо в пределах досягаемости.*действием.*Силы \(Атлетика\).*Сл Магического выстрела/,/1 минуту.*повторного применения этого варианта/]],
+];
+for(const [cls,branch,name,choices,patterns] of round27Cases)test('PR26 round twenty-seven: '+branch+' '+Object.keys(choices).join(',')+' '+name+' keeps verified exceptions and conditional bonuses',()=>{
+ const first=create(cls),second=advance(first),c=advance(second,branch,choices),before=copy(c),e=extras(c),fs=e.features.filter(f=>f.name===name);assert.equal(fs.length,1);for(const pattern of patterns)assert.match(fs[0].description,pattern);assert.equal(JSON.stringify(exported(c).text.traits).split(fs[0].description).length-1,1);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(c,before);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+ for(const early of [first,second,enter(second,cls==='fighter'?'ranger':'fighter')])assert.ok(!extras(early).features.some(f=>f.name===name));assert.ok(!extras(advance(second,cls==='fighter'?'champion':'hunter')).features.some(f=>f.name===name));
+ if(name==='Чутьё охотника'){const pool=e.resources.find(r=>r.id==='hunters-sense');assert.equal(pool.max,Math.max(1,stats(c).modifiers.wisdom));assert.equal(pool.rest,'long-rest');}
+ if(cls==='fighter'){const pools=e.resources.filter(r=>r.id==='arcane-shot');assert.equal(pools.length,1);assert.equal(pools[0].max,2);assert.equal(pools[0].rest,'short-rest');assert.ok(!e.resources.some(r=>/banishing|grasping/.test(r.id)));const other=advance(second,branch,{arcane_shots:['seeking-arrow','shadow-arrow']});for(const pattern of patterns)assert.doesNotMatch(extras(other).features.find(f=>f.name===name).description,pattern);}
+});
+test('PR26 round twenty-seven: reject invented barbarian-level Wild Surge HP bonus on sheet and export',()=>{
+ const c=advance(advance(create('barbarian')),'wild-magic'),before=copy(c),e=extras(c),text=e.features.find(f=>f.name==='Дикий всплеск').description,first=text.split('\n')[1];assert.match(first,/Вам — 1к12 временных хитов\./);assert.doesNotMatch(first,/1к12\s*\+|уровень|уровня/);assert.ok(JSON.stringify(exported(c).text.traits).includes(first));assert.deepEqual(c,before);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+});
