@@ -51,9 +51,19 @@
   }
   /** Native LSS v2 export. Inputs are deliberately separate to prevent base scores replacing final scores. */
   function buildLssExport(character, labels = {}, derived = {}, options = {}) {
+    if(options.progressionErrors?.length)throw new Error(options.progressionErrors[0].message);
     const p = derived.proficiencies || {};
     const abilities = derived.abilities || character.abilities || {};
-    const infoValues = {charClass:labels.class || character.class, charSubclass:labels.subclass || '', level:character.level || 1,
+    const classes=list(options.classes);
+    const multiclass=classes.length>1;
+    const classText=multiclass?classes.map(c=>`${c.label || c.id} ${c.level}`).join(' / '):labels.class || character.class;
+    const pools=list(derived.hitDicePools || options.hitDicePools);
+    const diceText=pools.map(p=>`${p.count}к${p.die}`).join(' + ');
+    const subclasses=list(options.subclasses).filter(s=>s?.label || s?.name);
+    const subclassText=multiclass&&subclasses.length
+      ? subclasses.map(s=>`${classes.find(c=>c.id===s.classId)?.label || s.classId}: ${s.label || s.name}`).join(' / ')
+      : labels.subclass || options.subclass?.label || '';
+    const infoValues = {charClass:classText, charSubclass:subclassText, level:derived.level || character.level || 1,
       background:labels.background || character.background,playerName:character.playerName || '',
       race:[labels.race || character.race, labels.subrace].filter(Boolean).join(' — '),alignment:labels.alignment || character.alignment || '',experience:0};
     const data = {
@@ -74,6 +84,19 @@
       spellsInfo:{base:field('base'),save:field('save'),mod:field('mod')},spells:{},spellsPact:{},bonuses:[],
       weaponsList:[],attunementsList:[],text:{},coins:{},resources:{},conditions:[]
     };
+    // Published LSS skill totals consume user bonuses by the exact native key,
+    // including spaces. Jack applies only when the proficiency multiplier is zero.
+    if(options.jackOfAllTrades) for(const [name,skill] of Object.entries(data.skills)) {
+      if(skill.isProf===0) data.bonuses.push({id:`bonus-creator-jack-${name.replaceAll(' ','-')}`,label:'Мастер на все руки',target:`skill.${name}`,expr:String(Math.floor(data.proficiency/2)),source:{kind:'user'}});
+    }
+    // Otherworldly Glamour adds to all Charisma checks, including proficient/expert skills.
+    if(options.charismaCheckBonus) for(const [name,skill] of Object.entries(data.skills)) {
+      if(skill.baseStat==='cha') data.bonuses.push({id:`bonus-creator-fey-${name}`,label:'Потустороннее очарование',target:`skill.${name}`,expr:String(options.charismaCheckBonus),source:{kind:'user'}});
+    }
+    if(pools.length>1) {
+      data.vitality['hit-die'].value='multiclass';
+      data.vitality['hp-dice-multi']=Object.fromEntries(pools.map(p=>[`d${p.die}`,{max:p.count,current:p.count}]));
+    }
     const perception=10+Math.floor((data.stats.wis.score-10)/2)+data.skills.perception.isProf*data.proficiency;
     if(Number.isFinite(derived.passivePerception)&&derived.passivePerception!==perception) data.skills.perception.customPassive=derived.passivePerception;
     const investigation=10+Math.floor((data.stats.int.score-10)/2)+data.skills.investigation.isProf*data.proficiency;
@@ -84,7 +107,10 @@
     data.text.prof=richText(proficiencyText(p));
     data.text.traits=richText([
       ...list(options.features).map(f=>typeof f==='string'?f:`${f.name || f.label}: ${f.description || ''}`),
+      ...list(options.resources).map(r=>`${r.name}: ${r.max}; ${r.recovery||`восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха`}.`),
       ...list(derived.notes),
+      multiclass?`Классы: ${classText}.`:null,
+      pools.length>1?`Кости хитов: ${diceText}.`:null,
       derived.darkvision ? `Тёмное зрение: ${derived.darkvision} футов.` : '',
       ...['swim','climb','fly'].filter(k=>derived[k]).map(k=>`${{swim:'Плавание',climb:'Лазание',fly:'Полёт'}[k]}: ${derived[k]} футов.`),
       `Пассивное Восприятие: ${derived.passivePerception ?? 10}.`
@@ -113,9 +139,19 @@
     const casting=options.spellcasting;
     if(casting && ABILITIES[casting.ability]) {
       data.spellsInfo.base={name:'base',code:ABILITIES[casting.ability],value:ABILITY_NAMES[casting.ability]};
-      data.spellsInfo.available={classes:[character.class]};
-      if(casting.slots) data[casting.slotRecovery==='short-rest'?'spellsPact':'spells'][`slots-${casting.slotLevel || 1}`]={value:casting.slots};
-      if(casting.slots) data.text.attacks.value.data.content.push(...richText([`Ячейки: ${casting.slots} × ${casting.slotLevel || 1}-й уровень; восстановление: ${casting.slotRecovery==='short-rest'?'короткий отдых':'долгий отдых'}.`]).value.data.content);
+      data.spellsInfo.available={classes:multiclass?list(options.spellcastingByClass).map(c=>c.classId):[character.class]};
+      const tiers=casting.slotTiers|| (casting.slotRecovery!=='short-rest'?{[casting.slotLevel||1]:casting.slots}:{});
+      for(const [level,count]of Object.entries(tiers))if(count)data.spells[`slots-${level}`]={value:count};
+      const pact=casting.pactSlots||(casting.slotRecovery==='short-rest'?{level:casting.slotLevel||1,count:casting.slots}:null);
+      if(pact?.count)data.spellsPact[`slots-${pact.level}`]={value:pact.count};
+      const text=[...Object.entries(tiers).filter(([,n])=>n).map(([level,count])=>`${count} × ${level}-й круг (долгий отдых)`),pact?.count?`${pact.count} × ${pact.level}-й круг (короткий отдых)`:null].filter(Boolean).join('; ');
+      if(text)data.text.attacks.value.data.content.push(...richText(['Ячейки: '+text+'.']).value.data.content);
+    }
+    if(multiclass) {
+      for(const c of list(options.spellcastingByClass)) {
+        const text=`${c.label || c.classId} ${c.level}: ${ABILITY_NAMES[c.ability] || c.ability}; Сл ${c.saveDC}, атака ${formatBonus(c.attackBonus)}${c.preparedCount!==undefined?`; подготовка ${c.preparedCount}`:''}${c.knownCount!==undefined?`; известно ${c.knownCount}`:''}${c.spellbook?.length?`; в книге ${c.spellbook.length}`:''}.`;
+        data.text.attacks.value.data.content.push(...richText([text]).value.data.content);
+      }
     }
     for(const coin of ['cp','sp','gp','ep','pp']) {
       if(Number.isFinite(options.money?.[coin])) data.coins[coin]={value:options.money[coin]};
@@ -125,8 +161,12 @@
     if(nativeSpells.length) data.spellsInfo.available={...(data.spellsInfo.available || {}),spells:spellIds(nativeSpells)};
     // Native manual grants survive LSS's automatic wizard recalculation and do not
     // consume class cantrip/preparation limits. Keep each spell's casting ability.
-    const exempt=s=>s.limitExempt||['racial','ritual','feat'].includes(s.status);
+    const exempt=s=>multiclass||s.limitExempt||['racial','ritual','feat'].includes(s.status);
     const granted=spellIds(nativeSpells.filter(exempt)).map(id=>({id,source:'manual'}));
+    const duplicateAbilities=new Map();
+    for(const s of nativeSpells) {const abilities=duplicateAbilities.get(s.id)||new Set();if(s.ability)abilities.add(s.ability);duplicateAbilities.set(s.id,abilities);}
+    if([...duplicateAbilities.values()].some(a=>a.size>1))data.text.attacks.value.data.content.push(...richText(['Одно заклинание известно от нескольких классов: нативная карточка LSS хранит одну характеристику; все классовые варианты, Сл и атаки перечислены выше. Для другого варианта настройте отдельную карточку вручную.']).value.data.content);
+    const wizardBook=multiclass?list(options.spellcastingByClass).filter(c=>c.classId==='wizard').flatMap(c=>list(c.spellbook)):[];
     data.spellsInfo.abilities={};
     for(const spell of nativeSpells) {
       const id=SPELL_IDS[spell.id];
@@ -135,8 +175,8 @@
     return [{jsonType:'character',version:'2',edition:'2014',sheetEdition:'2014',tags:[],rooms:[],linkAccess:'none',
       disabledBlocks:{'info-left':[],'info-right':[],'subinfo-left':[],'subinfo-right':[],'notes-left':[],'notes-right':[]},
       spells:{mode:'cards',prepared:spellIds(nativeSpells.filter(s=>s.status!=='spellbook')),
-        book:spellIds(nativeSpells.filter(s=>s.status==='spellbook'||(character.class==='wizard'&&s.level>0&&['prepared','known'].includes(s.status)))),
-        slotless:spellIds(nativeSpells.filter(s=>['racial','ritual','feat'].includes(s.status))),edition:'2014',granted},data:JSON.stringify(data)}];
+        book:spellIds(nativeSpells.filter(s=>s.status==='spellbook'||wizardBook.includes(s.id)||(!multiclass&&character.class==='wizard'&&s.level>0&&['prepared','known'].includes(s.status)))),
+        slotless:spellIds(nativeSpells.filter(s=>s.slotless||['racial','ritual','feat'].includes(s.status))),edition:'2014',granted},data:JSON.stringify(data)}];
   }
   return {buildLssExport,richText,SPELL_IDS};
 });

@@ -218,7 +218,7 @@ function loadScript(dom, configData) {
     clearTimeout
   };
   vm.createContext(context);
-  for (const name of ['rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js']) {
+  for (const name of ['rules.js', 'levelup-data.js', 'levelup-rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js', 'levelup-ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(projectRoot, name), 'utf8'), context, { filename: name });
   }
   const script = fs.readFileSync(path.join(projectRoot, 'script.js'), 'utf8');
@@ -749,4 +749,501 @@ test('configuration links, assets and option values are release-safe', () => {
   const highElf = elf.suboptions.find(option => option.value === 'high_elf');
   const cantrips = highElf.additionalFields[0].additionalFields[0].options;
   assert.ok(cantrips.some(option => option.value === 'blade-ward'));
+});
+
+
+test('advancement UI restores a legacy draft, resumes/cancels and commits each level once with export agreement', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();
+  fillWizard(context,{class:'fighter',race:'dwarf',race_sub:'hill-dwarf',background:'soldier',name:'CODEX QA legacy',creation_style:'defense',creation_worn_armor:'chain-mail',creation_shield_equipped:'yes'});
+  vm.runInContext("currentPageIndex=config.pages.length;saveDraft('result');restoreDraft();renderPage();",context);
+  const original=JSON.parse(vm.runInContext('JSON.stringify(character)',context));
+  const click=text=>{const button=dom.root.querySelectorAll('button').find(b=>b.textContent===text);assert.ok(button,text);assert.equal(button.disabled,false,text);button.click();};
+  click('Повысить до 2-го уровня');click('Далее →');
+  vm.runInContext('restoreDraft();renderPage();',context);
+  assert.ok(dom.root.textContent.includes('шаг 2 из 5'));
+  click('Отменить повышение');assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character)',context)),original);
+  click('Повысить до 2-го уровня');click('Далее →');click('Далее →');click('Далее →');click('Далее →');click('Применить повышение');
+  vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('character.level',context),2);
+  click('Повысить до 3-го уровня');click('Далее →');click('Далее →');
+  const subclass=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')==='subclass:champion');assert.ok(subclass);subclass.click();
+  click('Далее →');click('Далее →');click('Применить повышение');
+  const result=JSON.parse(vm.runInContext('JSON.stringify({character,stats:getDerivedCharacter(),native:getExportData()})',context));
+  assert.equal(result.character.level,3);assert.equal(result.stats.hp,34);assert.equal(result.stats.ac,19);assert.equal(result.character.advancement.entries.length,2);
+  for(const key of Object.keys(original))if(key!=='level')assert.deepEqual(result.character[key],original[key]);
+  const native=JSON.parse(result.native[0].data);assert.equal(native.info.level.value,3);assert.equal(native.vitality['hp-max'].value,result.stats.hp);assert.equal(native.vitality['hp-dice-current'].value,3);
+  assert.ok(!dom.root.textContent.includes('Повысить до 4-го уровня'));
+  click('← Вернуться к редактированию');assert.ok(dom.document.getElementById('progression-reset-dialog'));click('Оставить героя');assert.equal(vm.runInContext('character.level',context),3);
+  click('← Вернуться к редактированию');click('Сбросить прокачку и продолжить');assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.name',context),original.name);
+});
+
+test('malformed pending drafts can be cancelled and corrupt ledgers block export with no added HP', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  const baseline=vm.runInContext('getDerivedCharacter().hp',context);
+  vm.runInContext('currentPageIndex=config.pages.length;character.pendingAdvancement={version:1,choices:null};renderPage();',context);
+  assert.ok(dom.root.textContent.includes('Повреждён черновик повышения'));
+  dom.root.querySelectorAll('button').find(b=>b.textContent==='Отменить повышение').click();
+  assert.equal(vm.runInContext('character.level',context),1);
+  vm.runInContext("const p=LevelUpRules.begin(character,getAdvancementContext());character=LevelUpRules.commit(character,p,getAdvancementContext());character.advancement.entries.push(p);character.level=3;renderPage();",context);
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),baseline);assert.throws(()=>vm.runInContext('getExportData()',context));
+  assert.ok(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled);
+});
+test('a falsey advancement ledger still asks to reset before editing and the reset unblocks export', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  vm.runInContext('currentPageIndex=config.pages.length;character.advancement=null;renderPage();',context);
+  const click=text=>{const button=dom.root.querySelectorAll('button').find(b=>b.textContent===text);assert.ok(button,text);button.click();};
+  click('← Вернуться к редактированию');
+  assert.ok(dom.document.getElementById('progression-reset-dialog'));
+  click('Сбросить прокачку и продолжить');
+  assert.equal(vm.runInContext("Object.hasOwn(character,'advancement')",context),false);
+  assert.equal(vm.runInContext('character.level',context),1);
+  vm.runInContext('currentPageIndex=config.pages.length;renderPage();',context);
+  assert.doesNotThrow(()=>vm.runInContext('getExportData()',context));
+  assert.equal(dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled,false);
+});
+test('both final sheets show exact resource maxima and recovery; Chain spell survives sheet and export', async () => {
+  for (const [cls,branch,lastLevel] of [['fighter',null,2],['bard',null,2],['warlock',null,3],['fighter','cavalier',3],['barbarian','wild-magic',3],['cleric','light',1],['cleric','tempest',1],['cleric','grave',1],['warlock','archfey',1],['wizard',null,3],['sorcerer','wild',1],['artificer','battle-smith',3],['artificer','armorer',3],['bard','creation',3],['fighter','psi-warrior',3],['rogue','soulknife',3],['warlock','talisman',3],['druid','shepherd',2],['druid','shepherd',3],['druid','dreams',3],['fighter','rune-knight',3],['artificer','artillerist',3],['bard','swords',3],['wizard','illusion',2],['rogue','thief',2],['rogue','thief',3],['druid','spores',2],['druid','spores',3],['fighter','arcane-archer',3],['ranger','drakewarden',3],['ranger','beast-master',3],['druid','wildfire',2],['druid','wildfire',3],['druid','moon',2],['druid','moon',3],['monk','open-hand',3],['paladin',null,2],['paladin','devotion',3],['fighter','echo-knight',3],['sorcerer','wild',2],['sorcerer','wild',3],['bard','spirits',3],['artificer','alchemist',3],['rogue','swashbuckler',3]]) {
+    const dom=createDOM(),context=loadScript(dom,readConfig());await flush();
+    const overrides={class:cls};if(cls==='cleric')overrides.creation_domain=branch;if(cls==='warlock'&&branch)overrides.creation_patron=branch;if(cls==='sorcerer'&&branch)overrides.creation_origin=branch;
+    if(cls==='artificer')overrides.abilities={strength:8,dexterity:10,constitution:14,intelligence:15,wisdom:13,charisma:12};fillWizard(context,overrides);
+    vm.runInContext(`
+      for(let pass=0;pass<5;pass++)for(const g of CreationOptions.getChoices(character,getCreationContext())){const chosen=[].concat(character[g.id]||[]);if(chosen.length!==g.count||chosen.some(id=>!g.options.some(o=>o.value===id)))character[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);}
+      for(let level=2;level<=${lastLevel};level++){
+        const p=LevelUpRules.begin(character,getAdvancementContext());
+        if(level===3&&'${cls}'==='warlock')p.choices.pact=${JSON.stringify(branch==='talisman'?'talisman':'chain')};
+        if('${cls}'!=='warlock'&&LevelUpRules.subclasses(character.class).some(s=>s.id===${JSON.stringify(branch)}&&s.level===level))p.choices.subclass=${JSON.stringify(branch)};
+        for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);
+        character=LevelUpRules.commit(character,p,getAdvancementContext());
+      }
+      const left=document.createElement('div'),right=document.createElement('aside');
+      renderMechanicalSummary(left);renderCharacterSheet(right,getStepStates());
+      sheetProbe={left:left.textContent,right:right.textContent,extras:getCreationExtras(),export:getExportData()};
+    `,context);
+    const result=JSON.parse(vm.runInContext('JSON.stringify(sheetProbe)',context));
+    if(cls==='wizard'){const recovery=result.extras.features.find(f=>f.name==='Магическое восстановление').description;assert.ok(recovery.includes('суммарного круга до '+Math.ceil(lastLevel/2)));assert.ok(result.left.includes(recovery));}
+    if(cls==='artificer'&&branch==='battle-smith'){const magic=result.extras.attacks.find(a=>a.id==='light-crossbow-battle-ready');assert.ok(magic);assert.ok(result.left.includes(magic.label));assert.equal(result.extras.attacks.length,new Set(result.extras.attacks.map(a=>a.id)).size);}
+    if(cls==='artificer'&&branch==='armorer'){for(const attack of result.extras.attacks.filter(a=>a.armorerWeapon)){assert.ok(result.left.includes(attack.label));assert.ok(JSON.parse(result.export[0].data).weaponsList.some(w=>w.name.value===attack.label&&w.dmg.value===attack.damage));}}
+    for(const name of ['Тотемный дух','Бальзам Летнего двора','Резчик рун','Непоколебимая метка','Мистическая пушка','Росчерк клинка','Улучшенная малая иллюзия','Скрытая атака','Дикий всплеск','Стальной защитник','Симбиотическая сущность','Драконий спутник','Спутник следопыта','Призыв духа дикого огня','Техника открытой ладони','Наложение рук','Проявление эха','Гибкое колдовство','Истории из-за пределов','Экспериментальный эликсир','Частица потенциала','Удалой нахал','Дикий облик']){const f=result.extras.features.find(f=>f.name===name);if(f){assert.ok(result.left.includes(f.description),name+': sheet');f.description.split('\n').forEach(line=>assert.ok(JSON.stringify(JSON.parse(result.export[0].data).text.traits).includes(line),name+': export'));}}
+    if(cls==='fighter'&&branch==='arcane-archer'){const spell=result.extras.spells.find(s=>s.limitExempt);assert.equal(spell.ability,'intelligence');const label=spell.label+' · Интеллект';assert.ok(result.left.slice(result.left.indexOf('Заклинания и заговоры')).includes(label));assert.ok(result.right.slice(result.right.indexOf('Заговоры')).includes(label));assert.equal(JSON.parse(result.export[0].data).spellsInfo.abilities[context.LssExport.SPELL_IDS[spell.id]],'int');}
+    if(cls==='warlock'&&!branch){
+      const spell=result.extras.spells.find(x=>x.id==='find-familiar');assert.ok(spell&&spell.ability==='charisma');assert.ok(result.left.includes(spell.label));assert.ok(result.right.includes(spell.label));assert.ok(result.export[0].spells.slotless.includes(context.LssExport.SPELL_IDS['find-familiar']));
+    } else {
+      for(const r of result.extras.resources){const text=`${r.name}: максимум ${r.max}; ${r.recovery||`восстановление после ${r.rest==='short-rest'?'короткого или долгого':'долгого'} отдыха`}.`;assert.ok(result.left.includes(text),cls+':left:'+r.id);assert.ok(result.right.includes(text),cls+':right:'+r.id);}
+    }
+  }
+});
+
+test('advancement spell cards keep filtered selections removable and do not mutate the committed hero', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'wizard'});
+  vm.runInContext("currentPageIndex=config.pages.length;character.pendingAdvancement=LevelUpRules.begin(character,getAdvancementContext());character.pendingAdvancement.step=3;renderPage();",context);
+  const snapshot=vm.runInContext('JSON.stringify({...character,pendingAdvancement:undefined})',context);
+  const choice=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')?.startsWith('book_add:'));
+  assert.ok(choice);const focus=choice.getAttribute('data-focus-key'),value=focus.slice('book_add:'.length);choice.click();
+  assert.equal(vm.runInContext('JSON.stringify({...character,pendingAdvancement:undefined})',context),snapshot);
+  assert.equal(dom.document.activeElement.getAttribute('data-focus-key'),focus);
+  const search=dom.document.getElementById('field-book_add').querySelector('input');assert.ok(search);search.value='нет такого заклинания';search.dispatchEvent({type:'input'});
+  const clear=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')===`clear:book_add:${value}`);assert.ok(clear);assert.equal(clear.hidden,false);clear.click();
+  assert.equal(dom.document.activeElement.type,'search');
+  assert.equal(vm.runInContext('character.pendingAdvancement.choices.book_add.length',context),0);
+  assert.equal(vm.runInContext('JSON.stringify({...character,pendingAdvancement:undefined})',context),snapshot);
+});
+
+test('version-one pending advancement resumes on its original decision step and remains cancellable', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  vm.runInContext("currentPageIndex=config.pages.length;character.pendingAdvancement={...LevelUpRules.begin(character,getAdvancementContext()),version:1,step:1};delete character.pendingAdvancement.classId;renderPage();",context);
+  assert.ok(dom.root.textContent.includes('шаг 3 из 5'));assert.ok(dom.root.textContent.includes('Умения и владения'));
+  vm.runInContext("saveDraft('result');restoreDraft();renderPage();",context);assert.ok(dom.root.textContent.includes('шаг 3 из 5'));
+  dom.root.querySelectorAll('button').find(button=>button.textContent==='Отменить повышение').click();assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);
+});
+
+test('multiclass advancement selects class, explains +7 HP and renders independent magic in preview and result', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'wizard',abilities:{strength:13,dexterity:13,constitution:14,intelligence:14,wisdom:13,charisma:14}});
+  vm.runInContext("currentPageIndex=config.pages.length;startAdvancement();",context);
+  const classButton=dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')==='advancement-class:warlock');assert.ok(classButton);assert.equal(classButton.disabled,false);classButton.click();
+  assert.equal(vm.runInContext('character.pendingAdvancement.classId',context),'warlock');
+  dom.root.querySelectorAll('button').find(button=>button.textContent==='Далее →').click();
+  assert.ok(dom.root.textContent.includes('Среднее: +7 хитов'));assert.ok(dom.root.textContent.includes('5 кость + (+2) ТЕЛ = +7 хитов'));
+  const before=vm.runInContext('getDerivedCharacter().hp',context);
+  vm.runInContext(`
+    const p=character.pendingAdvancement;
+    for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);
+    p.step=4;renderPage();
+  `,context);
+  assert.ok(dom.root.textContent.includes('Волшебник 1 / Колдун 1'));
+  const sheet=dom.root.querySelector('.advancement-sheet');assert.ok(sheet);assert.ok(sheet.textContent.includes('Предпросмотр повышения'));assert.ok(sheet.textContent.includes('Магия · Волшебник 1'));assert.ok(sheet.textContent.includes('Магия · Колдун 1'));assert.ok(sheet.textContent.includes('договор, короткий отдых'));assert.ok(sheet.textContent.includes('1к6 + 1к8'));
+  assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before);
+  const commit=dom.root.querySelectorAll('button').find(button=>button.textContent==='Применить повышение');assert.equal(commit.disabled,false);commit.click();
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before+7);assert.ok(dom.root.textContent.includes('Волшебник 1 / Колдун 1'));
+});
+
+test('advancement confirmation preserves daily and conditional resource recovery',async()=>{
+ for(const overrides of [{class:'wizard'},{class:'sorcerer',creation_origin:'wild'},{class:'sorcerer',creation_origin:'shadow'}]){
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,overrides);
+  vm.runInContext(`for(let pass=0;pass<5;pass++)for(const g of CreationOptions.getChoices(character,getCreationContext())){const chosen=[].concat(character[g.id]||[]);if(chosen.length!==g.count||chosen.some(id=>!g.options.some(o=>o.value===id)))character[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);}currentPageIndex=config.pages.length;startAdvancement();const p=character.pendingAdvancement;for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);p.step=4;renderPage();resourceProbe=getCreationExtras().resources.filter(r=>r.recovery);`,context);
+  const resources=JSON.parse(vm.runInContext('JSON.stringify(resourceProbe)',context));assert.equal(resources.length,1);for(const r of resources)assert.ok(dom.root.textContent.includes(`${r.name}: ${r.max}, ${r.recovery}`));assert.equal(vm.runInContext('character.level',context),1);
+ }
+});
+
+
+test('Knowledge creation picker permits trained skills but blocks duplicate expertise choices', async()=>{
+ const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'cleric',creation_domain:'knowledge',background:'sage'});
+ vm.runInContext("delete character.proficiencyChoices['creation:knowledge-skill:0'];delete character.proficiencyChoices['creation:knowledge-skill:1'];currentPageIndex=config.pages.findIndex(p=>p.id==='proficiencies');renderPage();",context);
+ const first=dom.document.getElementById('field-creation:knowledge-skill:0');assert.ok(first);for(const id of ['arcana','history'])assert.equal(first.querySelectorAll('option').find(o=>o.value===id).disabled,false);
+ first.value='arcana';first.dispatchEvent({type:'change'});
+ const second=dom.document.getElementById('field-creation:knowledge-skill:1');assert.equal(second.querySelectorAll('option').find(o=>o.value==='arcana').disabled,true);assert.equal(second.querySelectorAll('option').find(o=>o.value==='history').disabled,false);second.value='history';second.dispatchEvent({type:'change'});
+ assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(getResolvedProficiencies().errors)',context)),[]);assert.ok(vm.runInContext("getResolvedProficiencies().expertise.includes('arcana')&&getResolvedProficiencies().expertise.includes('history')",context));
+});
+
+test('PR26 round eleven: advancement effect filters show verified damage and honest unknown categories', async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,groupId,damageIds,unknown] of [['wizard','book_add',['scorching-ray','shatter'],'mirror-image'],['druid','prepared',['moonbeam'],'barkskin']]){
+  const c=H.advance(H.create(cls)),dom=createDOM(),context=loadScript(dom,readConfig());await flush();
+  vm.runInContext(`character=${JSON.stringify(c)};character.pendingAdvancement=LevelUpRules.begin(character,getAdvancementContext());character.pendingAdvancement.step=3;currentPageIndex=config.pages.length;renderPage();`,context);
+  const field=dom.document.getElementById('field-'+groupId);assert.ok(field);const chips=field.querySelectorAll('button').filter(b=>b.getAttribute('data-kind')),chip=id=>chips.find(b=>b.getAttribute('data-kind')===id),card=id=>field.querySelector(`[data-choice-option="${groupId}:${id}"]`).parentNode;
+  assert.ok(chip('damage'));assert.ok(chip('unknown'));assert.ok(chip('unknown').textContent.includes('Без категории'));chip('damage').click();for(const id of damageIds)assert.equal(card(id).hidden,false,id);assert.equal(card(unknown).hidden,true);
+  const visibleDamage=field.querySelectorAll('.spell-card').filter(c=>!c.hidden);assert.equal(Number(chip('damage').querySelector('em').textContent),visibleDamage.length);chip('unknown').click();assert.equal(card(unknown).hidden,false);for(const id of damageIds)assert.equal(card(id).hidden,true);
+  chip('all').click();for(const id of [...damageIds,unknown])assert.equal(card(id).hidden,false);const search=field.querySelector('input');search.value=context.LevelUpRules.label(unknown);search.dispatchEvent({type:'input'});assert.equal(card(unknown).hidden,false);for(const id of damageIds)assert.equal(card(id).hidden,true);
+ }
+});
+
+test('PR26 round thirteen: optional TCE cards reveal choices and commit their rules to sheet and export',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,id,name] of [['barbarian','variant_primal-knowledge','Первобытное знание'],['rogue','variant_steady-aim','Точное прицеливание']]){
+  const c=H.advance(H.create(cls,null,{abilities:{strength:15,dexterity:14,constitution:13,intelligence:12,wisdom:10,charisma:8}})),dom=createDOM(),context=loadScript(dom,readConfig());await flush();
+  vm.runInContext(`character=${JSON.stringify(c)};character.pendingAdvancement=LevelUpRules.begin(character,getAdvancementContext());const p=character.pendingAdvancement;p.choices.subclass='${cls==='rogue'?'thief':'berserker'}';for(let pass=0;pass<10;pass++)for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))if(g.id!=='${id}'&&!p.choices[g.id])p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(x=>x.value);p.step=2;currentPageIndex=config.pages.length;renderPage();`,context);
+  const choose=value=>{const button=dom.root.querySelector(`[data-focus-key="${id}:${value}"]`);assert.ok(button);button.click();};assert.equal(dom.document.getElementById('field-primal_skill'),null);choose('yes');
+  if(cls==='barbarian'){assert.ok(dom.document.getElementById('field-primal_skill'));const group=JSON.parse(vm.runInContext("JSON.stringify(LevelUpRules.getChoices(character,character.pendingAdvancement,getAdvancementContext()).find(g=>g.id==='primal_skill'))",context));const select=()=>dom.root.querySelector(`[data-focus-key="primal_skill:${group.options[0].value}"]`).click();select();choose('no');assert.equal(dom.document.getElementById('field-primal_skill'),null);assert.equal(vm.runInContext('character.pendingAdvancement.choices.primal_skill',context),undefined);choose('yes');select();}
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.transition(character,character.pendingAdvancement,getAdvancementContext()).errors)',context)),[],cls+': pending errors');
+  vm.runInContext('character.pendingAdvancement.step=4;renderPage();',context);assert.equal(vm.runInContext('character.level',context),2);assert.ok(dom.root.textContent.includes(name));const commit=dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение');assert.equal(commit.disabled,false);commit.click();assert.equal(vm.runInContext('character.level',context),3);assert.ok(dom.root.textContent.includes(name));assert.ok(vm.runInContext(`JSON.parse(getExportData()[0].data).text.traits.value.data.content.some(p=>p.content?.some(t=>t.text?.includes('${name}')))`,context));
+ }
+});
+
+test('PR26 round fifteen: invalid restored creation blocks pending advancement until repaired', async()=>{
+ for(const field of ['creation_weapon','background']){
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter',abilityBonusChoices:{}});
+  vm.runInContext("currentPageIndex=config.pages.length;renderPage();startAdvancement();character.pendingAdvancement.step=1;",context);
+  const pending=vm.runInContext('JSON.stringify(character.pendingAdvancement)',context),saved=vm.runInContext(`JSON.stringify(character.${field})`,context);
+  vm.runInContext(`delete character.${field};saveDraft('result');`,context);
+  for(let reload=0;reload<2;reload++){
+   vm.runInContext('restoreDraft();renderPage();',context);
+   assert.ok(vm.runInContext('currentPageIndex<config.pages.length',context));assert.ok(dom.root.querySelector('.wizard-next'));
+   assert.ok(!dom.root.textContent.includes('Применить повышение'));assert.equal(vm.runInContext('JSON.stringify(character.pendingAdvancement)',context),pending);
+   assert.equal(vm.runInContext('character.level',context),1);assert.throws(()=>context.getExportData(),/не завершён|выборы изменились/);
+   vm.runInContext('saveDraft();',context);
+  }
+  vm.runInContext(`character.${field}=${saved};renderPage();`,context);
+  for(let step=0;step<10&&vm.runInContext('currentPageIndex<config.pages.length',context);step++)dom.root.querySelector('.wizard-next').click();
+  assert.ok(dom.root.textContent.includes('шаг 2 из 5'));assert.equal(vm.runInContext('JSON.stringify(character.pendingAdvancement)',context),pending);
+  vm.runInContext("character.pendingAdvancement.step=4;renderPage();",context);
+  const commit=dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение');assert.ok(commit);assert.equal(commit.disabled,false);commit.click();
+  assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('character.advancement.entries.length',context),1);
+  vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);
+  assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,2);
+ }
+});
+
+
+function legacyRoundSixteen(c,version){
+ const hero=JSON.parse(JSON.stringify(c)),foundation=JSON.stringify(Object.fromEntries(Object.keys(hero).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature'].includes(k)||k.startsWith('creation_')||k.startsWith('race_')).sort().map(k=>[k,hero[k]])));
+ if(hero.advancement){hero.advancement.version=version;for(const p of hero.advancement.entries){p.version=version;p.foundation=foundation;if(version===1)delete p.classId;}}
+ if(hero.pendingAdvancement){hero.pendingAdvancement.version=version;hero.pendingAdvancement.foundation=foundation;if(version===1)delete hero.pendingAdvancement.classId;}
+ return hero;
+}
+function storeRoundSixteen(dom,hero){dom.window.localStorage.setItem('dnd-character-draft-v2',JSON.stringify({version:3,edition:readConfig().meta.edition,pageId:'result',character:hero}));}
+
+test('PR26 round sixteen: real final sheet retains ordinary and conditional pact attacks with native CHA export',async()=>{
+ const H=require('./fixtures/characters'),c=H.advance(H.advance(H.create('warlock','hexblade',{creation_weapon:'greatclub',abilityMethod:'manual'})),null,{pact:'blade'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+ assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);const e=H.extras(c),pact=e.attacks.find(a=>a.id==='greatclub-pact-hex'),ordinary=e.attacks.find(a=>a.id==='greatclub');assert.ok(dom.root.textContent.includes(pact.label));assert.ok(dom.root.textContent.includes(pact.notes[0]));assert.ok(dom.root.textContent.includes(ordinary.label));const data=JSON.parse(context.getExportData()[0].data);assert.ok(data.weaponsList.some(w=>w.name.value===pact.label&&w.ability==='cha'));assert.ok(data.weaponsList.some(w=>w.name.value===ordinary.label&&w.ability==='str'));
+});
+
+test('PR26 round sixteen: legacy v1/v2 drafts migrate once before editing and resume or export with original HP',async()=>{
+ const H=require('./fixtures/characters'),second=H.advance(H.create('fighter',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt',abilityMethod:'manual'}));
+ for(const version of [1,2])for(const pending of [true,false]){
+  const c=pending?{...second,pendingAdvancement:{...H.fill(second,require('../levelup-rules').begin(second,H.context(second)),{subclass:'champion'}),step:3}}:H.advance(second,'champion'),old=legacyRoundSixteen(c,version),dom=createDOM();storeRoundSixteen(dom,old);let writes=0;const write=dom.window.localStorage.setItem;dom.window.localStorage.setItem=(...args)=>{writes++;return write(...args);};const context=loadScript(dom,readConfig());await flush();
+  assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);const stored=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.ok(stored.advancement.entries.every(p=>p.foundation.startsWith('foundation:v2:')));assert.equal(writes,pending?1:2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(c).hp);assert.equal(vm.runInContext('character.level',context),c.level);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,c.level);
+  if(pending){assert.deepEqual({...stored.pendingAdvancement,foundation:old.pendingAdvancement.foundation},old.pendingAdvancement);assert.ok(dom.root.textContent.includes('шаг '+(version===1?5:4)+' из 5'));vm.runInContext('character.pendingAdvancement.step=4;renderPage();',context);const commit=dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение');assert.ok(commit);assert.equal(commit.disabled,false);commit.click();assert.equal(vm.runInContext('character.level',context),3);}
+  const committed=vm.runInContext('JSON.stringify(character.advancement)',context);vm.runInContext('restoreDraft();renderPage();',context);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),committed);
+  vm.runInContext("character.high_elf_cantrip='light';saveDraft('result');restoreDraft();renderPage();",context);assert.ok(vm.runInContext("LevelUpRules.inspect(character,getAdvancementContext()).errors.some(e=>e.field==='foundation')",context));assert.equal(vm.runInContext('getCreationExtras().effectiveLevel',context),1);assert.throws(()=>context.getExportData(),/выборы изменились/);
+ }
+});
+
+test('PR26 round sixteen: migration persists before invalid creation routing and never blesses later edits',async()=>{
+ const H=require('./fixtures/characters'),second=H.advance(H.create('fighter',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt',abilityMethod:'manual'})),c={...second,pendingAdvancement:{...H.fill(second,require('../levelup-rules').begin(second,H.context(second)),{subclass:'champion'}),step:2}};delete c.name;const old=legacyRoundSixteen(c,2),dom=createDOM();storeRoundSixteen(dom,old);const context=loadScript(dom,readConfig());await flush();
+ assert.ok(vm.runInContext('currentPageIndex<config.pages.length',context));const saved=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.ok(saved.advancement.entries[0].foundation.startsWith('foundation:v2:'));assert.equal(saved.pendingAdvancement.step,2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);
+ vm.runInContext("character.high_elf_cantrip='light';saveDraft();restoreDraft();renderPage();",context);assert.equal(vm.runInContext('character.advancement.entries[0].foundation',context),saved.advancement.entries[0].foundation);assert.throws(()=>context.getExportData(),/выборы изменились/);
+});
+
+test('PR26 round sixteen: unavailable storage keeps migrated hero and partial or corrupt pending remains repairable',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules'),second=H.advance(H.create('fighter',null,{abilityMethod:'manual'}));
+ for(const mode of ['quota','roll','corrupt']){
+  const c={...second,pendingAdvancement:{...H.fill(second,L.begin(second,H.context(second)),{subclass:'champion'}),step:1}},old=legacyRoundSixteen(c,2);if(mode==='roll')old.pendingAdvancement.hp={mode:'roll',value:null};if(mode==='corrupt')old.pendingAdvancement={version:2,foundation:'broken',choices:null};
+  const dom=createDOM();storeRoundSixteen(dom,old);if(mode==='quota')dom.window.localStorage.setItem=()=>{throw new Error('QuotaExceededError');};const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('character.name',context),second.name);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);assert.ok(vm.runInContext("character.advancement.entries[0].foundation.startsWith('foundation:v2:')",context));assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.inspect(character,getAdvancementContext()).errors)',context)),[]);
+  if(mode==='roll'){assert.equal(vm.runInContext('character.pendingAdvancement.hp.value',context),null);vm.runInContext('character.pendingAdvancement.hp.value=5;character.pendingAdvancement.step=4;renderPage();',context);const commit=dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение');assert.equal(commit.disabled,false);commit.click();assert.equal(vm.runInContext('character.level',context),3);}
+  else{vm.runInContext('cancelAdvancement();',context);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,2);}
+ }
+});
+
+test('PR26 round sixteen: mismatching historical foundation and corrupt ledger stay blocked after reload',async()=>{
+ const H=require('./fixtures/characters'),second=H.advance(H.create('fighter',null,{abilityMethod:'manual'}));
+ for(const corrupt of [false,true]){const old=legacyRoundSixteen(second,2);if(corrupt)old.advancement={version:2,entries:null};else old.creation_style='defense';const dom=createDOM();storeRoundSixteen(dom,old);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getCreationExtras().effectiveLevel',context),1);assert.throws(()=>context.getExportData(),corrupt?/Повреждён/:/выборы изменились/);const before=vm.runInContext('JSON.stringify(character.advancement)',context);vm.runInContext("saveDraft('result');restoreDraft();renderPage();",context);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),before);assert.throws(()=>context.getExportData(),corrupt?/Повреждён/:/выборы изменились/);}
+});
+
+
+test('PR26 round sixteen: first-level legacy pending signatures bind once and protect all new mechanical fields',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules');
+ for(const version of [1,2])for(const [field,overrides,value] of [['high_elf_cantrip',{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt'},'light'],['astral_elf_astral_fire',{race:'astral-elf',astral_elf_astral_fire:'light',abilityBonusPlan:'two_one',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}},'sacred-flame'],['abilityBonusPlan',{race:'astral-elf',astral_elf_astral_fire:'light',abilityBonusPlan:'two_one',abilityBonusChoices:{slot_0:'strength',slot_1:'dexterity'}},'three_ones']]){
+  const first=H.create('fighter',null,{abilityMethod:'manual',...overrides}),c={...first,pendingAdvancement:{...H.fill(first,L.begin(first,H.context(first))),step:1}},old=legacyRoundSixteen(c,version),dom=createDOM();storeRoundSixteen(dom,old);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.advancement',context),undefined);const stored=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.ok(stored.pendingAdvancement.foundation.startsWith('foundation:v2:'));assert.equal(stored.pendingAdvancement.step,1);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,1);
+  vm.runInContext(`character[${JSON.stringify(field)}]=${JSON.stringify(value)};saveDraft('result');restoreDraft();renderPage();`,context);assert.equal(vm.runInContext('character.pendingAdvancement.foundation',context),stored.pendingAdvancement.foundation);assert.ok(vm.runInContext("LevelUpRules.transition(character,character.pendingAdvancement,getAdvancementContext()).errors.some(e=>e.field==='foundation')",context));assert.throws(()=>context.getExportData(),/выборы изменились/);assert.equal(vm.runInContext('getCreationExtras().effectiveLevel',context),1);
+  vm.runInContext(`character[${JSON.stringify(field)}]=${JSON.stringify(first[field])};cancelAdvancement();`,context);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,1);
+ }
+});
+
+
+test('PR26 round sixteen review fixes: improved summoned melee and ranged numbers reach the actual sheet and native export',async()=>{
+ const H=require('./fixtures/characters');
+ for(const weapon of ['greatclub','shortbow']){
+  const second=H.advance(H.create('warlock','hexblade',{creation_weapon:weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:10,wisdom:10,charisma:16}})),c=H.advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+  const e=H.extras(c),pact=e.attacks.find(a=>a.id===weapon+'-pact-hex'),ordinary=e.attacks.find(a=>a.id===weapon);assert.ok(dom.root.textContent.includes(pact.label+': +6 к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(ordinary.label+': +4 к попаданию, '+ordinary.damage+' урона'));assert.equal(pact.damage,(weapon==='greatclub'?'1d8':'1d6')+'+4');const data=JSON.parse(context.getExportData()[0].data),native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.dmg.value,pact.damage);assert.equal(native.ability,'cha');assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native.id+'.attack'&&b.expr==='1'));
+ }
+});
+
+test('PR26 round sixteen review fixes: failed initial migration shows unsaved across rerenders and recovers after save',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules'),second=H.advance(H.create('fighter',null,{abilityMethod:'manual'})),c={...second,pendingAdvancement:{...H.fill(second,L.begin(second,H.context(second)),{subclass:'champion'}),step:1}},dom=createDOM();storeRoundSixteen(dom,legacyRoundSixteen(c,2));const write=dom.window.localStorage.setItem;dom.window.localStorage.setItem=()=>{throw new Error('QuotaExceededError');};const context=loadScript(dom,readConfig());await flush();
+ const indicator=()=>dom.root.querySelector('.save-indicator');for(let render=0;render<3;render++){assert.ok(dom.root.querySelector('.advancement-sheet'));assert.equal(indicator().textContent,'Автосохранение недоступно');assert.equal(indicator().classList.contains('is-off'),true);assert.equal(vm.runInContext('character.level',context),2);assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(second).hp);assert.equal(vm.runInContext('character.name',context),second.name);vm.runInContext('renderPage();',context);}
+ dom.window.localStorage.setItem=write;vm.runInContext("saveDraft('result');",context);assert.equal(indicator().textContent,'Черновик сохранён');assert.equal(indicator().classList.contains('is-off'),false);vm.runInContext('renderPage();',context);assert.equal(indicator().textContent,'Черновик сохранён');assert.equal(indicator().classList.contains('is-off'),false);const saved=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;assert.equal(saved.level,2);assert.ok(saved.advancement.entries[0].foundation.startsWith('foundation:v2:'));assert.deepEqual(saved.pendingAdvancement.choices,c.pendingAdvancement.choices);
+});
+
+test('PR26 round seventeen: seven conditional descriptions reach the actual final sheet at legal levels',async()=>{
+ const H=require('./fixtures/characters'),cases=[['wizard','graviturgy','Изменение плотности'],['wizard','enchantment','Гипнотический взгляд'],['wizard','transmutation','Малая алхимия'],['paladin','vengeance','Изгнание врага'],['barbarian','storm-herald','Аура бури'],['barbarian','berserker','Чувство опасности'],['bard','lore','Песнь отдыха (к6)']];
+ for(const [cls,branch,name] of cases){
+  const first=H.create(cls,null,{abilityMethod:'manual'}),second=H.advance(first,cls==='wizard'?branch:null),third=H.advance(second,cls==='wizard'?null:branch),positive=cls==='paladin'||name==='Аура бури'?[third]:[second,third];
+  if(cls==='wizard'||cls==='bard')positive.push(H.enter(second,'fighter'));
+  if(name==='Аура бури')for(const storm_environment of ['sea','tundra'])positive.push(H.advance(second,'storm-herald',{storm_environment}));
+  const negative=[first];if(cls==='paladin'||name==='Аура бури')negative.push(second);
+  if(!['Чувство опасности','Песнь отдыха (к6)'].includes(name))negative.push(H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual'}),cls==='wizard'?'evocation':null),cls==='paladin'?'devotion':cls==='barbarian'?'zealot':null));
+  for(const c of [...positive,...negative]){
+   const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+   const profiles=H.extras(c).features.filter(f=>f.name===name),data=JSON.parse(context.getExportData()[0].data);assert.equal(profiles.length,positive.includes(c)?1:0,name);
+   if(profiles.length){assert.ok(dom.root.textContent.includes(profiles[0].description),name+': actual sheet');assert.ok(JSON.stringify(data.text.traits).includes(profiles[0].description),name+': native LSS');}
+   else{assert.ok(!dom.root.textContent.includes(name));assert.ok(!JSON.stringify(data.text.traits).includes(name));}
+   assert.equal(JSON.stringify(c),before);
+  }
+ }
+});
+
+test('PR26 round seventeen: Homunculus final sheet and native LSS preserve class scaling and hero ownership',async()=>{
+ const H=require('./fixtures/characters'),infusions=['homunculus-servant','enhanced-weapon','repeating-shot','returning-weapon'],none=['enhanced-defense',...infusions.slice(1)],cases=[];
+ for(const intelligence of [10,16,20]){
+  const first=H.create('artificer',null,{abilityMethod:'manual',race:'gnome',race_sub:'rock-gnome',abilities:{strength:16,dexterity:16,constitution:16,intelligence:intelligence-2,wisdom:16,charisma:16}}),second=H.advance(first,null,{infusions}),plain=H.advance(first,null,{infusions:none});
+  cases.push([second,plain,2,intelligence]);
+  for(const subclass of ['alchemist','armorer','artillerist','battle-smith'])cases.push([H.advance(second,subclass),H.advance(plain,subclass),3,intelligence]);
+  if(intelligence===16){
+   cases.push([first,first,0,intelligence],[plain,plain,0,intelligence]);
+   cases.push([H.advance(second,'alchemist',{infusion_remove:'homunculus-servant',infusion_add:'enhanced-defense'}),H.advance(plain,'alchemist'),0,intelligence]);
+   cases.push([H.advance(plain,'alchemist',{infusion_remove:'enhanced-defense',infusion_add:'homunculus-servant'}),H.advance(plain,'alchemist'),3,intelligence]);
+   cases.push([H.enter(second,'fighter'),H.enter(plain,'fighter'),2,intelligence],[H.enter(first,'fighter'),H.enter(first,'fighter'),0,intelligence]);
+  }
+ }
+ const fighter=H.create('fighter',null,{abilityMethod:'manual'}),one=H.enter(fighter,'artificer');cases.push([one,one,0,16],[H.enter(one,'artificer',{infusions}),H.enter(one,'artificer',{infusions:none}),2,16]);
+ for(const [c,plain,classLevel,intelligence] of cases){
+  const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+  const profile=H.extras(c).features.find(f=>f.name==='Слуга-гомункул'),data=JSON.parse(context.getExportData()[0].data),nativePlain=JSON.parse(require('../lss-export').buildLssExport(plain,{},H.stats(plain),H.extras(plain))[0].data);
+  if(classLevel){
+   assert.ok(profile);assert.equal(dom.root.textContent.split(profile.description).length-1,1);assert.ok(profile.description.includes('Хиты '+(1+Math.floor((intelligence-10)/2)+classLevel)+' ('));assert.ok(profile.description.includes('кости хитов '+classLevel+'к4'));assert.ok(profile.description.includes('бонус атаки +'+(2+Math.floor((intelligence-10)/2))));
+   for(const line of profile.description.split('\n'))assert.ok(JSON.stringify(data.text.traits).includes(line));
+  }else{assert.equal(profile,undefined);assert.ok(!dom.root.textContent.includes('Слуга-гомункул'));assert.ok(!JSON.stringify(data.text.traits).includes('Слуга-гомункул'));}
+  assert.deepEqual(data.weaponsList,nativePlain.weaponsList);assert.deepEqual(data.saves,nativePlain.saves);assert.deepEqual(data.vitality,nativePlain.vitality);assert.ok(!JSON.stringify(data.text.attacks).includes('Силовой удар'));
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),H.stats(plain).hp);assert.equal(vm.runInContext('getDerivedCharacter().ac',context),H.stats(plain).ac);assert.equal(vm.runInContext('getDerivedCharacter().speed',context),H.stats(plain).speed);assert.equal(JSON.stringify(c),before);
+ }
+});
+
+test('PR26 round eighteen: actual sheet and native LSS retain one-handed pact and ordinary attacks',async()=>{
+ const H=require('./fixtures/characters');
+ for(const patron of ['hexblade','fiend'])for(const creation_weapon of ['dagger','handaxe','quarterstaff','greatclub','shortbow','light-crossbow']){
+  const second=H.advance(H.create('warlock',patron,{creation_weapon,abilityMethod:'manual',abilities:{strength:14,dexterity:14,constitution:14,intelligence:14,wisdom:14,charisma:16}})),plain=H.advance(second,null,{pact:'blade'}),c=H.advance(second,null,{pact:'blade',invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+  assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);const e=H.extras(c),data=JSON.parse(context.getExportData()[0].data),pact=e.attacks.find(a=>a.id===creation_weapon+(patron==='hexblade'?'-pact-hex':'-pact')),ordinary=e.attacks.find(a=>a.id===creation_weapon);assert.ok(pact,patron+': '+creation_weapon);
+  assert.deepEqual(ordinary,H.extras(plain).attacks.find(a=>a.id===creation_weapon));assert.ok(dom.root.textContent.includes(pact.label+': +'+pact.attackBonus+' к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(pact.notes[0]));assert.ok(dom.root.textContent.includes(ordinary.label+': +'+ordinary.attackBonus+' к попаданию, '+ordinary.damage+' урона'));
+  const native=data.weaponsList.filter(w=>w.name.value===pact.label);assert.equal(native.length,1);assert.equal(native[0].ability,patron==='hexblade'?'cha':pact.ability==='strength'?'str':'dex');assert.equal(native[0].dmg.value,pact.damage);assert.equal(native[0].isProf,true);assert.ok(data.bonuses.some(b=>b.target==='weapon.'+native[0].id+'.attack'&&b.expr==='1'));
+  if(creation_weapon==='dagger'&&patron==='hexblade'){assert.equal(pact.attackBonus,6);assert.equal(pact.damage,'1d4+4');const hex=e.attacks.find(a=>a.id==='dagger-hex');assert.ok(dom.root.textContent.includes(hex.label));assert.deepEqual(hex,H.extras(plain).attacks.find(a=>a.id===hex.id));}
+  assert.equal(JSON.stringify(c),before);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),JSON.stringify(c.advancement));
+ }
+});
+
+test('PR26 round eighteen: actual sheet and native LSS preserve class-sensitive warlock summaries once',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [patron,name] of [['hexblade','Проклятие ведьмовского клинка'],['genie','Гнев гения'],['undead','Облик ужаса']])for(const genie of patron==='genie'?['dao','djinni','efreeti','marid']:['dao']){
+  const first=H.create('warlock',patron,{abilityMethod:'manual',...(patron==='genie'?{creation_genie:genie}:{})}),second=H.advance(first),entry=H.enter(H.create('fighter',null,{abilityMethod:'manual'}),'warlock',{'warlock:creation_patron':patron,...(patron==='genie'?{'warlock:creation_genie':genie}:{})});
+  for(const [c,level] of [[first,1],[second,2],[H.advance(second,null,{pact:'blade'}),3],[H.enter(first,'fighter'),1],[H.enter(second,'fighter'),2],[entry,1],[H.enter(entry,'warlock'),2]]){
+   const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+   const profiles=H.extras(c).features.filter(f=>f.name===name),data=JSON.parse(context.getExportData()[0].data);assert.equal(profiles.length,1);const text=profiles[0].description;assert.ok(dom.root.textContent.includes(text));assert.equal(JSON.stringify(data.text.traits).split(text).length-1,1);
+   if(patron==='hexblade')assert.ok(text.includes('восстановите '+(level+H.stats(c).modifiers.charisma)+' хит'));
+   if(patron==='genie')assert.ok(text.includes({dao:'дробящий',djinni:'звуком',efreeti:'огнём',marid:'холодом'}[genie]));
+   if(patron==='undead'){assert.ok(text.includes('1к10 + '+level+' временных хитов'));assert.ok(text.includes('Мудрости Сл '+(10+H.stats(c).modifiers.charisma)));}
+   assert.equal(JSON.stringify(c),before);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),JSON.stringify(c.advancement));
+  }
+ }
+ const c=H.create('warlock','fiend',{abilityMethod:'manual'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();const text=dom.root.textContent+JSON.stringify(JSON.parse(context.getExportData()[0].data).text.traits);for(const name of ['Проклятие ведьмовского клинка','Гнев гения','Облик ужаса'])assert.ok(!text.includes(name));
+});
+
+
+test('PR26 round eighteen: legal thrown-style Hex Warrior remains on actual sheet and native LSS',async()=>{
+ const H=require('./fixtures/characters'),first=H.create('fighter',null,{creation_style:'thrown-weapon-fighting',creation_secondary:'two-handaxes',abilityMethod:'manual'}),c=H.enter(first,'warlock',{'warlock:creation_patron':'hexblade'}),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);
+ const hex=H.extras(c).attacks.find(a=>a.id==='handaxe-thrown-hex');assert.ok(hex);assert.equal(hex.damage,'1d6+5');assert.ok(dom.root.textContent.includes(hex.label+': +5 к попаданию, 1d6+5 урона'));const native=JSON.parse(context.getExportData()[0].data).weaponsList.find(w=>w.name.value===hex.label);assert.equal(native.ability,'cha');assert.equal(native.dmg.value,'1d6+5');
+});
+
+
+test('PR26 round nineteen: uncarried pact forms and barbarian proficiencies reach actual sheet and LSS',async()=>{
+ const H=require('./fixtures/characters');
+ for(const patron of ['fiend','hexblade'])for(const improved of [false,true]){
+  const second=H.advance(H.create('warlock',patron,{abilityMethod:'manual'})),c=H.advance(second,null,{pact:'blade',...(improved?{invocation_remove:'armor-of-shadows',invocation_add:'improved-pact-weapon'}:{})}),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+  assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),data=JSON.parse(ctx.getExportData()[0].data);assert.ok(!H.context(c).baseExtras.attacks.some(a=>a.id==='greatsword'||a.id==='longbow'));
+  for(const id of ['greatsword','rapier','quarterstaff','longsword','shortbow','longbow','light-crossbow','heavy-crossbow']){
+   const pact=e.attacks.find(a=>a.id===id+(patron==='hexblade'?'-pact-hex':'-pact')),present=['greatsword','rapier','quarterstaff','longsword'].includes(id)||improved;assert.equal(!!pact,present);
+   if(present){assert.ok(dom.root.textContent.includes(pact.label+': +'+pact.attackBonus+' к попаданию, '+pact.damage+' урона'));assert.ok(dom.root.textContent.includes(pact.notes[0]));const native=data.weaponsList.find(w=>w.name.value===pact.label);assert.equal(native.dmg.value,pact.damage);assert.equal(native.isProf,true);if(['quarterstaff','longsword'].includes(id)){const note='Двумя руками: '+(id==='quarterstaff'?'1d8':'1d10')+'.';assert.ok(dom.root.textContent.includes(pact.label+': +'+pact.attackBonus+' к попаданию, '+pact.damage+' урона. '+pact.notes.join(' ')));assert.ok(native.notes.value.includes(note));}}
+  }
+  assert.equal(JSON.stringify(c),before);
+ }
+ for(const cls of ['wizard','barbarian']){
+  const first=H.create(cls,null,{abilityMethod:'manual'}),c=H.enter(first,cls==='wizard'?'barbarian':'wizard'),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);
+  const prof=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.prof);assert.match(prof,/Щиты/);assert.ok(dom.root.textContent.includes('Щиты'));
+  for(const name of ['Лёгкие доспехи','Средние доспехи']){assert.equal(prof.includes(name),cls==='barbarian');assert.equal(dom.root.textContent.includes(name),cls==='barbarian');}
+ }
+ const c=H.advance(H.advance(H.create('barbarian',null,{abilityMethod:'manual'})),'wild-magic'),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+ const rule='Вам — 1к12 временных хитов.';assert.ok(dom.root.textContent.includes(rule));assert.ok(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).includes(rule));
+});
+
+
+test('PR26 round twenty: source-verified feature conditions reach actual sheet and export',async()=>{
+ const H=require('./fixtures/characters'),cases=[['barbarian','berserker','Ярость','не атаковали враждебное существо и не получали урон'],['warlock','undying','Среди мёртвых','24 часа'],['druid','spores','Симбиотическая сущность','Преимущества действуют 10 минут'],['wizard','divination','Предзнаменование','до броска'],['rogue','soulknife','Психический шёпот','1 мили']];
+ for(const [cls,branch,name,condition] of cases){const first=H.create(cls,cls==='warlock'?branch:null,{abilityMethod:'manual'}),second=H.advance(first,['druid','wizard'].includes(cls)?branch:null),third=H.advance(second,['barbarian','rogue'].includes(cls)?branch:null),heroes=[third];if(cls!=='rogue')heroes.push(second,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name);assert.ok(f);assert.ok(f.description.includes(condition));assert.ok(dom.root.textContent.includes(f.description));assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(JSON.stringify(c),before);}
+ }
+ const c=H.advance(H.create('paladin',null,{abilityMethod:'manual',creation_weapon:'longbow',creation_shield_weapon:'greatsword'}),null,{style:'great-weapon-fighting'}),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();const data=JSON.parse(ctx.getExportData()[0].data),attacks=H.extras(c).attacks;
+ for(const id of ['longbow','greatsword']){const attack=attacks.find(a=>a.id===id),native=data.weaponsList.find(w=>w.name.value===attack.label);assert.ok(dom.root.textContent.includes(attack.label+': +'+attack.attackBonus+' к попаданию, '+attack.damage+' урона'+(attack.notes.length?'. '+attack.notes.join(' '):'')));assert.equal(/переброс/.test(native.notes.value),id==='greatsword');}
+});
+
+
+test('PR26 round twenty-one: complete subclass timing and targets appear on actual saved sheet',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,name,condition] of [['barbarian','ancestral-guardian','Защитники предков','До начала вашего следующего хода'],['bard','glamour','Мантия вдохновения','модификатора Харизмы'],['bard','whispers','Психические клинки','один раз за раунд'],['warlock','fathomless','Щупальце глубин','до 30 футов'],['cleric','order','Голос власти','расходуя ячейку'],['paladin','redemption','Обличение жестокости','атака заклинанием']]){
+  const first=H.create(cls,['warlock','cleric'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=H.advance(first),third=H.advance(second,branch),heroes=[third];if(['warlock','cleric'].includes(cls))heroes.push(first,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name);assert.ok(f.description.includes(condition));const section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.ok(section);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(JSON.stringify(c),before);}
+ }
+});
+
+
+test('PR26 round twenty-two: corrected limits and conditional recovery reach actual sheet and export',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,name,condition] of [['bard','glamour','Завораживающее представление','смотревших и слушавших всё выступление'],['bard','whispers','Слова ужаса','наедине с гуманоидом'],['cleric','life','Божественный канал: Сохранение жизни','Нежить и конструкты'],['cleric','trickery','Божественный канал: Двуличие','вы и двойник оба'],['sorcerer','shadow','Сила могилы','Только успешный спасбросок'],['sorcerer','aberrant-mind','Телепатическая речь','языке, который знает другой'],['paladin','watchers','Изгнание экстрапланарных','1 минуту или до получения урона']]){
+  const first=H.create(cls,['cleric','sorcerer'].includes(cls)?branch:null,{abilityMethod:'manual'}),second=H.advance(first),third=H.advance(second,['bard','paladin'].includes(cls)?branch:null),heroes=[third];if(cls==='cleric')heroes.push(second,H.enter(second,'fighter'));if(cls==='sorcerer')heroes.push(first,H.enter(first,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),f=e.features.find(f=>f.name===name);assert.ok(f.description.includes(condition));const section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);const native=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);assert.equal(native.split(f.description).length-1,1);
+   if(branch==='shadow'){const pool=e.resources.find(r=>r.id.endsWith('strength-of-the-grave'));assert.ok(dom.root.textContent.includes(pool.recovery));assert.ok(native.includes(pool.recovery));
+    vm.runInContext("const left=document.createElement('div'),right=document.createElement('aside');renderMechanicalSummary(left);renderCharacterSheet(right,getStepStates());round22Sheets={left:left.textContent,right:right.textContent};",ctx);const sheets=JSON.parse(vm.runInContext('JSON.stringify(round22Sheets)',ctx));for(const text of Object.values(sheets))assert.ok(text.includes(pool.recovery));
+   }
+   assert.equal(JSON.stringify(c),before);
+  }
+ }
+});
+
+
+test('PR26 round twenty-three: complete Arcana, Scribes and all primal profiles reach persisted sheet and LSS once',async()=>{
+ const H=require('./fixtures/characters'),heroes=[];
+ for(const [cls,branch,name] of [['cleric','arcana','Божественный канал: Магическое ограждение'],['wizard','scribes','Пробуждённая книга заклинаний']]){const second=H.advance(H.create(cls,cls==='cleric'?branch:null,{abilityMethod:'manual'}),cls==='wizard'?branch:null);for(const c of [second,H.advance(second),H.enter(second,'fighter')])heroes.push([c,name]);}
+ for(const companion of ['beast-of-land','beast-of-sea','beast-of-sky'])heroes.push([H.advance(H.advance(H.create('ranger',null,{abilityMethod:'manual'})),'beast-master',{companion_rules:'primal-companion',companion}),'Первобытный спутник']);
+ for(const [c,name] of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);}
+});
+
+test('PR26 round twenty-three: maneuver picker backtracking and secondary fighter cancellation preserve saved foundation',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules'),c=H.create('wizard',null,{abilityMethod:'manual',abilityBonusChoices:{slot_0:'strength',slot_1:'constitution'},human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['precision','rally']}),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+ vm.runInContext("currentPageIndex=config.pages.length;startAdvancement();character.pendingAdvancement=LevelUpRules.selectClass(character,character.pendingAdvancement,'fighter',getAdvancementContext());character.pendingAdvancement.choices['fighter:creation_style']='superior-technique';character.pendingAdvancement.step=2;renderPage();",ctx);
+ const options=()=>JSON.parse(vm.runInContext("JSON.stringify(LevelUpRules.getChoices(character,character.pendingAdvancement,getAdvancementContext()).find(g=>g.id==='fighter:creation_superior_maneuver')?.options.map(o=>o.value)||null)",ctx));
+ assert.ok(!options().some(id=>['precision-attack','rally'].includes(id)));const field=dom.document.getElementById('field-fighter:creation_superior_maneuver');assert.ok(field);assert.ok(!field.querySelectorAll('button').some(b=>b.getAttribute('data-focus-key')==='fighter:creation_superior_maneuver:precision-attack'));
+ vm.runInContext("character.pendingAdvancement.choices['fighter:creation_style']='defense';renderPage();",ctx);assert.equal(options(),null);
+ vm.runInContext("character.pendingAdvancement.choices['fighter:creation_style']='superior-technique';renderPage();",ctx);assert.ok(!options().includes('precision-attack'));
+ vm.runInContext("character.pendingAdvancement.choices['fighter:creation_superior_maneuver']='precision-attack';renderPage();",ctx);
+ const staleClear=dom.root.querySelectorAll('button').find(b=>b.getAttribute('data-focus-key')==='clear:fighter:creation_superior_maneuver:precision-attack');assert.ok(staleClear);staleClear.click();assert.equal(vm.runInContext("character.pendingAdvancement.choices['fighter:creation_superior_maneuver']",ctx),'');
+ dom.root.querySelectorAll('button').find(b=>b.getAttribute('data-focus-key')==='fighter:creation_superior_maneuver:parry').click();assert.equal(vm.runInContext("character.pendingAdvancement.choices['fighter:creation_superior_maneuver']",ctx),'parry');
+ dom.root.querySelectorAll('button').find(b=>b.textContent==='Отменить повышение').click();assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);
+ const draft=H.fill(c,L.selectClass(c,L.begin(c,H.context(c)),'fighter',H.context(c)),{'fighter:creation_style':'superior-technique','fighter:creation_superior_maneuver':'parry'});
+ vm.runInContext(`character.pendingAdvancement=${JSON.stringify({...draft,step:4})};renderPage();`,ctx);dom.root.querySelectorAll('button').find(b=>b.textContent==='Применить повышение').click();
+ vm.runInContext("saveDraft('result');restoreDraft();renderPage();",ctx);assert.equal(vm.runInContext('character.level',ctx),2);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_maneuvers)',ctx)),['precision','rally']);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.inspect(character,getAdvancementContext()).errors)',ctx)),[]);assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);assert.doesNotThrow(()=>ctx.getExportData());
+});
+
+
+test('PR26 round twenty-three: combined creation picker recomputes distinct choices after style backtracking',async()=>{
+ const H=require('./fixtures/characters'),c=H.create('fighter',null,{abilityMethod:'manual',abilityBonusChoices:{slot_0:'strength',slot_1:'constitution'},human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['precision','rally'],creation_style:'superior-technique',creation_superior_maneuver:'parry'}),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();
+ assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);
+ vm.runInContext("currentPageIndex=config.pages.findIndex(p=>p.id==='mechanics');renderPage();",ctx);
+ const card=(id,value)=>dom.root.querySelectorAll('button').find(b=>b.getAttribute('data-choice-option')===id+':'+value);
+ assert.equal(card('creation_superior_maneuver','precision-attack'),undefined);assert.equal(card('creation_maneuvers','parry'),undefined);
+ assert.ok(card('creation_superior_maneuver','ambush'));card('creation_superior_maneuver','ambush').click();assert.ok(card('creation_maneuvers','parry'));
+ card('creation_style','defense').click();assert.equal(card('creation_superior_maneuver','ambush'),undefined);assert.ok(card('creation_maneuvers','parry'));
+ card('creation_style','superior-technique').click();assert.equal(card('creation_superior_maneuver','precision-attack'),undefined);card('creation_superior_maneuver','parry').click();assert.equal(card('creation_maneuvers','parry'),undefined);
+ vm.runInContext("currentPageIndex=config.pages.length;saveDraft('result');restoreDraft();renderPage();",ctx);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(character.creation_maneuvers)',ctx)),['precision','rally']);assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);assert.doesNotThrow(()=>ctx.getExportData());
+});
+
+test('PR26 round twenty-four: source-verified targeting and timing reach real saved sheets and LSS once',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,names] of [['cleric','light',['Изгнание нежити','Божественный канал: Сияние рассвета']],['cleric','order',['Изгнание нежити','Божественный канал: Требование порядка']],['wizard','chronurgy',['Хрональный сдвиг']],['wizard','conjuration',['Малый вызов']],['bard','valor',['Боевое вдохновение']],['paladin','vengeance',['Обет вражды']],['paladin','crown',['Вызов чемпиона','Переломить ход битвы']]]){
+  const first=H.create(cls,cls==='cleric'?branch:null,{abilityMethod:'manual'}),second=H.advance(first,cls==='wizard'?branch:null),third=H.advance(second,['bard','paladin'].includes(cls)?branch:null),heroes=[third];if(['cleric','wizard'].includes(cls))heroes.push(second,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания'),native=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);
+   for(const name of names){const f=e.features.find(f=>f.name===name);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(native.split(f.description).length-1,1);}
+   assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);
+  }
+ }
+});
+
+
+test('PR26 round twenty-five: complete combat descriptions survive real saved-sheet loading and export once',async()=>{
+ const H=require('./fixtures/characters'),heroes=[];
+ for(const [cls,branch,name,choices] of [['monk','sun-soul','Луч солнечного света',{}],['monk','ascendant-dragon','Дыхание дракона',{}],['ranger','swarmkeeper','Собранный рой',{}],['fighter','battle-master','Боевые приёмы',{maneuvers:['sweeping-attack','rally','parry']}],['fighter','arcane-archer','Мистические выстрелы',{arcane_shots:['bursting-arrow','banishing-arrow']}]])heroes.push([H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual'})),branch,choices),name]);
+ const legacy={abilityMethod:'manual',abilityBonusChoices:{slot_0:'strength',slot_1:'constitution'},human_feature:'human_alt',creation_feat:'martial-adept',creation_maneuvers:['sweeping','rally']};heroes.push([H.create('wizard',null,legacy),'Черта: Воинский адепт'],[H.advance(H.advance(H.create('fighter',null,{...legacy,creation_style:'superior-technique',creation_superior_maneuver:'precision-attack'})),'battle-master',{maneuvers:['parry','trip-attack','disarming-attack']}),'Черта: Воинский адепт'],[H.create('fighter',null,{abilityMethod:'manual',creation_style:'superior-technique',creation_superior_maneuver:'sweeping-attack'}),'Превосходная техника'],[H.enter(H.create('wizard',null,{abilityMethod:'manual'}),'fighter',{'fighter:creation_style':'superior-technique','fighter:creation_superior_maneuver':'sweeping-attack'}),'Превосходная техника']);
+ for(const [c,name] of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),f=e.features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания'),data=JSON.parse(ctx.getExportData()[0].data);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(data.text.traits).split(f.description).length-1,1);
+  if(name==='Луч солнечного света'){const bolt=e.attacks.find(a=>a.id==='radiant-sun-bolt');assert.ok(dom.root.textContent.includes(bolt.notes[0]));const native=data.weaponsList.filter(w=>w.name.value===bolt.label);assert.equal(native.length,1);assert.equal(native[0].notes.value,bolt.notes[0]);assert.equal(native[0].dmg.value,bolt.damage);assert.equal(native[0].ability,'dex');}
+  assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
+ }
+});
+
+
+test('PR26 round twenty-five: saved bard and multiclass native skill totals agree with visible skill rows',async()=>{
+ const H=require('./fixtures/characters'),R=require('../rules'),bard=H.create('bard',null,{abilityMethod:'manual'}),bard2=H.advance(bard),fighter=H.create('fighter',null,{abilityMethod:'manual'}),fighter1bard1=H.enter(fighter,'bard');
+ for(const c of [bard,bard2,H.advance(bard2,'valor'),H.enter(bard2,'fighter'),H.enter(fighter1bard1,'bard'),H.enter(H.advance(fighter),'bard'),fighter]){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const stats=H.stats(c),e=H.extras(c),data=JSON.parse(ctx.getExportData()[0].data),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Навыки и спасброски');assert.ok(section);
+  for(const [name,skill] of Object.entries(data.skills)){const id=name.replaceAll(' ','_'),bonuses=data.bonuses.filter(b=>b.target==='skill.'+name),total=Math.floor((data.stats[skill.baseStat].score-10)/2)+skill.isProf*data.proficiency+bonuses.reduce((sum,b)=>sum+Number(b.expr),0);assert.equal(total,stats.skills[id],name);assert.equal(bonuses.length,e.jackOfAllTrades&&skill.isProf===0?1:0,name);const label=section.querySelectorAll('dt').find(node=>node.textContent===R.SKILLS[id]);assert.ok(label,name);const value=label.parentNode.children[label.parentNode.children.indexOf(label)+1].textContent;assert.equal(value,(total>=0?'+':'')+total+(skill.isProf===2?' · компетентность':skill.isProf===1?' · владение':''));}
+  for(const [name,total] of [['perception',stats.passivePerception],['investigation',stats.passiveInvestigation]]){const skill=data.skills[name],native=10+Math.floor((data.stats[skill.baseStat].score-10)/2)+skill.isProf*data.proficiency+data.bonuses.filter(b=>b.target==='skill.'+name).reduce((sum,b)=>sum+Number(b.expr),0);assert.equal(skill.customPassive??native,total);}
+  assert.equal(data.vitality.initiative?.value??stats.modifiers.dexterity,stats.initiative);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
+ }
+});
+
+test('PR26 round twenty-six: source-verified aura, form and target descriptions render/export once without changing saved heroes',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,name] of [['cleric','nature','Божественный канал: Очарование животных и растений'],['cleric','twilight','Божественный канал: Сумеречное святилище'],['druid','stars','Звёздный облик'],['warlock','genie','Уединение в сосуде'],['rogue','inquisitive','Проницательный бой'],['ranger',null,'Избранный противник'],['wizard','abjuration','Магическая защита']]){
+  const first=H.create(cls,['cleric','warlock'].includes(cls)?branch:null,{abilityMethod:'manual',...(cls==='ranger'?{creation_favored_feature:'favored-foe'}:{})}),second=H.advance(first,['druid','wizard'].includes(cls)?branch:null),third=H.advance(second,cls==='rogue'?branch:null),heroes=[third];if(cls!=='rogue')heroes.push(second,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);}
+ }
+});
+
+test('PR26 round twenty-seven: verified ranger and arrow conditions reach saved sheets and LSS once',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,names,choices] of [['ranger','horizon-walker',['Планарный воин'],{}],['ranger','monster-slayer',['Чутьё охотника','Добыча убийцы'],{}],['fighter','arcane-archer',['Мистические выстрелы'],{arcane_shots:['banishing-arrow','grasping-arrow']}],['barbarian','wild-magic',['Дикий всплеск'],{}]]){
+  const c=H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual'})),branch,choices),before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания'),text=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);
+  for(const name of names){const f=e.features.find(f=>f.name===name);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);for(const line of f.description.split('\n'))assert.equal(text.split(line).length-1,1);}
+  assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
+ }
+});
+
+test('PR26 round twenty-eight: complete reaction and invocation rules reach real saved sheets and LSS once',async()=>{
+ const H=require('./fixtures/characters'),heroes=[];
+ for(const [cls,branch,name] of [['bard','lore','Острое словцо'],['fighter','eldritch-knight','Связь с оружием'],['monk','open-hand','Отражение снарядов'],['artificer','armorer','Подходящий инструмент']])heroes.push([H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual'})),branch),name]);
+ for(const invocations of [['gaze-of-two-minds','armor-of-shadows'],['fiendish-vigor','misty-visions']]){const first=H.create('warlock',null,{abilityMethod:'manual'}),second=H.advance(first,null,{invocations});heroes.push([second,'Воззвания'],[H.advance(second,null,{pact:'blade'}),'Воззвания'],[H.enter(second,'fighter'),'Воззвания'],[H.advance(second,null,{pact:'blade',invocation_remove:invocations[0],invocation_add:'mask-of-many-faces'}),'Воззвания']);}
+ for(const [c,name] of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания'),text=JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(text.split(f.description).length-1,1);if(c.advancement.entries.at(-1).choices.invocation_add==='mask-of-many-faces'){assert.ok(f.description.includes('Маска многих лиц'));assert.ok(section.textContent.includes('Маска многих лиц'));assert.ok(text.includes('Маска многих лиц'));assert.ok(!f.description.includes(c.advancement.entries.at(-1).choices.invocation_remove==='gaze-of-two-minds'?'особых чувств':'Псевдожизнь'));}assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);}
+});
+
+
+test('PR26 round twenty-nine: native Fey skills and complete magic rules survive actual saved-sheet export',async()=>{
+ const H=require('./fixtures/characters'),R=require('../rules'),heroes=[];
+ for(const [cls,branch,choices] of [['ranger','fey-wanderer',{fey_skill:'deception'}],['barbarian','wild-magic',{}],['fighter','arcane-archer',{arcane_shots:['beguiling-arrow','seeking-arrow']}]])heroes.push(H.advance(H.advance(H.create(cls,null,{abilityMethod:'manual',...(cls==='ranger'?{background:'guild-artisan',creation_explorer_feature:'deft-explorer',creation_canny_skill:'persuasion'}:{})})),branch,choices));
+ for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const e=H.extras(c),stats=H.stats(c),data=JSON.parse(ctx.getExportData()[0].data),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');
+  for(const name of c.class==='ranger'?['Потустороннее очарование']:c.class==='barbarian'?['Чувство магии']:['Мистический выстрел','Мистические выстрелы']){const f=e.features.find(f=>f.name===name);assert.ok(f);assert.equal(section.querySelectorAll('li').filter(n=>n.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(data.text.traits).split(f.description).length-1,1);}
+  if(c.class==='ranger'){const skillSection=dom.root.querySelectorAll('.result-section').find(n=>n.children[0]?.textContent==='Навыки и спасброски');for(const [name,skill] of Object.entries(data.skills)){const id=name.replaceAll(' ','_'),total=Math.floor((data.stats[skill.baseStat].score-10)/2)+skill.isProf*data.proficiency+data.bonuses.filter(b=>b.target==='skill.'+name).reduce((sum,b)=>sum+Number(b.expr),0);assert.equal(total,stats.skills[id]);const label=skillSection.querySelectorAll('dt').find(n=>n.textContent===R.SKILLS[id]),value=label.parentNode.children[label.parentNode.children.indexOf(label)+1].textContent;assert.ok(value.startsWith((total>=0?'+':'')+total));}}
+  assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
+ }
 });

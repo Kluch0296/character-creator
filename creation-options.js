@@ -26,8 +26,8 @@
     wizard:[words('acid-splash blade-ward chill-touch dancing-lights fire-bolt friends light mage-hand mending message minor-illusion poison-spray prestidigitation ray-of-frost shocking-grasp true-strike'),words('alarm burning-hands charm-person chromatic-orb color-spray comprehend-languages detect-magic disguise-self expeditious-retreat false-life feather-fall find-familiar fog-cloud grease identify illusory-script jump longstrider mage-armor magic-missile protection-from-evil-and-good ray-of-sickness shield silent-image sleep tashas-hideous-laughter tensers-floating-disk thunderwave unseen-servant witch-bolt')],
     artificer:[words('acid-splash booming-blade create-bonfire dancing-lights fire-bolt frostbite green-flame-blade guidance light lightning-lure mage-hand magic-stone mending message poison-spray prestidigitation ray-of-frost resistance shocking-grasp spare-the-dying sword-burst thorn-whip thunderclap'),words('absorb-elements alarm catapult cure-wounds detect-magic disguise-self expeditious-retreat faerie-fire false-life feather-fall grease identify jump longstrider purify-food-and-drink sanctuary snare tashas-caustic-brew')]
   };
-  const RITUALS = words('alarm comprehend-languages detect-magic detect-poison-and-disease find-familiar identify illusory-script purify-food-and-drink speak-with-animals tensers-floating-disk unseen-servant');
-  const ATTACK_CANTRIPS = words('chill-touch eldritch-blast fire-bolt produce-flame ray-of-frost shocking-grasp thorn-whip');
+  const RITUALS = words('ceremony alarm comprehend-languages detect-magic detect-poison-and-disease find-familiar identify illusory-script purify-food-and-drink speak-with-animals tensers-floating-disk unseen-servant');
+  const ATTACK_CANTRIPS = words('chill-touch eldritch-blast fire-bolt produce-flame ray-of-frost shocking-grasp thorn-whip booming-blade green-flame-blade primal-savagery');
   const DOMAINS = {knowledge:{label:'Знание',spells:['command','identify']},life:{label:'Жизнь',spells:['bless','cure-wounds']},light:{label:'Свет',spells:['burning-hands','faerie-fire']},nature:{label:'Природа',spells:['animal-friendship','speak-with-animals']},tempest:{label:'Буря',spells:['fog-cloud','thunderwave']},trickery:{label:'Обман',spells:['charm-person','disguise-self']},war:{label:'Война',spells:['divine-favor','shield-of-faith']}};
   const PATRONS = {archfey:{label:'Архифея',spells:['faerie-fire','sleep']},fiend:{label:'Исчадие',spells:['burning-hands','command']},'great-old-one':{label:'Великий Древний',spells:['dissonant-whispers','tashas-hideous-laughter']}};
   const DRAGONS = {black:'Чёрный — кислота',blue:'Синий — электричество',brass:'Латунный — огонь',bronze:'Бронзовый — электричество',copper:'Медный — кислота',gold:'Золотой — огонь',green:'Зелёный — яд',red:'Красный — огонь',silver:'Серебряный — холод',white:'Белый — холод'};
@@ -108,7 +108,7 @@
   const BUNDLES = {'two-handaxes':[['handaxe',2]],'five-javelins':[['javelin',5]],'crossbow-bolts':[['light-crossbow',1],['bolts',20]],'shortbow-arrows':[['shortbow',1],['arrows',20],['quiver',1]],'leather-longbow':[['leather',1],['longbow',1],['arrows',20],['quiver',1]]};
   Object.assign(ITEMS,{'two-handaxes':'Два ручных топора','five-javelins':'Пять метательных копий','crossbow-bolts':'Лёгкий арбалет и 20 болтов','shortbow-arrows':'Короткий лук, колчан и 20 стрел','leather-longbow':'Кожаный доспех, длинный лук, колчан и 20 стрел'});
   const FIXED_EQUIPMENT = {barbarian:[['explorer-pack',1],['javelin',4]],bard:[['leather',1],['dagger',1]],cleric:[['shield',1],['holy-symbol',1]],druid:[['leather',1],['explorer-pack',1],['druidic-focus',1]],fighter:[],monk:[['dart',10]],paladin:[['chain-mail',1],['holy-symbol',1]],ranger:[['longbow',1],['arrows',20],['quiver',1]],rogue:[['leather',1],['dagger',2],['thieves-tools',1]],sorcerer:[['dagger',2]],warlock:[['leather',1],['dagger',2]],wizard:[['spellbook',1]],artificer:[['light-crossbow',1],['bolts',20],['thieves-tools',1],['dungeoneer-pack',1]]};
-  const STYLES = {archery:'Стрельба (+2 к атакам дальнобойным оружием)',defense:'Оборона (+1 КД в доспехах)',dueling:'Дуэлянт (+2 урона одним рукопашным оружием)',great_weapon:'Бой большим оружием (переброс 1 и 2 урона)',protection:'Защита (реакция со щитом)',two_weapon:'Бой двумя оружиями (модификатор к урону второй руки)'};
+  const STYLES = {archery:'Стрельба (+2 к атакам дальнобойным оружием)',defense:'Оборона (+1 КД в доспехах)',dueling:'Дуэлянт (+2 урона одним рукопашным оружием)',great_weapon:'Бой большим оружием (переброс 1 и 2 урона)',protection:'Защита (реакция со щитом)',two_weapon:'Бой двумя оружиями (модификатор к урону второй руки)','blind-fighting':'Бой вслепую (TCE): слепое зрение 10 футов','interception':'Перехват (TCE): с оружием или щитом реакцией уменьшите урон союзнику в 5 футах на 1к10 + мастерство','superior-technique':'Превосходная техника (TCE): один приём и одна кость к6 за короткий или долгий отдых','thrown-weapon-fighting':'Бой метательным оружием (TCE): извлечение частью атаки, +2 урона дальнобойной атаки','unarmed-fighting':'Бой без оружия (TCE): 1к6 + СИЛ, без оружия и щита 1к8 + СИЛ; 1к4 урона захваченной цели в начале хода'};
   const ENEMIES = {aberrations:'Аберрации',beasts:'Звери',celestials:'Небожители',constructs:'Конструкты',dragons:'Драконы',elementals:'Элементали',fey:'Феи',fiends:'Исчадия',giants:'Великаны',monstrosities:'Чудовища',oozes:'Слизи',plants:'Растения',undead:'Нежить',humanoids:'Два вида гуманоидов'};
   const HUMANOIDS = {humans:'Люди',elves:'Эльфы',dwarves:'Дварфы',halflings:'Полурослики',gnomes:'Гномы',orcs:'Орки',goblinoids:'Гоблиноиды',gnolls:'Гноллы',kobolds:'Кобольды',lizardfolk:'Людоящеры',sahuagin:'Сахуагины',merfolk:'Мерфолки',grimlocks:'Гримлоки',gith:'Гиты'};
   const TERRAINS = {arctic:'Арктика',coast:'Побережье',desert:'Пустыня',forest:'Лес',grassland:'Луга',mountain:'Горы',swamp:'Болото',underdark:'Подземье'};
@@ -120,11 +120,11 @@
   const BACKGROUND_GOLD={entertainer:15,urchin:10,noble:25,'guild-artisan':15,sailor:10,pirate:10,sage:10,'folk-hero':10,hermit:5,criminal:15,acolyte:15,soldier:10,outlander:10,charlatan:15};
   const BACKGROUND_FEATURES={entertainer:['По многочисленным просьбам','Можете найти место для выступления, которое обеспечивает скромный или комфортный кров и пищу за ежедневные выступления.'],urchin:['Городские тайны','Вне боя вы и ведомые вами спутники перемещаетесь по городу вдвое быстрее.'],noble:['Привилегированность','В высшем обществе к вам относятся как к своему; можете получить аудиенцию у местной знати.'],'guild-artisan':['Членство в гильдии','Гильдия предоставляет связи, поддержку и помощь; взносы 5 зм в месяц.'],sailor:['Морской переход','Можете договориться о бесплатном переходе на знакомом судне; вы и спутники помогаете экипажу, маршрут и срок зависят от капитана.'],pirate:['Дурная репутация','Многие боятся сообщать властям о ваших мелких нарушениях; серьёзные преступления не остаются безнаказанными.'],sage:['Исследователь','Если не знаете сведения, обычно знаете, где или у кого их искать; доступ и получение могут требовать приключения.'],'folk-hero':['Деревенское гостеприимство','Простолюдины помогают укрыться, отдохнуть и восстановиться, пока это не подвергает их серьёзной опасности.'],hermit:['Откровение','Важное открытие определяется вместе с Мастером и связывает отшельничество с кампанией.'],criminal:['Криминальные связи','Надёжный посредник связывает вас с преступным миром, в том числе через дальние расстояния.'],acolyte:['Приют для верующих','В храмах своей веры можете рассчитывать на скромное содержание и помощь; дорогостоящие компоненты заклинаний оплачиваются отдельно.'],soldier:['Воинское звание','Военное звание даёт влияние в бывшей организации, доступ к некоторым ресурсам и помощь дружественных солдат.'],outlander:['Скиталец','Хорошо запоминаете карты и местность; в подходящей местности находите пищу и воду себе и ещё пяти существам.'],charlatan:['Вторая личность','Есть запасная личность с документами и знакомствами; умеете подделывать документы, образец которых видели.']};
   const activeFeat = c => c.race==='human' && c.human_feature==='human_alt' ? c.creation_feat : null;
-  function spellList(cls,level,c={}) { return unique([...(LISTS[cls]?.[level]||[]),...(cls==='warlock'&&level===1?(PATRONS[c.creation_patron]?.spells||[]):[])]); }
+  function spellList(cls,level,c={}) { return unique([...(LISTS[cls]?.[level]||[]),...(cls==='warlock'&&level===1?(PATRONS[c.creation_patron]?.spells||[]):[]),...(levelup()?.spellList(cls,level,c,undefined,true)||[])]); }
   function baseArmor(c) {
     const byClass = {barbarian:['light','medium','shield'],bard:['light'],cleric:['light','medium','shield'],druid:['light','medium','shield'],fighter:['light','medium','heavy','shield'],paladin:['light','medium','heavy','shield'],ranger:['light','medium','shield'],rogue:['light'],warlock:['light'],artificer:['light','medium','shield']};
     const result = [...(byClass[c.class]||[])];
-    if(c.class==='cleric'&&['life','nature','tempest','war'].includes(c.creation_domain)) result.push('heavy');
+    if(c.class==='cleric'&&c.creation_domain&&['life','nature','tempest','war','forge','order','twilight'].includes(c.creation_domain.replace(/^creation_/,''))) result.push('heavy');
     if(c.race==='dwarf'&&c.race_sub==='mountain-dwarf') result.push('light','medium');
     if(c.race==='gith'&&c.race_sub==='githyanki') result.push('light','medium');
     if(c.race==='hobgoblin') result.push('light');
@@ -149,6 +149,7 @@
     const merged=new Map(); all.forEach(([id,quantity])=>merged.set(id,(merged.get(id)||0)+quantity));
     return [...merged].map(([id,quantity])=>({id,label:ITEMS[id]||catalogs().TOOLS?.[id]||id,quantity}));
   }
+  function levelup() { const api=typeof module==='object'&&module.exports ? require('./levelup-rules') : (typeof LevelUpRules!=='undefined'?LevelUpRules:null); if(api)api.setSpellNames(SPELL_NAMES);return api; }
   function getChoices(c={},context={}) {
     const a=context.abilities||c.abilities||{};
     const result=[];
@@ -177,7 +178,7 @@
       if(feat?.text) result[result.length-1].description=feat.text;
       if(feat?.ability) add('feat_ability','Характеристика черты: +1',feat.ability,1,ABILITIES,'feat');
       if(activeFeat(c)==='elemental-adept') add('feat_element','Стихия',['acid','cold','fire','lightning','thunder'],1,{acid:'Кислота',cold:'Холод',fire:'Огонь',lightning:'Электричество',thunder:'Звук'},'feat');
-      if(activeFeat(c)==='martial-adept') add('maneuvers','Два боевых приёма',Object.keys(MANEUVERS),2,MANEUVERS,'feat');
+      if(activeFeat(c)==='martial-adept') add('maneuvers','Два боевых приёма',levelup().distinctManeuverOptions(Object.keys(MANEUVERS),levelup().superiorTechniqueManeuvers(c)),2,MANEUVERS,'feat');
       if(['magic-initiate','ritual-caster','spell-sniper'].includes(activeFeat(c))) {
         add('feat_class','Класс заклинаний черты',Object.keys(CLASSES).filter(k=>k!=='artificer'&&(activeFeat(c)!=='spell-sniper'||spellList(k,0).some(id=>ATTACK_CANTRIPS.includes(id)))),1,CLASSES,'feat');
         const cls=c.creation_feat_class;
@@ -190,7 +191,7 @@
     }
     for(const [id,label,ids] of equipmentGroups[c.class]||[]) {
       let allowed=ids;
-      if(c.class==='cleric'&&id==='weapon'&&!['tempest','war'].includes(c.creation_domain)&&c.race!=='dwarf') allowed=ids.filter(k=>k!=='warhammer');
+      if(c.class==='cleric'&&id==='weapon'&&!['death','tempest','war','twilight'].includes(c.creation_domain)&&c.race!=='dwarf') allowed=ids.filter(k=>k!=='warhammer');
       if(c.class==='cleric'&&id==='armor'&&!baseArmor(c).includes('heavy')&&activeFeat(c)!=='heavily-armored') allowed=ids.filter(k=>k!=='chain-mail');
       add(id,label,unique(allowed));
     }
@@ -201,18 +202,20 @@
     if(['fairy','astral-elf'].includes(c.race)) add('racial_spell_ability','Характеристика расовых заклинаний',['intelligence','wisdom','charisma'],1,ABILITIES,'spells');
     const casting=CASTING[c.class];
     if(casting) {
-      let cantrips=spellList(c.class,0,c);
+      let cantrips=spellList(c.class,0,c).filter(id=>!levelup()?.automaticSpells(c).includes(id));
       if(c.class==='cleric'&&c.creation_domain==='light') cantrips=cantrips.filter(id=>id!=='light');
+      if(c.class==='cleric'&&['arcana','death'].includes(c.creation_domain)) cantrips=cantrips.filter(id=>!values(c.creation_domain_cantrips).includes(id));
       add('cantrips','Заговоры класса',cantrips,casting[1],SPELL_NAMES,'spells');
       const prep=Math.min(c.class==='wizard'?6:Infinity,Math.max(1,mod(a[casting[0]])+(c.class==='artificer'?0:1)));
       if(casting[2]==='book') {
         add('spellbook','Книга волшебника: шесть заклинаний 1-го уровня',spellList('wizard',1),6,SPELL_NAMES,'spells');
         add('prepared','Подготовленные заклинания из книги',values(c.creation_spellbook).filter(id=>spellList('wizard',1).includes(id)),prep,SPELL_NAMES,'spells');
-      } else if(casting[2]==='prepared') add('prepared','Подготовленные заклинания 1-го уровня',spellList(c.class,1,c).filter(id=>!(c.class==='cleric'&&(DOMAINS[c.creation_domain]?.spells||[]).includes(id))),prep,SPELL_NAMES,'spells');
-      else add('known_spells','Известные заклинания 1-го уровня',spellList(c.class,1,c),casting[2],SPELL_NAMES,'spells');
+      } else if(casting[2]==='prepared') add('prepared','Подготовленные заклинания 1-го уровня',spellList(c.class,1,c).filter(id=>!levelup()?.automaticSpells(c).includes(id)),prep,SPELL_NAMES,'spells');
+      else add('known_spells','Известные заклинания 1-го уровня',spellList(c.class,1,c).filter(id=>!levelup()?.automaticSpells(c).includes(id)),casting[2],SPELL_NAMES,'spells');
     }
     if(c.class==='cleric'&&c.creation_domain==='nature') add('nature_cantrip','Заговор домена Природы',spellList('druid',0),1,SPELL_NAMES,'spells');
-    return result;
+    const supplement = levelup()?.creationChoices(c, context) || [];
+    return result.filter(g=>!supplement.some(s=>s.id===g.id)&&!(c.class==='ranger'&&c.creation_favored_feature==='favored-foe'&&['creation_favored_enemy','creation_humanoids'].includes(g.id))&&!(c.class==='ranger'&&c.creation_explorer_feature==='deft-explorer'&&g.id==='creation_terrain')).concat(supplement);
   }
   function catalogs() {
     if(typeof module==='object'&&module.exports) return require('./rules.js');
@@ -245,6 +248,7 @@
     const error=(field,message)=>errors.push({id:field,field,message});
     for(const group of getChoices(c,context)) {
       const selection=values(c[group.id]);
+      if(group.optional&&!selection.length)continue;
       if(selection.length!==group.count||unique(selection).length!==selection.length||selection.some(id=>!group.options.some(o=>o.value===id))) error(group.id,`${group.label}: выберите ${group.count} различных допустимых вариантов.`);
     }
     const feat=FEATS[activeFeat(c)],a=context.abilities||c.abilities||{};
@@ -286,7 +290,7 @@
       if(featId==='elemental-adept'&&c.creation_feat_element) feature('Адепт стихий: выбранная стихия',c.creation_feat_element);
       if(featId==='martial-adept') feature('Боевые приёмы',values(c.creation_maneuvers).filter(id=>MANEUVERS[id]).map(id=>MANEUVERS[id]).join(', ')+`; кость превосходства 1к6; Сл ${10+Math.max(mod(a.strength),mod(a.dexterity))}`);
     }
-    const CLASS_FEATURES={barbarian:['Ярость: 2 / долгий отдых, +2 урона рукопашным оружием от Силы; сопротивление дробящему, колющему и рубящему урону без тяжёлого доспеха.','Защита без доспехов: 10 + ЛОВ + ТЕЛ, разрешён щит.'],bard:[`Бардовское вдохновение: к6; ${Math.max(1,mod(a.charisma))} / долгий отдых; бонусное действие, союзник в 60 футах.`],cleric:[],druid:['Друидический язык; ритуальное колдовство для подготовленных ритуалов. Дикий облик появляется только на 2-м уровне.'],fighter:['Второе дыхание: бонусное действие, 1к10 + 1 хитов, 1 / короткий или долгий отдых.'],monk:['Защита без доспехов: 10 + ЛОВ + МДР без щита.','Боевые искусства: к4; без доспеха/щита и с монашеским оружием можно использовать Ловкость и атаковать безоружно бонусным действием.'],paladin:[`Божественное чувство: ${1+mod(a.charisma)} / долгий отдых, 60 футов.`, 'Наложение рук: запас 5 хитов / долгий отдых. Заклинания и Божественная кара появятся на 2-м уровне.'],ranger:['Избранный враг: преимущество на Выживание для выслеживания и Интеллект для воспоминаний о врагах.','Исследователь природы: удвоение владения подходящих проверок Интеллекта/Мудрости в избранной местности и бонусы путешествий. Заклинания появятся на 2-м уровне.'],rogue:['Скрытая атака: +1к6 раз в ход при подходящих условиях и фехтовальном/дальнобойном оружии.','Воровской жаргон. Компетентность: два владения на итоговом шаге.'],sorcerer:[],warlock:['Магия договора: одна ячейка 1-го уровня, восстанавливается за короткий или долгий отдых. Воззания появятся на 2-м уровне.'],wizard:['Магическое восстановление: один раз в день после короткого отдыха вернуть одну ячейку 1-го уровня. Ритуалы из книги не требуется подготавливать.'],artificer:[`Магическое tinkering (Магическое мастерство): до ${Math.max(1,mod(a.intelligence))} крошечных предметов с незначительными эффектами. Для всех заклинаний нужны знакомые воровские/ремесленные инструменты как фокусировка.`]};
+    const CLASS_FEATURES={barbarian:['Ярость: 2 / долгий отдых. Бонусным действием в свой ход войдите в ярость максимум на 1 минуту. Только без тяжёлого доспеха: преимущество на проверки и спасброски Силы; +2 к урону рукопашных атак оружием от Силы; сопротивление дробящему, колющему и рубящему урону. Пока ярость действует, нельзя накладывать заклинания или поддерживать концентрацию. Ярость заканчивается при потере сознания либо в конце вашего хода, если с конца прошлого хода вы не атаковали враждебное существо и не получали урон. Можно закончить её бонусным действием в свой ход. Применения восстанавливаются после долгого отдыха.','Защита без доспехов: 10 + ЛОВ + ТЕЛ, разрешён щит.'],bard:[`Бардовское вдохновение: к6; ${Math.max(1,mod(a.charisma))} / долгий отдых; бонусное действие, союзник в 60 футах.`],cleric:[],druid:['Друидический язык; ритуальное колдовство для подготовленных ритуалов. Дикий облик появляется только на 2-м уровне.'],fighter:['Второе дыхание: бонусное действие, 1к10 + 1 хитов, 1 / короткий или долгий отдых.'],monk:['Защита без доспехов: 10 + ЛОВ + МДР без щита.','Боевые искусства: к4; без доспеха/щита и с монашеским оружием можно использовать Ловкость и атаковать безоружно бонусным действием.'],paladin:[`Божественное чувство: ${Math.max(0,1+mod(a.charisma))} / долгий отдых, 60 футов.`, 'Наложение рук: запас 5 хитов / долгий отдых. Заклинания и Божественная кара появятся на 2-м уровне.'],ranger:['Избранный враг: преимущество на Выживание для выслеживания и Интеллект для воспоминаний о врагах.','Исследователь природы: удвоение владения подходящих проверок Интеллекта/Мудрости в избранной местности и бонусы путешествий. Заклинания появятся на 2-м уровне.'],rogue:['Скрытая атака: +1к6 раз в ход при подходящих условиях и фехтовальном/дальнобойном оружии.','Воровской жаргон. Компетентность: два владения на итоговом шаге.'],sorcerer:[],warlock:['Магия договора: одна ячейка 1-го уровня, восстанавливается за короткий или долгий отдых. Воззания появятся на 2-м уровне.'],wizard:['Магическое восстановление: один раз в день после короткого отдыха вернуть одну ячейку 1-го уровня. Ритуалы из книги не требуется подготавливать.'],artificer:[`Магическое tinkering (Магическое мастерство): до ${Math.max(1,mod(a.intelligence))} крошечных предметов с незначительными эффектами. Для всех заклинаний нужны знакомые воровские/ремесленные инструменты как фокусировка.`]};
     (CLASS_FEATURES[c.class]||[]).forEach(text=>feature('Умение 1-го уровня',text));
     if(c.class==='fighter'&&STYLES[c.creation_style]) feature('Боевой стиль',STYLES[c.creation_style]);
     if(c.class==='ranger') {
@@ -303,8 +307,8 @@
     }
     if(domain&&DOMAINS[domain]) {
       feature('Божественный домен',DOMAINS[domain].label);
-      if(['life','nature','tempest','war'].includes(domain)) grant('armor','heavy','Божественный домен');
-      if(['tempest','war'].includes(domain)) grant('weapon','martial','Божественный домен');
+      if(['life','nature','tempest','war','forge','order','twilight'].includes(domain)) grant('armor','heavy','Божественный домен');
+      if(['death','tempest','war','twilight'].includes(domain)) grant('weapon','martial','Божественный домен');
       if(domain==='knowledge') {slot('knowledge-skill','skill',words('arcana history nature religion'),'Благословение знаний: навык с компетентностью',2,{grantExpertise:true});slot('knowledge-language','language',r.CHOICE_LANGUAGES||[],'Благословение знаний: язык',2);}
       if(domain==='nature') slot('nature-skill','skill',words('animal_handling nature survival'),'Послушник природы: навык');
       const texts={life:'Поборник жизни: заклинания лечения 1-го уровня и выше восстанавливают дополнительно 2 + уровень заклинания.',light:`Защищающая вспышка: реакция, помеха атаке видимого существа в 30 футах; ${Math.max(1,mod(a.wisdom))} / долгий отдых.`,tempest:`Гнев бури: реакция после попадания существа в 5 футах, 2к8 электричеством или звуком (ЛОВ, половина); ${Math.max(1,mod(a.wisdom))} / долгий отдых.`,trickery:'Благословение обманщика: действием касание другого существа — преимущество на Скрытность на 1 час (или до нового применения).',war:`Боевой священник: после действия Атака можно атаковать оружием бонусным действием; ${Math.max(1,mod(a.wisdom))} / долгий отдых.`};
@@ -335,19 +339,27 @@
       const proficient=grantedWeapons.includes(w.id.replaceAll('-','_'))||grantedWeapons.includes(w.group);
       const style=c.class==='fighter'?c.creation_style:null;
       const bonus=mod(a[ability])+(proficient?2:0)+(style==='archery'&&p.includes('ranged')?2:0);
-      let damageBonus=mod(a[ability]);
+      const dealsDamage=w.damage!=='0';
+      let damageBonus=dealsDamage?mod(a[ability]):0;
+      if(style==='dueling'&&!p.includes('ranged')&&!p.includes('two-handed'))damageBonus+=2;
+      if(dealsDamage&&style==='thrown-weapon-fighting'&&p.includes('thrown')&&p.includes('ranged'))damageBonus+=2;
       const notes=[];
       if(style==='dueling'&&!p.includes('ranged')&&!p.includes('two-handed')) notes.push('Дуэлянт: +2 урона, когда в другой руке нет оружия (щит допустим).');
-      if(style==='great_weapon'&&(p.includes('two-handed')||p.includes('versatile'))) notes.push('При атаке двумя руками перебросьте 1 и 2 на костях урона.');
+      if(style==='great_weapon'&&!p.includes('ranged')&&(p.includes('two-handed')||p.includes('versatile'))) notes.push('При атаке рукопашным оружием двумя руками можно перебросить 1 и 2 на костях урона оружия; используйте новый результат.');
+      if(style==='thrown-weapon-fighting'&&p.includes('thrown')&&p.includes('ranged'))notes.push(dealsDamage?'Дальнобойная атака метательным оружием: +2 к урону; можно извлечь оружие частью атаки.':'Бой метательным оружием: можно извлечь оружие частью атаки; сеть не наносит урон.');
       if(result.shield&&p.includes('two-handed')) notes.push('Перед атакой необходимо снять щит.');
       if(!proficient) notes.push('Нет владения: бонус мастерства к атаке не добавлен.');
       if(p.includes('versatile')) notes.push(`Двумя руками: ${w.damage==='1d6'?'1d8':'1d10'}.`);
-      result.attacks.push({...w,ability,proficient,attackBonus:bonus,damageBonus,notes,damage:`${w.damage}${damageBonus>=0?'+':''}${damageBonus}`});
+      result.attacks.push({...w,ability,proficient,attackBonus:bonus,damageBonus,notes,damage:dealsDamage?`${w.damage}${damageBonus>=0?'+':''}${damageBonus}`:'0'});
+      if(style==='thrown-weapon-fighting'&&p.includes('thrown')&&!p.includes('ranged')) {
+        const thrownBonus=mod(a[ability])+2;
+        result.attacks.push({...w,id:`${w.id}-thrown`,label:`${w.label} (метание)`,thrownVariant:true,ability,proficient,attackBonus:mod(a[ability])+(proficient?2:0),damageBonus:thrownBonus,damage:`${w.damage}${thrownBonus>=0?'+':''}${thrownBonus}`,notes:['Бой метательным оружием: +2 к урону при метании; оружие можно извлечь частью атаки.',...(proficient?[]:['Нет владения: бонус мастерства к атаке не добавлен.'])]});
+      }
     }
     const martialArts=c.class==='monk'&&!result.armor&&!result.shield;
     const unarmedAbility=martialArts&&mod(a.dexterity)>mod(a.strength)?'dexterity':'strength';
-    const unarmedDie=martialArts||featId==='tavern-brawler'?'1d4':'1';
-    result.attacks.push({id:'unarmed',label:'Безоружный удар',type:'bludgeoning',group:'unarmed',properties:[],ability:unarmedAbility,proficient:true,attackBonus:2+mod(a[unarmedAbility]),damageBonus:mod(a[unarmedAbility]),damage:`${unarmedDie}${mod(a[unarmedAbility])>=0?'+':''}${mod(a[unarmedAbility])}`,notes:[]});
+    const unarmedDie=c.class==='fighter'&&c.creation_style==='unarmed-fighting'?'1d6':martialArts||featId==='tavern-brawler'?'1d4':'1';
+    result.attacks.push({id:'unarmed',label:'Безоружный удар',type:'bludgeoning',group:'unarmed',properties:[],ability:unarmedAbility,proficient:true,attackBonus:2+mod(a[unarmedAbility]),damageBonus:mod(a[unarmedAbility]),damage:`${unarmedDie}${mod(a[unarmedAbility])>=0?'+':''}${mod(a[unarmedAbility])}`,notes:c.class==='fighter'&&c.creation_style==='unarmed-fighting'?['Без оружия и щита в руках кость урона становится к8. В начале хода 1к4 дробящего урона одному захваченному существу.']:[]});
     const natural={aarakocra:['Когти','1d4','slashing'],tabaxi:['Когти','1d4','slashing'],tortle:['Когти','1d4','slashing'],leonin:['Когти','1d4','slashing'],lizardfolk:['Укус','1d6','piercing'],minotaur:['Рога','1d6','piercing'],centaur:['Копыта','1d4','bludgeoning'],satyr:['Таран','1d4','bludgeoning']};
     if(c.race==='shifter'&&c.race_sub==='longtooth-shifter') natural.shifter=['Укус (только во время смены облика)','1d6','piercing'];
     if(natural[c.race]) {
@@ -373,7 +385,7 @@
       const known=values(c.creation_known_spells).filter(id=>spellList(c.class,1,c).includes(id));
       const book=c.class==='wizard'?values(c.creation_spellbook).filter(id=>spellList('wizard',1).includes(id)):[];
       const prepared=values(c.creation_prepared).filter(id=>(mode==='book'?book:spellList(c.class,1,c)).includes(id));
-      const alwaysPrepared=domain?(DOMAINS[domain]?.spells||[]):[];
+      const alwaysPrepared=c.class==='cleric'&&domain?(levelup()?.automaticSpells(c).filter(id=>spellList(c.class,1,c).includes(id))||DOMAINS[domain]?.spells||[]):[];
       result.spellcasting={ability,attackBonus:2+mod(a[ability]),saveDC:10+mod(a[ability]),slots: c.class==='warlock'?1:2,slotLevel:1,slotRecovery:c.class==='warlock'?'short-rest':'long-rest',mode,cantrips:unique(cantrips),known:typeof mode==='number'?known:[],spellbook:book,prepared:['prepared','book'].includes(mode)?unique([...prepared,...alwaysPrepared]):[],alwaysPrepared,cantripCount:count,preparedCount:Math.min(c.class==='wizard'?6:Infinity,Math.max(1,mod(a[ability])+(c.class==='artificer'?0:1)))};
       const push=(ids,level,status)=>ids.forEach(id=>result.spells.push({id,label:SPELL_NAMES[id]||id,level,ability,source:CLASSES[c.class],status,limitExempt:alwaysPrepared.includes(id)||(domain==='light'&&id==='light')}));
       push(result.spellcasting.cantrips,0,'cantrip');
@@ -388,7 +400,19 @@
       if(featId!=='spell-sniper') values(c.creation_feat_spells).filter(id=>spellList(c.creation_feat_class,1).includes(id)&&(featId!=='ritual-caster'||RITUALS.includes(id))).forEach(id=>result.spells.push({id,label:SPELL_NAMES[id],level:1,ability,source:feat.label,status:featId==='ritual-caster'?'ritual':'feat',usage:featId==='ritual-caster'?'Только ритуал':'1 раз / долгий отдых'}));
     }
     result.notes.push(...result.features.map(f=>`${f.name}: ${f.description}`));
+    return levelup()?.creationExtras(c, context, result) || result;
+  }
+  // A secondary class receives its features and casting choices, never a second
+  // race, background, starting kit, saving throws or full set of class skills.
+  function classChoices(c,context={}) {
+    const projected={...c,race:undefined,background:undefined,human_feature:undefined};
+    return getChoices(projected,context).filter(g=>['class','spells','proficiencies'].includes(g.section)&&!['creation_racial_spell_ability'].includes(g.id));
+  }
+  function classExtras(c,context={}) {
+    const result=derive({...c,race:undefined,background:undefined,human_feature:undefined},context);
+    result.equipment=[];result.money={};result.attacks=[];result.armor=null;result.shield=false;
+    result.savingThrowProficiencies=[];result.abilityBonuses={};result.raceSpells=[];
     return result;
   }
-  return {getChoices,validate,derive,getEquipment,raceSpells,spellList,FEATS,DOMAINS,PATRONS,SPELL_NAMES,LISTS,WEAPONS,ARMOR,CASTING};
+  return {getChoices,validate,derive,classChoices,classExtras,getEquipment,raceSpells,spellList,FEATS,DOMAINS,PATRONS,SPELL_NAMES,LISTS,WEAPONS,ARMOR,CASTING};
 });
