@@ -1136,3 +1136,29 @@ test('PR26 round twenty-five: Sweeping keeps legacy feat and style ownership and
  assert.deepEqual(extras(combined).resources.filter(r=>['martial-adept','superior-technique','superiority-dice'].includes(r.id)).map(r=>[r.id,r.max,r.rest]),[['martial-adept',1,'short-rest'],['superior-technique',1,'short-rest'],['superiority-dice',4,'short-rest']]);
  const inactive=create('fighter',null,{abilityMethod:'manual',creation_maneuvers:['sweeping','rally'],creation_superior_maneuver:'sweeping-attack'});assert.ok(!JSON.stringify(extras(inactive).features).includes('исходный бросок атаки'));
 });
+
+const round26Cases=[
+ ['cleric','nature','Божественный канал: Очарование животных и растений',[/Действием.*священный символ.*имя божества/,/все звери и растения.*30 футах.*видят вас/,/Мудрости против Сл заклинаний жреца/,/очарованы вами на 1 минуту.*любого полученного урона/,/дружелюбны.*указанным.*существам/]],
+ ['cleric','twilight','Божественный канал: Сумеречное святилище',[/священный символ/,/радиусом 30 футов с центром на вас.*перемещается вместе с вами/,/1 минуту.*недееспособности или смерти/,/включая вас.*заканчивает свой ход внутри сферы/,/1к6 \+ уровень жреца временных хитов.*один эффект/]],
+ ['druid','stars','Звёздный облик',[/Сохраняете свои игровые характеристики/,/яркий свет в 10 футах.*тусклый ещё на 10 футов/,/добровольном прекращении \(без действия\).*недееспособности, смерти или повторном применении/,/Лучник:.*60 футов.*Чаша:.*Дракон:/]],
+ ['warlock','genie','Уединение в сосуде',[/Действием, касаясь сосуда/,/удвоенного бонуса мастерства часов/,/сосуд остаётся на месте/,/бонусным действием.*смерти или уничтожении сосуда/,/ближайшем свободном пространстве/,/повторно.*после долгого отдыха/]],
+ ['rogue','inquisitive','Проницательный бой',[/Бонусным действием.*видимое.*не недееспособно/,/Мудрости \(Проницательность\).*Харизмы \(Обман\)/,/Скрытую атаку.*без преимущества.*нет помехи/,/1 минуту.*успешного применения.*другой цели/]],
+ ['ranger',null,'Избранный противник',[/броском атаки/,/концентрация до 1 минуты, как на заклинании/,/первом попадании.*с нанесением урона в каждый ваш ход/,/включая помечающее попадание/,/увеличить урон на 1к4/,/урон без попадания не подходит/]],
+ ['wizard','abjuration','Магическая защита',[/до конца долгого отдыха/,/2 × уровень волшебника \+ модификатор Интеллекта/,/отдельные хиты защиты, не временные хиты/,/защита принимает его первой.*избыток получает персонаж/,/При 0 хитов защита остаётся, но не поглощает/,/от 1-го круга.*2 × круг.*не выше максимума/]],
+];
+for(const [cls,branch,name,patterns] of round26Cases)test('PR26 round twenty-six: '+name+' has source-verified conditions across legal levels and multiclass orders',()=>{
+ const atCreation=['cleric','warlock'].includes(cls),optional=cls==='ranger'?{creation_favored_feature:'favored-foe'}:{},first=create(cls,atCreation?branch:null,optional),second=advance(first,['druid','wizard'].includes(cls)?branch:null),third=advance(second,cls==='rogue'?branch:null),heroes=[third];
+ if(cls!=='rogue')heroes.push(second,enter(second,'fighter'));
+ if(cls==='warlock'||cls==='ranger')heroes.push(first,enter(first,'fighter'));
+ if(cls!=='rogue'){const pinned=cls==='cleric'?{'cleric:creation_domain':branch}:cls==='warlock'?{'warlock:creation_patron':branch}:cls==='ranger'?{'ranger:creation_favored_feature':'favored-foe'}:{};const entry=enter(create('fighter',null,{background:'soldier'}),cls,pinned);heroes.push(enter(entry,cls,['druid','wizard'].includes(cls)?{subclass:branch}:{}));}
+ for(const c of heroes){const before=copy(c),e=extras(c),fs=e.features.filter(f=>f.name===name);assert.equal(fs.length,1);for(const pattern of patterns)assert.match(fs[0].description,pattern);const text=fs[0].description;assert.equal(JSON.stringify(exported(c).text.traits).split(text).length-1,1);assert.deepEqual(L.inspect(c,context(c)).errors,[]);assert.deepEqual(c,before);assert.deepEqual(R.derivedStats(c,e),R.derivedStats(c,{...e,features:[],resources:[]}));
+  if(cls==='cleric'){const pools=e.resources.filter(r=>r.id.endsWith('channel-divinity'));assert.equal(pools.length,1);assert.equal(pools[0].max,1);assert.equal(pools[0].rest,'short-rest');}
+  if(cls==='druid'){const pools=e.resources.filter(r=>r.id.endsWith('wild-shape'));assert.equal(pools.length,1);assert.equal(pools[0].max,2);assert.ok(!e.resources.some(r=>/starry/.test(r.id)));}
+  if(cls==='warlock'){assert.doesNotMatch(text,/ничком|сбит.*ног|prone/);const pool=e.resources.find(r=>r.id.endsWith('bottled-respite'));assert.equal(pool.max,1);assert.equal(pool.rest,'long-rest');}
+  if(cls==='rogue')assert.doesNotMatch(text,/30 футов/);
+  if(cls==='ranger'){const pool=e.resources.find(r=>r.id.endsWith('favored-foe'));assert.equal(pool.max,2);assert.equal(pool.rest,'long-rest');assert.ok(!e.features.some(f=>f.name==='Избранный враг'));}
+  if(cls==='wizard'){const pool=e.resources.find(r=>r.id.endsWith('arcane-ward')),level=L.inspect(c,context(c)).state.classStates.wizard.state.level;assert.equal(pool.max,2*level+stats(c).modifiers.intelligence);}
+ }
+ if(!['warlock','ranger'].includes(cls))assert.ok(!extras(first).features.some(f=>f.name===name));
+ const other=cls==='ranger'?create(cls):create(cls,cls==='cleric'?'life':cls==='warlock'?'fiend':null),other2=advance(other,cls==='druid'?'land':cls==='wizard'?'evocation':null),other3=advance(other2,cls==='rogue'?'thief':null);assert.ok(!extras(other3).features.some(f=>f.name===name));
+});

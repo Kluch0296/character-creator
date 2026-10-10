@@ -1212,3 +1212,11 @@ test('PR26 round twenty-five: saved bard and multiclass native skill totals agre
   assert.equal(data.vitality.initiative?.value??stats.modifiers.dexterity,stats.initiative);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
  }
 });
+
+test('PR26 round twenty-six: source-verified aura, form and target descriptions render/export once without changing saved heroes',async()=>{
+ const H=require('./fixtures/characters');
+ for(const [cls,branch,name] of [['cleric','nature','Божественный канал: Очарование животных и растений'],['cleric','twilight','Божественный канал: Сумеречное святилище'],['druid','stars','Звёздный облик'],['warlock','genie','Уединение в сосуде'],['rogue','inquisitive','Проницательный бой'],['ranger',null,'Избранный противник'],['wizard','abjuration','Магическая защита']]){
+  const first=H.create(cls,['cleric','warlock'].includes(cls)?branch:null,{abilityMethod:'manual',...(cls==='ranger'?{creation_favored_feature:'favored-foe'}:{})}),second=H.advance(first,['druid','wizard'].includes(cls)?branch:null),third=H.advance(second,cls==='rogue'?branch:null),heroes=[third];if(cls!=='rogue')heroes.push(second,H.enter(second,'fighter'));
+  for(const c of heroes){const before=JSON.stringify(c),dom=createDOM();storeRoundSixteen(dom,c);const ctx=loadScript(dom,readConfig());await flush();assert.equal(vm.runInContext('findFirstInvalidPage()',ctx),null);const f=H.extras(c).features.find(f=>f.name===name),section=dom.root.querySelectorAll('.result-section').find(node=>node.children[0]?.textContent==='Особенности и примечания');assert.ok(f);assert.equal(section.querySelectorAll('li').filter(node=>node.textContent===name+': '+f.description).length,1);assert.equal(JSON.stringify(JSON.parse(ctx.getExportData()[0].data).text.traits).split(f.description).length-1,1);assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);}
+ }
+});
