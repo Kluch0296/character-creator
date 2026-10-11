@@ -1224,3 +1224,14 @@ test('PR26 round twenty-nine: serializer composes Fey and Jack bonuses without c
  const c=advance(advance(create('ranger')),'fey-wanderer'),e=extras(c),d=stats(c),plain=exported(c),both=JSON.parse(E.buildLssExport(c,{},d,{...e,jackOfAllTrades:true})[0].data);assert.deepEqual(both.skills,plain.skills);assert.deepEqual(both.bonuses.filter(b=>!b.target.startsWith('skill.')),plain.bonuses.filter(b=>!b.target.startsWith('skill.')));
  for(const [name,skill] of Object.entries(both.skills)){const bonuses=both.bonuses.filter(b=>b.target==='skill.'+name);assert.equal(bonuses.filter(b=>b.id.startsWith('bonus-creator-fey-')).length,skill.baseStat==='cha'?1:0);assert.equal(bonuses.filter(b=>b.id.startsWith('bonus-creator-jack-')).length,skill.isProf===0?1:0);assert.equal(bonuses.reduce((sum,b)=>sum+Number(b.expr),0),(skill.baseStat==='cha'?e.charismaCheckBonus:0)+(skill.isProf===0?Math.floor(d.proficiencyBonus/2):0));}
 });
+test('PR26 round thirty: seven Codex text gaps on sheet match TCE/RAW wording',()=>{
+ const desc=(c,name)=>extras(c).features.find(f=>f.name===name)?.description||'';
+ const style=create('fighter',null,{creation_style:'interception'}),styleText=extras(style).features.find(f=>f.name==='Боевой стиль')?.description||'';
+ assert.match(styleText,/видимое вам существо попадает по цели, кроме вас, в 5 футах.*атакой/i);assert.match(styleText,/1к10 \+ мастерство \(минимум 0\)/);
+ const balm=advance(create('cleric','peace'));assert.match(desc(balm,'Божественный канал: Бальзам мира'),/без расхода обычного перемещения/);assert.match(desc(balm,'Божественный канал: Бальзам мира'),/не более одного раза за применение/);
+ const bond=advance(advance(create('cleric','peace')));assert.match(desc(bond,'Укрепляющая связь'),/согласных видимых/);assert.match(desc(bond,'Укрепляющая связь'),/предыдущая связь заканчивается/);assert.match(desc(bond,'Укрепляющая связь'),/в 30 футах друг от друга/);
+ const grave=advance(create('cleric','grave'));assert.match(desc(grave,'Божественный канал: Путь к могиле'),/видимое вам существо в 30 футах/);
+ const mercy=advance(advance(create('monk')),'mercy');assert.match(desc(mercy,'Рука исцеления'),/коснитесь существа.*1 ци/i);
+ const phantom=advance(advance(create('rogue')),'phantom');assert.match(desc(phantom,'Стенания из могилы'),/другую видимую вам цель в 30 футах от первой/i);assert.match(desc(phantom,'Стенания из могилы'),/округлением вверх/);
+ const inquisitive=advance(advance(create('rogue')),'inquisitive');assert.match(desc(inquisitive,'Внимание к деталям'),/существо или спрятанный объект/);assert.match(desc(inquisitive,'Внимание к деталям'),/подсказки на предметах/);
+});
