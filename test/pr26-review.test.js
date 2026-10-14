@@ -1235,3 +1235,11 @@ test('PR26 round thirty: seven Codex text gaps on sheet match TCE/RAW wording',(
  const phantom=advance(advance(create('rogue')),'phantom');assert.match(desc(phantom,'Стенания из могилы'),/другую видимую вам цель в 30 футах от первой/i);assert.match(desc(phantom,'Стенания из могилы'),/округлением вверх/);
  const inquisitive=advance(advance(create('rogue')),'inquisitive');assert.match(desc(inquisitive,'Внимание к деталям'),/существо или спрятанный объект/);assert.match(desc(inquisitive,'Внимание к деталям'),/подсказки на предметах/);
 });
+test('PR26 round thirty-one: five Codex rule gaps (dnd.su) are reflected in the sheet',()=>{
+ const desc=(c,name)=>extras(c).features.find(f=>f.name===name)?.description||'';
+ const psi=advance(advance(create('fighter')),'psi-warrior');assert.match(desc(psi,'Телекинетическое перемещение'),/согласное существо, отличное от вас/);
+ const cavalier=advance(advance(create('fighter')),'cavalier');assert.match(desc(cavalier,'Рождённый в седле'),/приземляетесь в пределах 10 футов, вы приземляетесь на ноги, если не недееспособны/);
+ const evocation=advance(create('wizard'),'evocation');assert.match(desc(evocation,'Формирование заклинаний'),/других существ, которых вы видите/);
+ const clockwork=advance(create('sorcerer','clockwork-soul'));assert.match(desc(clockwork,'Восстановление баланса'),/к20 существа, которое вы видите, в 60 футах/);
+ const mastermind=advance(advance(create('rogue')),'mastermind');assert.match(desc(mastermind,'Мастер интриг'),/не менее минуты.*подражать.*манере и акценту/);assert.doesNotMatch(desc(mastermind,'Мастер интриг'),/услышанного гуманоида/);
+});
