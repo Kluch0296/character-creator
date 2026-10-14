@@ -148,7 +148,18 @@
 'armor-model':['Модель доспеха','После короткого/долгого отдыха с инструментами кузнеца выберите Стража или Лазутчика. Оружие обеих моделей может использовать Интеллект для атаки и урона вместо Силы/Ловкости. Страж: свободные громовые рукавицы — простое рукопашное оружие, 1к8 урона звуком; после попадания цель атакует других с помехой до начала вашего следующего хода. Защитное поле бонусным действием заменяет текущие временные хиты на временные хиты, равные уровню изобретателя; они исчезают при снятии брони, использований — бонус мастерства за долгий отдых. Лазутчик: метатель молний — простое дальнобойное оружие, 90/300 футов, 1к6 урона молнией; при попадании можно нанести дополнительно 1к6 раз в свой ход. Усиленные шаги: +5 футов скорости ходьбы. Подавляющее поле: преимущество на Скрытность, которое отменяет помеху от доспеха.'],
  'eldritch-cannon':['Мистическая пушка','Действием создайте Маленькую/Крошечную пушку: огнемёт, силовую баллисту или защитника; 1 час. Бесплатно 1 / долгий отдых, далее за ячейку.'],
  'battle-ready':['Готовность к бою','Владение воинским оружием. Для атак и урона магическим оружием можно использовать Интеллект вместо Силы/Ловкости.'],
- 'steel-defender':['Стальной защитник','Ходит сразу после вас с вашей инициативой. Самостоятельно двигается и использует реакцию; действие по умолчанию — Уклонение. Прикажите другое действие бонусным действием; если вы недееспособны, действует свободно. Заговор «Починка» (отдельно от действия «Ремонт») восстанавливает 2к6 хитов. В течение часа после смерти: действием с инструментами кузнеца в 5 футах потратьте ячейку 1-го круга или выше; через 1 минуту оживает с полными хитами. После долгого отдыха с инструментами кузнеца можно создать нового; прежний погибает. Погибает также при вашей смерти. Внешность и число ног не меняют характеристики.']
+ 'steel-defender':['Стальной защитник','Ходит сразу после вас с вашей инициативой. Самостоятельно двигается и использует реакцию; действие по умолчанию — Уклонение. Прикажите другое действие бонусным действием; если вы недееспособны, действует свободно. Заговор «Починка» (отдельно от действия «Ремонт») восстанавливает 2к6 хитов. В течение часа после смерти: действием с инструментами кузнеца в 5 футах потратьте ячейку 1-го круга или выше; через 1 минуту оживает с полными хитами. После долгого отдыха с инструментами кузнеца можно создать нового; прежний погибает. Погибает также при вашей смерти. Внешность и число ног не меняют характеристики.'],
+ 'abjuration-savant':['Ограждение: знаток','Переписывайте заклинания ограждения в книгу вдвое быстрее и дешевле.'],
+ 'conjuration-savant':['Вызов: знаток','Переписывайте заклинания вызова в книгу вдвое быстрее и дешевле.'],
+ 'divination-savant':['Прорицание: знаток','Переписывайте заклинания прорицания в книгу вдвое быстрее и дешевле.'],
+ 'enchantment-savant':['Очарование: знаток','Переписывайте заклинания очарования в книгу вдвое быстрее и дешевле.'],
+ 'evocation-savant':['Воплощение: знаток','Переписывайте заклинания воплощения в книгу вдвое быстрее и дешевле.'],
+ 'improved-minor-illusion':['Улучшенная малая иллюзия','Малая иллюзия может создавать звук и изображение вместе за одно накладывание. Изучаете Малую иллюзию, а если она уже известна — другой заговор волшебника на выбор; этот дополнительный заговор не учитывается в лимите известных.'],
+ 'illusion-savant':['Иллюзия: знаток','Переписывайте заклинания иллюзий в книгу вдвое быстрее и дешевле.'],
+ 'necromancy-savant':['Некромантия: знаток','Переписывайте заклинания некромантии в книгу вдвое быстрее и дешевле.'],
+ 'transmutation-savant':['Преобразование: знаток','Переписывайте заклинания преобразования в книгу вдвое быстрее и дешевле.'],
+ 'portent':['Предзнаменование','После долгого отдыха бросьте и запишите два к20. Когда вы или существо в пределах видимости совершает атаку, проверку или спасбросок, можно заменить результат одной неиспользованной костью. Выбирайте замену до броска, не больше одного раза за ход. Кость нельзя перебросить; неиспользованные кости исчезают после следующего долгого отдыха.'],
+ 'bladesong':['Песнь клинка','Бонусным действием активируется на 1 минуту: без доспеха или в лёгком доспехе, требуется отсутствие щита. Даёт +Интеллект к КД и к спасброскам Телосложения для поддержания концентрации (оба бонуса минимум +1), +10 футов скорости ходьбы и преимущество на Акробатику. Прекращается при недееспособности, нарушении условий доспеха/щита или после атаки оружием двумя руками; можно прекратить добровольно без действия.']
  };
  Object.assign(FEATURE_RULES,{
  'reaper':['Жнец','Один заговор некромантии любого класса; заговоры некромантии с одной целью могут поражать двух существ в 5 футах друг от друга.'],
@@ -269,12 +280,16 @@
   'unbroken-air':'Действие, 2 ци, 30 футов: СИЛ, 3к10 дробящего (половина при успехе); провал — отталкивание 20 футов и падение ничком. Дополнительная ци: +1к10.',
   'water-whip':'Действие, 2 ци, 30 футов: ЛОВ, 3к10 дробящего (половина при успехе); провал — падение ничком или притягивание до 25 футов. Дополнительная ци: +1к10.'
  });
+ // Items the Replicate Magic Item infusion can copy (fallback list when the catalogue omits it).
+ const REPLICAS=D.replicaItems||['alchemy-jug','bag-of-holding','cap-of-water-breathing','goggles-of-night','rope-of-climbing','sending-stones','wand-of-magic-detection','wand-of-secrets'];
  const label=id=>OPTION_NAMES[id]||SUBNAMES[id]||FEATURE_RULES[id]?.[0]||D.labels?.[id]||D.spells[id]?.label||D.spells[id]?.name||R.LABELS[id]||D.options.find(o=>o.id===id)?.name||String(id).replaceAll('-',' ');
  const url=cls=>'https://5e14.dnd.su/class/'+D.references[cls]+'/';
  function subclasses(cls){return D.subclasses.filter(s=>s.class===cls).map(s=>({...s,label:cls==='wizard'&&s.id==='war'?'Военная магия':cls==='sorcerer'&&s.id==='shadow'?'Теневая магия':SUBNAMES[s.id]||s.name}));}
  function subclass(c,state={}){return subclasses(c.class).find(s=>s.id===(FIELD[c.class]?c[FIELD[c.class]]:state.subclass));}
  // Include creation ability/proficiency decisions in the fingerprint, but allow narrative edits.
- function foundationValues(c,expanded=false){const keys=Object.keys(c).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature',...(expanded?['abilityBonusPlan','high_elf_cantrip','astral_elf_astral_fire']:[])].includes(k)||k.startsWith('creation_')||k.startsWith('race_'));return JSON.stringify(Object.fromEntries(keys.sort().map(k=>[k,c[k]])));}
+ // A DM-permission tick is not a mechanical decision: it must never invalidate saved advancement.
+ const PERMISSION_FIELD='creation_campaign_permission';
+ function foundationValues(c,expanded=false){const keys=Object.keys(c).filter(k=>['class','race','race_sub','background','abilities','abilityBonusChoices','proficiencyChoices','human_feature',...(expanded?['abilityBonusPlan','high_elf_cantrip','astral_elf_astral_fire']:[])].includes(k)||(k.startsWith('creation_')&&k!==PERMISSION_FIELD)||k.startsWith('race_'));return JSON.stringify(Object.fromEntries(keys.sort().map(k=>[k,c[k]])));}
  function foundation(c){return 'foundation:v2:'+foundationValues(c,true);}
  // Only the local-save ingress may bind fields omitted by historical fingerprints.
  // All entries must still match their exact saved creation values; inspectors never migrate.
@@ -423,6 +438,8 @@
  function createChoices(c,context={}){
   const result=[],sc=subclass(c),add=(id,name,ids,count=1,section='class',source=sc?.source)=>result.push(group('creation_'+id,name,ids,count,section,source));
   if(FIELD[c.class])result.push(group(FIELD[c.class],'Подкласс · официальные книги 5e 2014',subclasses(c.class).map(s=>({...option(s.id,s.label,s.source),description:s.restrictions,url:s.url})),1));
+  // Level-1 subclasses (cleric, sorcerer, warlock) are chosen at creation, so their DM-permission question lives here.
+  if(sc?.restrictions){add('campaign_permission','Ограничение источника согласовано с Мастером',[option('yes','Да, согласовано',sc.source)]);result[result.length-1].description=sc.restrictions;}
   if(magic(c,firstState(c),context.abilities||c.abilities)){add('expanded_spells','Дополнительный список заклинаний TCE (с разрешения Мастера)',['no','yes']);result[result.length-1].optional=true;}
   if(c.class==='sorcerer'&&sc?.id==='divine-soul')add('affinity','Божественное родство',['good','evil','law','chaos','neutrality']);
   if(c.class==='warlock'&&sc?.id==='genie')add('genie','Вид гения',['dao','djinni','efreeti','marid']);
@@ -450,13 +467,15 @@
   const tiers=c.class==='warlock'?{}:third?{1:2}:['paladin','ranger','artificer'].includes(c.class)?{1:s.level>=3?3:2}:s.level>=3?{1:4,2:2}:{1:s.level===2?3:2};
   return {ability,knownQuota:third?3:knownQuota,prepareCount,max,tiers,pact:c.class==='warlock'?{level:max,count:s.level===1?1:2}:null,third};
  }
+ // The state a level-up draft is evaluated against: the replayed state at the new level with the draft's own answers applied.
+ function pendingState(old,p){const s={...clone(old),level:p.to,choices:{...old.choices,...p.choices},subclass:p.choices?.subclass||old.subclass};s.cantrips=uniq([...s.cantrips,...arr(p.choices.tome_cantrips)]);return s;}
  function getChoicesSingle(c,p,context={},previous){
-  const old=previous||inspectSingle(c,context).state, s={...clone(old),level:p.to,choices:{...old.choices,...p.choices},subclass:p.choices?.subclass||old.subclass};
-  s.cantrips=uniq([...s.cantrips,...arr(p.choices.tome_cantrips)]);
+  const old=previous||inspectSingle(c,context).state, s=pendingState(old,p);
   const sc=subclass(c,s),result=[],a=context.abilities||R.finalAbilities(c);
   const add=(id,name,ids,count=1,section='class',source=sc?.source||'PHB',optional=false)=>result.push(group(id,name,ids,count,section,source,optional));
   if(subclasses(c.class)[0]?.level===p.to)add('subclass','Выберите подкласс',subclasses(c.class).map(x=>({...option(x.id,x.label,x.source),description:x.restrictions,url:x.url})));
-  if(sc?.restrictions)add('campaign_permission','Ограничение источника согласовано с Мастером',[option('yes','Да, согласовано',sc.source)]);
+  // The DM-permission question is asked once, in the same step that selects a restricted subclass.
+  if(sc?.restrictions&&subclasses(c.class)[0]?.level===p.to){add('campaign_permission','Ограничение источника согласовано с Мастером',[option('yes','Да, согласовано',sc.source)]);result[result.length-1].description=sc.restrictions;}
   if(p.to===2&&['paladin','ranger'].includes(c.class))add('style','Боевой стиль',optionList(c.class==='paladin'?'FS:P':'FS:R',c,s));
   if(p.to===2&&s.choices.style==='blessed-warrior')add('style_cantrips','Заговоры Благословенного воина',spellList('cleric',0,c,s,true),2,'spells','TCE');
   if(p.to===2&&s.choices.style==='druidic-warrior')add('style_cantrips','Заговоры Воина-друида',spellList('druid',0,c,s,true),2,'spells','TCE');
@@ -485,8 +504,7 @@
    add('cantrip_remove','Заменить один заговор класса',[option('none','Оставить прежние'),...old.cantrips.map(id=>option(id))],1,'spells','TCE');
    if(p.choices.cantrip_remove&&p.choices.cantrip_remove!=='none')add('cantrip_add','Новый заговор изобретателя',spellList('artificer',0,c,s,true).filter(id=>!old.cantrips.includes(id)),1,'spells','TCE');
    const inf=optionList('AI',c,s).filter(o=>o.value!=='replicate-magic-item');
-   const replicas=D.replicaItems||['alchemy-jug','bag-of-holding','cap-of-water-breathing','goggles-of-night','rope-of-climbing','sending-stones','wand-of-magic-detection','wand-of-secrets'];
-   inf.push(...replicas.map(id=>option('replicate:'+id,'Копия магического предмета: '+label(id),'TCE')));
+   inf.push(...REPLICAS.map(id=>option('replicate:'+id,'Копия магического предмета: '+label(id),'TCE')));
    if(p.to===2)add('infusions','Четыре изученные инфузии (активны до двух предметов)',inf,4);
    else {add('infusion_remove','Заменить одну инфузию',[option('none','Оставить прежние'),...old.infusions.map(id=>option(id))]);if(p.choices.infusion_remove&&p.choices.infusion_remove!=='none')add('infusion_add','Новая инфузия',inf.filter(o=>!old.infusions.includes(o.value)));}
   }
@@ -540,7 +558,7 @@
     if(original)spellState.bonusReplacements[original]=replace;
    }
    const automatic=automaticSpells(c,spellState),allowed=spellList(cls,m.max,c,s).filter(id=>!automatic.includes(id));
-   if(m.third&&p.to===3){add('third_cantrips','Заговоры подкласса',spellList('wizard',0,c,s,true).filter(id=>sc.id!=='arcane-trickster'||id!=='mage-hand'),2,'spells');add('third_restricted','Два заклинания ограниченных школ',allowed.filter(id=>(sc.id==='eldritch-knight'?['A','V']:['E','I']).includes(D.spells[id].school)),2,'spells');add('third_free','Одно заклинание любой школы',allowed.filter(id=>!arr(p.choices.third_restricted).includes(id)),1,'spells');}
+   if(m.third&&p.to===3){const known=new Set([...old.cantrips,...knownElsewhere(context)]);add('third_cantrips','Заговоры подкласса',spellList('wizard',0,c,s,true).filter(id=>!known.has(id)&&(sc.id!=='arcane-trickster'||id!=='mage-hand')),2,'spells');add('third_restricted','Два заклинания ограниченных школ',allowed.filter(id=>(sc.id==='eldritch-knight'?['A','V']:['E','I']).includes(D.spells[id].school)),2,'spells');add('third_free','Одно заклинание любой школы',allowed.filter(id=>!arr(p.choices.third_restricted).includes(id)),1,'spells');}
    else if(c.class==='wizard'){add('book_add','Два новых заклинания в книгу',allowed.filter(id=>!old.book.includes(id)),2,'spells');const book=uniq([...old.book,...arr(p.choices.book_add)]);add('prepared','Подготовка из книги',book,Math.min(book.length,m.prepareCount),'spells');}
    else if(m.prepareCount){add('prepared','Подготовленные заклинания (бонусные отдельно)',allowed.filter(id=>!additional(c,s,'prepared').includes(id)),m.prepareCount,'spells');}
    else if(m.knownQuota){
@@ -571,46 +589,263 @@
    const type=slot.type;
    const taken=type==='skill'?profs.skills:type==='tool'?profs.tools:type==='language'?profs.languages:[];
    add('proficiency:'+slot.id,slot.label,slot.options.filter(id=>slot.expertise||!taken.includes(id)),1,'proficiencies');
+   if(slot.expertise)EXPERTISE_GROUPS.add(result[result.length-1]);
   }
   return result;
  }
- function transitionSingle(c,p,context={},previous){
+ // Replay tolerance. A saved ledger was valid under the rules of its day; later catalogue fixes may narrow an option list
+ // (or add/rename groups) and must not corrupt such a hero. While replaying (inspect) a historical selection that is no longer
+ // offered is kept only when it is a plausible old answer to the same question: every id must be unique, non-empty, of a catalogue
+ // kind the group still offers (see idKind), the count may only be LOWER than today's requirement (a smaller pick is a disadvantage,
+ // a larger one a benefit), and the kind-specific rules below hold (class spell list, option prerequisites, "already known"
+ // proficiencies). Unrecognised ids, empty answers, entry
+ // structure, level sequence, hit points and foundation stay errors, as do the state-bearing groups listed in strictGroup.
+ // New and pending entries (replay=false) are always validated strictly.
+ //
+ // Groups that exist in today's rules but were not asked when earlier ledgers were saved. A missing answer to one of these is
+ // treated as "not chosen" in replay; any OTHER missing group is an error (a deleted answer is indistinguishable from a forgery):
+ //  - variant_primal-knowledge / variant_steady-aim: TCE opt-ins added for barbarian and rogue level 3; absent means declined;
+ //  - expanded_spells: TCE list question now asked when a delayed caster (ranger, paladin, artificer) starts spellcasting;
+ //  - rune_knight_language: replacement language once Giant is already known;
+ //  - <class>:creation_campaign_permission: creation-time permission question of a multiclass entry (see prefixPermission).
+ // (campaign_permission itself needs no entry: it is asked in the same step as the restricted subclass and has been since the start.)
+ const DECLINED_WHEN_ABSENT=['variant_primal-knowledge','variant_steady-aim'];
+ const LATE_GROUPS=new Set([...DECLINED_WHEN_ABSENT,'expanded_spells','rune_knight_language']);
+ const lateGroup=(id,cls)=>LATE_GROUPS.has(id)||(cls!==undefined&&id===prefixPermission(cls));
+ // Narrowing that replay may meet, and the rule for each answer kind (everything else about a stray answer is an error):
+ //  - spells: besides sharing a class list with the offered spells (the shared list, else the union), the spell must be on the class
+ //    spell list of the group's casting class for that level (spellRule), so a forged ledger cannot learn another class's spells;
+ //  - invocations, infusions, maneuvers, metamagic, ...: the option must be of the group's option type and satisfy its own
+ //    prerequisites (level, pact, spells) at this level (eligible), so a later-level option can never be taken early;
+ //  - skills, tools and languages: the only narrowing of such a list is "already known, offer another", so a stray is kept only
+ //    when the hero already has it and the group does not offer known ids (expertise slots are never narrowed that way);
+ //  - weapons that grant a proficiency (kensei_melee, kensei_ranged, bladesinger_weapon): only the extras an earlier version of
+ //    that very group really offered (LEGACY_WEAPONS); any other weapon would be a free proficiency, so it is an error. Every other
+ //    weapon group (equipment choices): any real weapon, never the generic simple/martial/firearms/improvised groups;
+ //  - strays that the current rules would have excluded because the hero already has them (*_add, learn, third_free, ...) are
+ //    errors: tolerating them would duplicate an invocation, infusion, spell or cantrip (see heldIds);
+//  - fighting styles: a style another class already holds is never tolerated (see heldStyles), whatever the offered list was;
+ //  - catalogue ids that carry no kind (totem, land, hunter prey, ...) and the groups in FIXED_GROUPS are fixed lists: strict.
+ const GROUP_WEAPONS=['simple','martial','firearms','improvised'];
+ // Weapons that an EARLIER version of a proficiency-granting group offered and today's rules no longer do. Taken from the 17
+ // historical checkouts (git history of this branch); a pick listed here is kept with a warning, every other weapon is refused.
+ //  - bladesinger_weapon: greatclub (two-handed, so not "one type of one-handed melee weapon") was offered until 4793928;
+ //  - kensei_melee: lance (special property; Kensei weapons may not be heavy or special) was offered by the three earliest
+ //    checkouts (fb2fa5d, c713f2a, 7584c8d);
+ //  - kensei_ranged: never offered anything beyond today's list.
+ // The greatclub and the lance are rules-illegal picks that earlier builds of this branch offered; they are kept only for replay
+ // of saved ledgers (a new entry can't pick them).
+ const LEGACY_WEAPONS={bladesinger_weapon:['greatclub'],kensei_melee:['lance'],kensei_ranged:[]};
+ // Fixed published lists that were never narrowed, plus groups whose options are the replayed state itself (bard expertise,
+ // rogue entry expertise, ranger canny skill), so a stray there can only be a forgery.
+ const FIXED_GROUPS=new Set(['giant_cantrip','archer_cantrip','guidance_bonus','expertise','entry_expertise','creation_canny_skill']);
+ const FULL_LISTS={swords_style:['dueling','two-weapon-fighting']};
+ const localId=(id,prefix)=>prefix!==undefined&&id.startsWith(prefix+':')?id.slice(prefix.length+1):id;
+ // Groups whose answer decides the subclass (single class: the choice at the subclass level; multiclass entry: cleric domain,
+ // sorcerer origin, warlock patron) or whose options come from the replayed state (*_remove, FIXED_GROUPS, the wizard's prepared list,
+ // which is a subset of the replayed spellbook) can never be a narrowed list.
+ function strictGroup(id,ctx){
+  const l=localId(id,ctx.prefix);
+  return l==='subclass'||l.endsWith('_remove')||FIXED_GROUPS.has(l)||(ctx.prefix!==undefined&&FIELD[ctx.prefix]===l)||(ctx.cls==='wizard'&&(l==='prepared'||l==='creation_prepared'));
+ }
+ // Expertise slots (proficiency:<slot>) list proficiencies the hero already has, so "already known" never narrows them.
+ const EXPERTISE_GROUPS=new WeakSet();
+ // Catalogue kind(s) of an id: 'spell:<level>', 'skill', 'tool', 'language', 'weapon', 'armor', 'option:<type>' (maneuver MV:B, invocation EI,
+ // infusion AI, metamagic MM, arcane shot AS, rune RN, discipline ED, fighting style FS:*, pact PB), 'subclass', 'companion', 'replicate',
+ // 'sentinel' (yes/no/none) and, for remaining named ids, 'misc'. An empty set means the id is unknown to every catalogue.
+ let kindIndexCache;
+ // Built on first use and shared by idKind and optionLegacy, so no caller depends on idKind having run first.
+ function kindIndex(){
+  if(kindIndexCache)return kindIndexCache;
+  const names=(...lists)=>new Set(lists.flatMap(l=>Array.isArray(l)?l:Object.keys(l||{}))),types=new Map();
+  for(const o of D.options)if(o&&o.id){if(!types.has(o.id))types.set(o.id,new Set());for(const t of o.types||[])types.get(o.id).add(t);}
+  kindIndexCache={types,skill:names(R.SKILLS),tool:names(R.TOOLS,R.ARTISAN_TOOLS,R.INSTRUMENTS,R.GAMING_SETS),language:names(R.LANGUAGES,R.CHOICE_LANGUAGES),weapon:names(R.WEAPONS,R.SIMPLE_WEAPONS,R.MARTIAL_WEAPONS),armor:names(R.ARMOR),
+   subclass:names((D.subclasses||[]).map(x=>x.id)),companion:names((D.companions||[]).map(x=>x.id)),replicate:names(REPLICAS.map(x=>'replicate:'+x)),misc:names(OPTION_NAMES,SUBNAMES,FEATURE_RULES,D.labels,R.LABELS,R.ABILITIES)};
+  return kindIndexCache;
+ }
+ function idKind(id){
+  const kinds=new Set();if(typeof id!=='string')return kinds;
+  const index=kindIndex();
+  if(['yes','no','none'].includes(id))kinds.add('sentinel');
+  if(Object.hasOwn(D.spells,id))kinds.add('spell:'+D.spells[id].level);
+  for(const kind of ['skill','tool','language','weapon','armor','subclass','companion','replicate'])if(index[kind].has(id))kinds.add(kind);
+  for(const key of new Set([id,canonicalManeuver(id)]))for(const type of index.types.get(key)||[])kinds.add('option:'+type);
+  if(!kinds.size&&index.misc.has(id))kinds.add('misc');
+  return kinds;
+ }
+ const spellClasses=id=>uniq([...(D.spells[id]?.classes||[]),...(D.spells[id]?.optionalClasses||[])]);
+ // May `id`, no longer offered by group g, still be a legitimate historical answer? See the rules above; with nothing offered the
+ // group's section decides which kinds of id can be an answer at all.
+ const lazy=f=>{let value,done=false;return ()=>done?value:(done=true,value=f());};
+ const EK_SCHOOLS={'eldritch-knight':['A','V'],'arcane-trickster':['E','I']};
+ // true/false when the group is tied to a class spell list; undefined when only the offered spells' classes can be compared.
+ function spellRule(l,id,ctx){
+  const sp=D.spells[id],lv=sp.level,c=ctx.c(),s=ctx.s(),inList=cls=>spellList(cls,lv,c,s,true).includes(id),m=ctx.entry?null:ctx.m(),sc=subclass(c,s);
+  const cap=ctx.entry?1:m?.max||0,leveled=lv>0&&lv<=cap,cantrip=lv===0;
+  switch(l){
+   case 'learn':case 'spell_add':case 'prepared':case 'book_add':return !!m&&leveled&&inList(m.third?'wizard':c.class);
+   case 'third_cantrips':return !!m&&cantrip&&inList('wizard');
+   case 'third_restricted':return !!m&&leveled&&inList('wizard')&&(EK_SCHOOLS[sc?.id]||[]).includes(sp.school);
+   case 'third_free':return !!m&&leveled&&inList('wizard');
+   case 'bonus_cantrip':return cantrip&&inList('druid');
+   case 'cantrip_add':return cantrip&&inList('artificer');
+   // Without Minor Illusion the list is the single fixed cantrip; any wizard cantrip is offered only once Minor Illusion is known.
+   case 'illusion_cantrip':return cantrip&&inList('wizard')&&[...s.cantrips,...ctx.spells()].includes('minor-illusion');
+   case 'style_cantrips':case 'style_cantrip_add':return cantrip&&inList(s.choices.style==='blessed-warrior'?'cleric':'druid');
+   case 'tome_cantrips':return cantrip&&!sp.restrictions&&sp.classes.some(x=>Object.hasOwn(R.CLASSES,x));
+   case 'book_rituals':return lv===1&&!!sp.ritual;
+   case 'bonus_add':return D.spells[ctx.choices.bonus_remove]?.level===lv&&(c.creation_origin==='aberrant-mind'?['D','E']:['A','T']).includes(sp.school)&&sp.classes.some(x=>['sorcerer','warlock','wizard'].includes(x));
+   case 'creation_cantrips':return cantrip&&inList(ctx.cls);
+   case 'creation_known_spells':case 'creation_prepared':return lv===1&&inList(ctx.cls);
+   case 'creation_spellbook':return lv===1&&inList('wizard');
+   case 'creation_domain_cantrips':return cantrip&&(sc?.id==='arcana'?inList('wizard'):sp.school==='N'&&sp.classes.length>0&&!sp.restrictions);
+   case 'creation_nature_cantrip':return cantrip&&inList('druid');
+  }
+  return undefined;
+ }
+ function spellLegacy(g,id,l,ctx){
+  const classes=g.options.filter(o=>Object.hasOwn(D.spells,o.value)).map(o=>spellClasses(o.value));
+  if(classes.length){
+   const shared=classes.reduce((a,b)=>a.filter(x=>b.includes(x))),allowed=shared.length?shared:uniq(classes.flat());
+   if(!spellClasses(id).some(x=>allowed.includes(x)))return false;
+  }
+  const verdict=spellRule(l,id,ctx);
+  return verdict===undefined?classes.length>0:verdict;
+ }
+ function optionLegacy(g,id,ctx){
+  const types=kindIndex().types,typesOf=x=>{const out=new Set();for(const key of new Set([x,canonicalManeuver(x)]))for(const t of types.get(key)||[])out.add(t);return out;};
+  const lists=g.options.map(o=>typesOf(o.value)).filter(t=>t.size);if(!lists.length)return false;
+  const group=lists.reduce((a,b)=>new Set([...a].filter(x=>b.has(x)))),mine=typesOf(id);
+  return D.options.some(o=>(o.id===id||o.id===canonicalManeuver(id))&&o.types.some(t=>group.has(t)&&mine.has(t))&&eligible(o,ctx.c(),ctx.s(),ctx.spells()));
+ }
+ function knownLegacy(g,id,kind,ctx){
+  if(EXPERTISE_GROUPS.has(g))return false;
+  const known=ctx.known(localId(g.id,ctx.prefix)),has=x=>known.skills.includes(x)||known.tools.includes(x)||known.languages.includes(x);
+  return !g.options.some(o=>has(o.value))&&known[{skill:'skills',tool:'tools',language:'languages'}[kind]].includes(id);
+ }
+ function plausibleLegacy(g,id,ctx){
+  const kinds=idKind(id),l=localId(g.id,ctx.prefix);
+  if(!kinds.size||kinds.has('misc'))return false;
+  if(ctx.held(l).includes(id))return false;
+  if(FULL_LISTS[l])return FULL_LISTS[l].includes(id);
+  const offered=new Set(g.options.flatMap(o=>[...idKind(o.value)]));
+  const fits=k=>g.options.length?offered.has(k):g.section==='spells'?k.startsWith('spell:'):g.section==='proficiencies'&&['skill','tool','language','weapon'].includes(k);
+  return [...kinds].filter(fits).some(k=>{
+   if(k.startsWith('spell:'))return spellLegacy(g,id,l,ctx);
+   if(k.startsWith('option:'))return optionLegacy(g,id,ctx);
+   if(k==='skill'||k==='tool'||k==='language')return knownLegacy(g,id,k,ctx);
+   if(k==='weapon')return Object.hasOwn(LEGACY_WEAPONS,l)?LEGACY_WEAPONS[l].includes(id):!GROUP_WEAPONS.includes(id);
+   return false;
+  });
+ }
+ // What the current rules keep out of a group's list because the hero already has it (so a stray there is a duplicate):
+ //  - *_add / learn / book_add / third_free / bonus_add: the entries already in the replayed state (or picked in the same answer);
+ //  - tome_cantrips / illusion_cantrip: cantrips this class already knows. A cantrip the hero got from another source (race, feat) is
+ //    deliberately NOT refused: such a pick was always a legal substitute and a duplicate cantrip is only listed once.
+ // `old` is the state before the entry and `p` the entry.
+ function heldIds(l,old,p){
+  const pick=k=>arr(p.choices[k]);
+  switch(l){
+   case 'invocation_add':return old.invocations;
+   case 'infusion_add':return old.infusions;
+   case 'cantrip_add':case 'bonus_cantrip':return old.cantrips;
+   case 'style_cantrip_add':return arr(old.choices.style_cantrips);
+   case 'book_add':return old.book;
+   case 'learn':return old.known;
+   case 'spell_add':return [...old.known,...pick('learn')];
+   case 'bonus_add':return [...old.known,...old.cantrips,...pick('learn')];
+   case 'third_free':return pick('third_restricted');
+   case 'tome_cantrips':case 'illusion_cantrip':return old.cantrips;
+  }
+  return [];
+ }
+ // Friendly name of an answer key such as `rogue:entry_skill` for warnings.
+ const GROUP_NAMES={'proficiency:':'Выбор владения',entry_skill:'Дополнительный навык',entry_instrument:'Музыкальный инструмент',entry_expertise:'Компетентность',campaign_permission:'Согласование источника с Мастером',
+  // Groups that older versions asked (dragon_proficiency, phantom_proficiency) or that carry no catalogue label of their own.
+  style_cantrips:'Заговоры боевого стиля',style_cantrip_add:'Новый заговор боевого стиля',dragon_proficiency:'Драконье владение',phantom_proficiency:'Владение фантома'};
+ function keyLabel(key){const m=/^([a-z]+):(.+)$/.exec(key),cls=m&&Object.hasOwn(NAMES,m[1])?m[1]:null,rest=cls?m[2]:key;return (cls?NAMES[cls]+': ':'')+(rest.startsWith('proficiency:')?GROUP_NAMES['proficiency:']:GROUP_NAMES[rest]||label(rest));}
+ // Context of the group being validated: the hero (c), the state the group is evaluated against (s), the casting rule of the level (m),
+ // spells and proficiencies the hero already has. Everything is computed on demand, so the strict path pays nothing.
+ const profLists=prof=>({skills:prof?.skills||[],tools:prof?.tools||[],languages:prof?.languages||[]});
+ function singleContext(c,p,old,context){
+  const s=lazy(()=>pendingState(old,p));
+  return {prefix:undefined,cls:c.class,entry:false,choices:p.choices,c:()=>c,s,m:lazy(()=>magic(c,s(),context.abilities||R.finalAbilities(c))),spells:()=>knownElsewhere(context),held:l=>heldIds(l,old,p),known:()=>profLists(context.proficiencies||R.resolveProficiencies(c,context.baseExtras||{}))};
+ }
+ function entryContext(c,applied,s,context){
+  const cls=applied.classId,q=lazy(()=>entryCharacter(c,applied)),pc=lazy(()=>progressContext(c,context,s)),prof=lazy(()=>{const x=pc();return x.proficiencies||R.resolveProficiencies(c,x.baseExtras||{});});
+  return {prefix:cls,cls,entry:true,choices:applied.choices,c:q,s:lazy(()=>firstState(q())),m:()=>null,spells:()=>knownElsewhere(pc()),held:()=>[],
+   // The entry's own skill and instrument are the answers being checked, so they can never count as "already known" for themselves.
+   known:l=>{const base=profLists(prof()),own=l==='entry_skill'||l==='entry_instrument';return own?base:{skills:uniq([...base.skills,...entryPick(applied,'entry_skill')]),tools:uniq([...base.tools,...entryPick(applied,'entry_instrument')]),languages:base.languages};}};
+ }
+ // Returns true when the group's saved answer is unacceptable. In replay mode tolerated deviations are reported through warn().
+ function selectionInvalid(g,choices,replay,warn,ctx){
+  const present=Object.hasOwn(choices,g.id),selected=arr(choices[g.id]),offered=id=>g.options.some(o=>o.value===id);
+  if(selected.length===g.count&&uniq(selected).length===selected.length&&selected.every(offered))return false;
+  if(!replay||strictGroup(g.id,ctx))return true;
+  if(!present)return !lateGroup(g.id,ctx.prefix);
+  if(!selected.length||uniq(selected).length!==selected.length||selected.length>g.count)return true;
+  const stray=selected.filter(id=>!offered(id));
+  if(!stray.every(id=>plausibleLegacy(g,id,ctx)))return true;
+  for(const id of stray)warn(g.id,'Выбор «'+label(id)+'» ('+g.label+') больше не предлагается текущими правилами; сохранён как есть.');
+  if(selected.length<g.count)warn(g.id,'«'+g.label+'»: выбрано вариантов: '+selected.length+', сейчас требуется '+g.count+'; оставлено как есть.');
+  return false;
+ }
+ // Replace `remove` by `add` only when `remove` is really in the list, so a forged removal can never yield a net extra entry.
+ const swapEntry=(list,remove,add)=>list.includes(remove)?list.filter(x=>x!==remove).concat(arr(add)):list;
+ // `replay` is set only while re-reading saved ledgers (inspect); new and pending entries are always validated strictly.
+ // `warnings` (optional array) collects the deviations replay tolerated; `where` prefixes them (default: the class level).
+ function transitionSingle(c,p,context={},previous,replay=false,warnings,where){
   const old=previous||inspectSingle(c,context).state,errors=[];const fail=(field,message)=>errors.push({id:field,field,message});
+  const warn=(field,message)=>{if(warnings)warnings.push({id:field,field,message:(where||'Уровень '+p?.to)+': '+message});};
   if(!p||p.version!==1||p.from!==old.level||p.to!==old.level+1||p.to>3||p.to<2) {fail('level','Разрешён только следующий уровень, максимум 3.');return {errors,state:old};}
   if(p.foundation!==foundation(c))fail('foundation','Основные выборы изменились. Сначала явно сбросьте зависимую прокачку.');
   const die=R.CLASSES[c.class]?.hitDie, hp=p.hp;
   if(!die||!hp||!['average','roll'].includes(hp.mode)||!Number.isInteger(hp.value)||hp.value<1||hp.value>die||(hp.mode==='average'&&hp.value!==die/2+1))fail('hp','Укажите среднее класса либо целый результат броска от 1 до '+die+'.');
   if(!p.choices||typeof p.choices!=='object'||Array.isArray(p.choices)){fail('choices','Повреждены выборы повышения.');return {errors,state:old};}
-  const groups=getChoicesSingle(c,p,context,old),active=new Set(groups.map(g=>g.id));
+  let groups=getChoicesSingle(c,p,context,old),active=new Set(groups.map(g=>g.id));
+  // Special case that stays: older ledgers asked the DM-permission question on EVERY level of a hero whose subclass is restricted
+  // (for a level-1 subclass it now lives in creation_campaign_permission). Such a stale 'yes' is the normal shape of those ledgers,
+  // so it is accepted silently (it stays in the state's choices as it always did; nothing reads it) instead of being warned about
+  // like any other vanished group. For an unrestricted subclass the same key is a genuine stray and goes through the warning path.
+  const staleAnswer=k=>k==='campaign_permission'&&p.choices[k]==='yes'&&subclass(c,{subclass:p.choices.subclass||old.subclass})?.restrictions;
+  // In replay, answers of groups that no longer exist are ignored: kept in the ledger entry, never applied to the state and
+  // never allowed to shape the remaining groups. The subclass answer is state-bearing and stays an error.
+  const ignored=new Set(replay?Object.keys(p.choices).filter(k=>!active.has(k)&&k!=='subclass'&&!staleAnswer(k)):[]);
+  const entry=p;
+  if(ignored.size){
+   for(const k of ignored)warn(k,'Выбор «'+keyLabel(k)+'» больше не используется текущими правилами; игнорируется.');
+   p={...p,choices:Object.fromEntries(Object.entries(p.choices).filter(([k])=>!ignored.has(k)))};groups=getChoicesSingle(c,p,context,old);active=new Set(groups.map(g=>g.id));
+  }
+  const ctx=singleContext(c,p,old,context);
   // Existing level-three ledgers predate these opt-ins; an absent flag means declined.
-  for(const g of groups){const selected=arr(p.choices[g.id]);if(!Object.hasOwn(p.choices,g.id)&&['variant_primal-knowledge','variant_steady-aim'].includes(g.id))continue;if(selected.length!==g.count||uniq(selected).length!==selected.length||selected.some(x=>!g.options.some(o=>o.value===x)))fail(g.id,g.label+': выберите '+g.count+' различных допустимых вариантов.');}
-  for(const k of Object.keys(p.choices))if(!active.has(k))fail(k,'Неизвестный или неактивный выбор: '+k+'.');
+  for(const g of groups){if(!Object.hasOwn(p.choices,g.id)&&DECLINED_WHEN_ABSENT.includes(g.id))continue;if(selectionInvalid(g,p.choices,replay,warn,ctx))fail(g.id,g.label+': выберите '+g.count+' различных допустимых вариантов.');}
+  for(const k of Object.keys(p.choices))if(!active.has(k)&&!(replay&&staleAnswer(k)))fail(k,'Неизвестный или неактивный выбор: '+k+'.');
   if(errors.length)return {errors,state:old};
-  const s={...clone(old),level:p.to,subclass:p.choices.subclass||old.subclass,choices:{...old.choices,...p.choices},entries:[...old.entries,clone(p)]};
+  const s={...clone(old),level:p.to,subclass:p.choices.subclass||old.subclass,choices:{...old.choices,...p.choices},entries:[...old.entries,clone(entry)]};
   if(p.choices.learn)s.known=uniq([...old.known,...arr(p.choices.learn)]);
   if(p.choices.spell_remove&&p.choices.spell_remove!=='none'){
    const bonus=c.class==='sorcerer'&&c.creation_origin==='divine-soul'?additional(c,old,'known').find(id=>(old.bonusReplacements[id]||id)===p.choices.spell_remove):null;
-   if(bonus)s.bonusReplacements[bonus]=p.choices.spell_add;
-   else s.known=s.known.filter(x=>x!==p.choices.spell_remove).concat(p.choices.spell_add);
+   if(bonus){if(p.choices.spell_add)s.bonusReplacements[bonus]=p.choices.spell_add;}
+   else s.known=swapEntry(s.known,p.choices.spell_remove,p.choices.spell_add);
   }
   if(p.choices.book_add)s.book=uniq([...old.book,...arr(p.choices.book_add)]);
   if(p.choices.prepared)s.prepared=arr(p.choices.prepared);
-  if(p.choices.style_cantrip_remove&&p.choices.style_cantrip_remove!=='none')s.choices.style_cantrips=arr(old.choices.style_cantrips).filter(id=>id!==p.choices.style_cantrip_remove).concat(p.choices.style_cantrip_add);
-  if(p.choices.cantrip_remove&&p.choices.cantrip_remove!=='none')s.cantrips=old.cantrips.filter(id=>id!==p.choices.cantrip_remove).concat(p.choices.cantrip_add);
-  if(p.choices.third_cantrips){s.cantrips=arr(p.choices.third_cantrips).concat(s.subclass==='arcane-trickster'?['mage-hand']:[]);s.known=arr(p.choices.third_restricted).concat(p.choices.third_free);}
+  if(p.choices.style_cantrip_remove&&p.choices.style_cantrip_remove!=='none')s.choices.style_cantrips=swapEntry(arr(old.choices.style_cantrips),p.choices.style_cantrip_remove,p.choices.style_cantrip_add);
+  if(p.choices.cantrip_remove&&p.choices.cantrip_remove!=='none')s.cantrips=swapEntry(old.cantrips,p.choices.cantrip_remove,p.choices.cantrip_add);
+  if(p.choices.third_cantrips){s.cantrips=arr(p.choices.third_cantrips);s.known=arr(p.choices.third_restricted).concat(arr(p.choices.third_free));}
   if(p.choices.invocations)s.invocations=arr(p.choices.invocations);
-  if(p.choices.invocation_remove&&p.choices.invocation_remove!=='none')s.invocations=old.invocations.filter(x=>x!==p.choices.invocation_remove).concat(p.choices.invocation_add);
+  if(p.choices.invocation_remove&&p.choices.invocation_remove!=='none')s.invocations=swapEntry(old.invocations,p.choices.invocation_remove,p.choices.invocation_add);
   if(p.choices.infusions)s.infusions=arr(p.choices.infusions);
-  if(p.choices.infusion_remove&&p.choices.infusion_remove!=='none')s.infusions=old.infusions.filter(x=>x!==p.choices.infusion_remove).concat(p.choices.infusion_add);
+  if(p.choices.infusion_remove&&p.choices.infusion_remove!=='none')s.infusions=swapEntry(old.infusions,p.choices.infusion_remove,p.choices.infusion_add);
   if(p.choices.bonus_remove&&p.choices.bonus_remove!=='none'){const original=Object.keys(s.bonusReplacements).find(id=>s.bonusReplacements[id]===p.choices.bonus_remove)||p.choices.bonus_remove;s.bonusReplacements[original]=p.choices.bonus_add;}
   return {errors,state:s};
  }
  function inspectSingle(c,context={}){
-  let state=firstState(c),errors=[];const ledger=c.advancement;
-  if(ledger!==undefined&&(!ledger||ledger.version!==1||!Array.isArray(ledger.entries))){errors.push({field:'advancement',message:'Повреждён журнал повышения.'});return {state,errors};}
-  for(const entry of ledger?.entries||[]){const res=transitionSingle(c,entry,context,state);if(res.errors.length){errors.push(...res.errors);break;}state=res.state;}
+  let state=firstState(c),errors=[];const warnings=[],ledger=c.advancement;
+  if(ledger!==undefined&&(!ledger||ledger.version!==1||!Array.isArray(ledger.entries))){errors.push({field:'advancement',message:'Повреждён журнал повышения.'});return {state,errors,warnings};}
+  for(const entry of ledger?.entries||[]){const res=transitionSingle(c,entry,context,state,true,warnings);if(res.errors.length){errors.push(...res.errors);break;}state=res.state;}
   if(c.level!==undefined&&c.level!==state.level)errors.push({field:'level',message:'Уровень не совпадает с последовательным журналом. Повышение не применяется.'});
-  return {state:errors.length?firstState(c):state,errors};
+  return {state:errors.length?firstState(c):state,errors,warnings};
  }
  function reset(c){const next=clone(c);delete next.advancement;delete next.pendingAdvancement;next.level=1;return next;}
  function creationExtras(c,context={},base){return deriveSingle(c,context,base||{},firstState(c),true);}
@@ -717,19 +952,6 @@
    if(c.class==='fighter')resource('second-wind','Второе дыхание',1,'short-rest');
    if(c.class==='paladin'){resource('divine-sense','Божественное чувство',Math.max(0,1+mod(a.charisma)));resource('lay-on-hands','Наложение рук',5*s.level);}
   }
-  Object.assign(FEATURE_RULES,{
-   'abjuration-savant':['Ограждение: знаток','Переписывайте заклинания ограждения в книгу вдвое быстрее и дешевле.'],
-   'conjuration-savant':['Вызов: знаток','Переписывайте заклинания вызова в книгу вдвое быстрее и дешевле.'],
-   'divination-savant':['Прорицание: знаток','Переписывайте заклинания прорицания в книгу вдвое быстрее и дешевле.'],
-   'enchantment-savant':['Очарование: знаток','Переписывайте заклинания очарования в книгу вдвое быстрее и дешевле.'],
-   'evocation-savant':['Воплощение: знаток','Переписывайте заклинания воплощения в книгу вдвое быстрее и дешевле.'],
-   'improved-minor-illusion':['Улучшенная малая иллюзия','Малая иллюзия может создавать звук и изображение вместе за одно накладывание. Изучаете Малую иллюзию, а если она уже известна — другой заговор волшебника на выбор; этот дополнительный заговор не учитывается в лимите известных.'],
-   'illusion-savant':['Иллюзия: знаток','Переписывайте заклинания иллюзий в книгу вдвое быстрее и дешевле.'],
-   'necromancy-savant':['Некромантия: знаток','Переписывайте заклинания некромантии в книгу вдвое быстрее и дешевле.'],
-   'transmutation-savant':['Преобразование: знаток','Переписывайте заклинания преобразования в книгу вдвое быстрее и дешевле.'],
-   'portent':['Предзнаменование','После долгого отдыха бросьте и запишите два к20. Когда вы или существо в пределах видимости совершает атаку, проверку или спасбросок, можно заменить результат одной неиспользованной костью. Выбирайте замену до броска, не больше одного раза за ход. Кость нельзя перебросить; неиспользованные кости исчезают после следующего долгого отдыха.'],
-   'bladesong':['Песнь клинка','Бонусным действием активируется на 1 минуту: без доспеха или в лёгком доспехе, требуется отсутствие щита. Даёт +Интеллект к КД и к спасброскам Телосложения для поддержания концентрации (оба бонуса минимум +1), +10 футов скорости ходьбы и преимущество на Акробатику. Прекращается при недееспособности, нарушении условий доспеха/щита или после атаки оружием двумя руками; можно прекратить добровольно без действия.']
-  });
 
   if(!onlyCreation&&s.level>1){
    // Replace obsolete first-level counters and future-tense hints with current values.
@@ -924,17 +1146,26 @@
  const REQUIREMENTS={barbarian:[['strength']],bard:[['charisma']],cleric:[['wisdom']],druid:[['wisdom']],fighter:[['strength','dexterity']],monk:[['dexterity'],['wisdom']],paladin:[['strength'],['charisma']],ranger:[['dexterity'],['wisdom']],rogue:[['dexterity']],sorcerer:[['charisma']],warlock:[['charisma']],wizard:[['intelligence']],artificer:[['intelligence']]};
  const SECONDARY={barbarian:{armor:['shield'],weapon:['simple','martial']},bard:{armor:['light']},cleric:{armor:['light','medium','shield']},druid:{armor:['light','medium','shield']},fighter:{armor:['light','medium','shield'],weapon:['simple','martial']},monk:{weapon:['simple','shortsword']},paladin:{armor:['light','medium','shield'],weapon:['simple','martial']},ranger:{armor:['light','medium','shield'],weapon:['simple','martial']},rogue:{armor:['light'],tool:['thieves_tools']},sorcerer:{},warlock:{armor:['light'],weapon:['simple']},wizard:{},artificer:{armor:['light','medium','shield'],tool:['thieves_tools','tinker']}};
  const canonicalStyle=id=>({great_weapon:'great-weapon-fighting',two_weapon:'two-weapon-fighting'}[id]||id);
+ // Fighting styles (canonical ids) held by the classes other than `except`: a style cannot be taken twice, even through another class
+ // (PHB, Fighting Style: "You can't take a Fighting Style option more than once, even if you later get to choose again").
+ const heldStyles=(s,except)=>new Set(Object.entries(s.classStates).filter(([id])=>id!==except).flatMap(([,x])=>[x.character.creation_style,x.state.choices.style,x.state.choices.swords_style]).filter(Boolean).map(canonicalStyle));
+ const STYLE_GROUP=id=>id==='style'||id==='swords_style'||id.endsWith('creation_style');
  const optionsAPI=()=>typeof module==='object'&&module.exports?require('./creation-options'):rootOptions();
  function rootOptions(){return globalThis.CreationOptions;}
  function multiState(c){const primary=firstState(c);return {...primary,classStates:{[c.class]:{character:clone(c),state:clone(primary)}}};}
+ const requirementText=alternatives=>alternatives.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13';
+ function unmetRequirements(abilities,classIds){const unmet=[];for(const cls of classIds)for(const alternatives of REQUIREMENTS[cls])if(!alternatives.some(ab=>Number(abilities[ab])>=13))unmet.push(NAMES[cls]+': '+requirementText(alternatives));return unmet;}
  function classOptions(c,context={}){
   const s=inspect(c,context).state,a=R.finalAbilities(c,context.baseExtras||{});
   return Object.keys(NAMES).map(id=>{
    const existing=s.classStates[id],unmet=[];
-   if(!existing)for(const cls of [...Object.keys(s.classStates),id])for(const alternatives of REQUIREMENTS[cls])if(!alternatives.some(ab=>Number(a[ab])>=13))unmet.push(NAMES[cls]+': '+alternatives.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13');
-   return {value:id,label:NAMES[id],level:existing?.state.level||0,nextLevel:(existing?.state.level||0)+1,eligible:!unmet.length,requirements:REQUIREMENTS[id].map(xs=>xs.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13').join('; '),unmet,url:url(id)};
+   if(!existing)unmet.push(...unmetRequirements(a,[...Object.keys(s.classStates),id]));
+   return {value:id,label:NAMES[id],level:existing?.state.level||0,nextLevel:(existing?.state.level||0)+1,eligible:!unmet.length,requirements:REQUIREMENTS[id].map(requirementText).join('; '),unmet,url:url(id)};
   });
  }
+ // Answers that only exist for the classes that ask the question; the same key on any other class is never read.
+ const ENTRY_PICKS={entry_skill:['bard','rogue','ranger'],entry_instrument:['bard'],entry_expertise:['rogue']};
+ const entryPick=(p,name)=>ENTRY_PICKS[name].includes(p.classId)?arr(p.choices?.[p.classId+':'+name]):[];
  function entryCharacter(c,p){
   const projected={class:p.classId,level:1,abilities:clone(c.abilities||{}),proficiencyChoices:{}};
   for(const [key,value] of Object.entries(p.choices||{})){const local=key.slice(p.classId.length+1);if(key.startsWith(p.classId+':creation_'))projected[local]=clone(value);if(key.startsWith(p.classId+':proficiency:'))projected.proficiencyChoices[local.slice(12)]=clone(value);}
@@ -943,26 +1174,26 @@
  function entryExtras(c,p,context){
   const q=entryCharacter(c,p),e=optionsAPI().classExtras(q,context),source=NAMES[p.classId];
   for(const [type,ids] of Object.entries(SECONDARY[p.classId]||{}))ids.forEach(id=>e.fixedProficiencies.push({type,id,source,noReplacement:true}));
-  for(const id of arr(p.choices[p.classId+':entry_skill']).filter(id=>!context.proficiencies?.skills?.includes(id)))e.fixedProficiencies.push({type:'skill',id,source,noReplacement:true});
-  for(const id of arr(p.choices[p.classId+':entry_instrument']))e.fixedProficiencies.push({type:'tool',id,source});
+  for(const id of entryPick(p,'entry_skill').filter(id=>!context.proficiencies?.skills?.includes(id)))e.fixedProficiencies.push({type:'skill',id,source,noReplacement:true});
+  for(const id of entryPick(p,'entry_instrument'))e.fixedProficiencies.push({type:'tool',id,source});
   if(p.classId==='druid')e.fixedProficiencies.push({type:'language',id:'druidic',source});
-  if(p.classId==='rogue'){e.fixedProficiencies.push({type:'language',id:'thieves_cant',source});e.fixedExpertise=arr(p.choices[p.classId+':entry_expertise']);}
+  if(p.classId==='rogue'){e.fixedProficiencies.push({type:'language',id:'thieves_cant',source});e.fixedExpertise=entryPick(p,'entry_expertise');}
   e.proficiencySlots=(e.proficiencySlots||[]).map(slot=>({...slot,id:p.classId+':'+slot.id}));
   e.progressionProficiencyChoices=Object.fromEntries(Object.entries(q.proficiencyChoices).map(([key,value])=>[p.classId+':'+key,value]));
   return e;
  }
  function entryChoices(c,p,context,s){
   const q=entryCharacter(c,p),prefix=p.classId+':',prof=context.proficiencies||R.resolveProficiencies(c,context.baseExtras||{});
-  const selectionContext={...context,knownManeuvers:Object.values(s.classStates).flatMap(x=>[...knownManeuvers(x.character),...(x.state.subclass==='battle-master'?arr(x.state.choices.maneuvers):[])]),proficiencies:{...prof,skills:uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill'])])}};
+  const selectionContext={...context,knownManeuvers:Object.values(s.classStates).flatMap(x=>[...knownManeuvers(x.character),...(x.state.subclass==='battle-master'?arr(x.state.choices.maneuvers):[])]),proficiencies:{...prof,skills:uniq([...prof.skills,...entryPick(p,'entry_skill')])}};
   const result=optionsAPI().classChoices(q,selectionContext).map(g=>({...g,id:prefix+g.id,options:g.options.map(o=>D.spells[o.value]?{...o,source:D.spells[o.value].source,url:D.spells[o.value].url}:o)}));
   const add=(id,name,ids,count=1)=>result.push(group(prefix+id,name,ids,count,'proficiencies'));
   if(['bard','rogue','ranger'].includes(p.classId))add('entry_skill','Дополнительный навык',featureSkills(R.CLASSES[p.classId].choices[0].options,{proficiencies:prof},false));
   if(p.classId==='bard')add('entry_instrument','Музыкальный инструмент',R.INSTRUMENTS.filter(id=>!prof.tools.includes(id)));
-  if(p.classId==='rogue')add('entry_expertise','Компетентность: два известных владения',uniq([...prof.skills,...arr(p.choices[prefix+'entry_skill']),'thieves_tools']).filter(id=>!prof.expertise.includes(id)),2);
+  if(p.classId==='rogue')add('entry_expertise','Компетентность: два известных владения',uniq([...prof.skills,...entryPick(p,'entry_skill'),'thieves_tools']).filter(id=>!prof.expertise.includes(id)),2);
   const seed=optionsAPI().classExtras(q,context);
-  const earlier=[];for(const slot of seed.proficiencySlots||[]){const pickedElsewhere=earlier.map(key=>q.proficiencyChoices[key]);result.push(group(prefix+'proficiency:'+slot.id,slot.label,slot.options.filter(id=>!pickedElsewhere.includes(id)&&(slot.grantExpertise||!(uniq([...prof.skills,...prof.tools,...prof.languages,...arr(p.choices[prefix+'entry_skill']),...arr(p.choices[prefix+'entry_instrument'])]).includes(id)))),1,'proficiencies'));earlier.push(slot.id);}
+  const earlier=[];for(const slot of seed.proficiencySlots||[]){const pickedElsewhere=earlier.map(key=>q.proficiencyChoices[key]);result.push(group(prefix+'proficiency:'+slot.id,slot.label,slot.options.filter(id=>!pickedElsewhere.includes(id)&&(slot.grantExpertise||!(uniq([...prof.skills,...prof.tools,...prof.languages,...entryPick(p,'entry_skill'),...entryPick(p,'entry_instrument')]).includes(id)))),1,'proficiencies'));if(slot.grantExpertise)EXPERTISE_GROUPS.add(result[result.length-1]);earlier.push(slot.id);}
   // A style cannot be learned twice through different classes.
-  const styles=new Set(Object.values(s.classStates).flatMap(x=>[x.character.creation_style,x.state.choices.style,x.state.choices.swords_style]).filter(Boolean).map(canonicalStyle));
+  const styles=heldStyles(s);
   for(const g of result)if(g.id.endsWith('creation_style'))g.options=g.options.filter(o=>!styles.has(canonicalStyle(o.value)));
   return result;
  }
@@ -974,10 +1205,12 @@
   const owned=s.classStates[cls];if(!owned)return entryChoices(c,p,context,s);
   const local={...p,version:1,from:owned.state.level,to:owned.state.level+1,foundation:foundation(owned.character)};
   const base=cls===c.class?context.baseExtras:entryExtras(c,{classId:cls,choices:owned.onboarding},context);
-  const result=getChoicesSingle(owned.character,local,{...context,baseExtras:base},owned.state),styles=new Set(Object.entries(s.classStates).filter(([id])=>id!==cls).flatMap(([,x])=>[x.character.creation_style,x.state.choices.style,x.state.choices.swords_style]).filter(Boolean).map(canonicalStyle));for(const g of result)if(['style','swords_style'].includes(g.id))g.options=g.options.filter(o=>!styles.has(canonicalStyle(o.value)));return result;
+  const result=getChoicesSingle(owned.character,local,{...context,baseExtras:base},owned.state),styles=heldStyles(s,cls);for(const g of result)if(['style','swords_style'].includes(g.id))g.options=g.options.filter(o=>!styles.has(canonicalStyle(o.value)));return result;
  }
- function transition(c,p,context={},previous){
+ function transition(c,p,context={},previous,replay=false,warnings){
   const s=previous||inspect(c,context).state,fail=(field,message)=>({errors:[{id:field,field,message}],state:s});
+  // Level label for warnings: the CHARACTER level (p.to), plus the class when it is a multiclass entry.
+  const where=()=>'Уровень '+p?.to+(p?.version===2&&NAMES[p.classId]?' ('+NAMES[p.classId]+')':''),warn=(field,message)=>{if(warnings)warnings.push({id:field,field,message:where()+': '+message});};
   if(!p||![1,2].includes(p.version)||p.from!==s.level||p.to!==s.level+1||p.to>3||p.to<2)return fail('level','Разрешён только следующий уровень, максимум 3.');
   if(p.foundation!==foundation(c))return fail('foundation','Основные выборы изменились. Сначала явно сбросьте зависимую прокачку.');
   const cls=p.version===1?c.class:p.classId;if(!Object.hasOwn(R.CLASSES,cls))return fail('classId','Выберите допустимый класс.');
@@ -986,41 +1219,70 @@
   const die=R.CLASSES[cls].hitDie,hp=p.hp;if(!hp||!['average','roll'].includes(hp.mode)||!Number.isInteger(hp.value)||hp.value<1||hp.value>die||(hp.mode==='average'&&hp.value!==die/2+1))return fail('hp','Укажите среднее класса либо целый результат броска от 1 до '+die+'.');
   const owned=s.classStates[cls],next=clone(s);
   if(!owned){
-   const choice=classOptionsFromState(c,context,s,cls);if(choice.length)return fail('classId',choice.join('; '));
-   const groups=getChoices(c,p,context,s),errors=[];
-   for(const g of groups){const selected=arr(p.choices[g.id]);if(selected.length!==g.count||uniq(selected).length!==selected.length||selected.some(id=>!g.options.some(o=>o.value===id)))errors.push({id:g.id,field:g.id,message:g.label+': выберите '+g.count+' различных допустимых вариантов.'});}
-   for(const key of Object.keys(p.choices))if(!groups.some(g=>g.id===key))errors.push({id:key,field:key,message:'Неизвестный или неактивный выбор: '+key+'.'});
+   const choice=unmetForNewClass(c,context,s,cls);if(choice.length)return fail('classId',choice.join('; '));
+   let groups=getChoices(c,p,context,s),applied=p;const errors=[];
+   // Replay: a stale answer of this class whose group no longer exists is warned about and then ignored for good. The ledger entry
+   // (next.entries) keeps it, but the entry character, the onboarding record and the remaining groups are built from the filtered choices.
+   const stale=replay?Object.keys(p.choices).filter(k=>k.startsWith(cls+':')&&!groups.some(g=>g.id===k)):[];
+   if(stale.length){
+    for(const k of stale)warn(k,'Выбор «'+keyLabel(k)+'» больше не используется текущими правилами; игнорируется.');
+    applied={...p,choices:Object.fromEntries(Object.entries(p.choices).filter(([k])=>!stale.includes(k)))};groups=getChoices(c,applied,context,s);
+   }
+   const ectx=entryContext(c,applied,s,context);
+   for(const g of groups)if(selectionInvalid(g,applied.choices,replay,warn,ectx))errors.push({id:g.id,field:g.id,message:g.label+': выберите '+g.count+' различных допустимых вариантов.'});
+   for(const key of Object.keys(applied.choices))if(!groups.some(g=>g.id===key))errors.push({id:key,field:key,message:'Неизвестный или неактивный выбор: '+key+'.'});
    if(errors.length)return {errors,state:s};
-   const q=entryCharacter(c,p);next.classStates[cls]={character:q,state:firstState(q),onboarding:clone(p.choices)};
+   const q=entryCharacter(c,applied);next.classStates[cls]={character:q,state:firstState(q),onboarding:clone(applied.choices)};
   }else{
    const local={...p,version:1,from:owned.state.level,to:owned.state.level+1,foundation:foundation(owned.character)};
    const base=cls===c.class?context.baseExtras:entryExtras(c,{classId:cls,choices:owned.onboarding},context);
-   const result=transitionSingle(owned.character,local,{...progressContext(c,context,s),baseExtras:base},owned.state);if(result.errors.length)return {errors:result.errors,state:s};next.classStates[cls].state=result.state;
+   const result=transitionSingle(owned.character,local,{...progressContext(c,context,s),baseExtras:base},owned.state,replay,warnings,where());if(result.errors.length)return {errors:result.errors,state:s};next.classStates[cls].state=result.state;
   }
   next.level=p.to;next.entries=[...s.entries,clone(p)];
   for(const key of ['subclass','choices','known','book','prepared','cantrips','invocations','infusions','bonusReplacements'])next[key]=clone(next.classStates[c.class].state[key]);
-  if(p.version===2){const groups=getChoices(c,p,context,s);for(const g of groups)if(arr(p.choices[g.id]).some(id=>!g.options.some(o=>o.value===id)))return fail(g.id,'Недопустимый повторный выбор.');const before=R.resolveProficiencies(c,derive(c,context,context.baseExtras||{},s)).errors,e=derive(c,context,context.baseExtras||{},next),errors=R.resolveProficiencies(c,e).errors.filter(err=>!before.some(old=>old.id===err.id&&old.message===err.message));if(errors.length)return {errors:errors.map(x=>({...x,field:x.id})),state:s};}
+  // The re-pick check of a new entry is what selectionInvalid already does per group in replay (tolerantly), with one exception:
+  // a fighting style that another class already holds is refused in replay too. A narrowed style list is harmless, but a second
+  // copy of a style would be applied twice (Dueling +2 damage twice), which the rules forbid and no earlier version allowed.
+  // The proficiency-conflict check runs in both modes: a new entry is refused, while in replay a conflict that the current rules
+  // newly find is only reported (warning), so the hero stays usable but the deviation is visible and never silently ignored.
+  if(p.version===2){
+   if(!replay){const groups=getChoices(c,p,context,s);for(const g of groups)if(arr(p.choices[g.id]).some(id=>!g.options.some(o=>o.value===id)))return fail(g.id,'Недопустимый повторный выбор.');}
+   else{
+    const held=heldStyles(s,cls);
+    if(held.size)for(const g of getChoices(c,p,context,s).filter(g=>STYLE_GROUP(g.id)))for(const id of arr(p.choices[g.id]))if(held.has(canonicalStyle(id)))return fail(g.id,'Боевой стиль «'+label(id)+'» уже получен от другого класса и не может быть выбран повторно.');
+   }
+   const before=R.resolveProficiencies(c,derive(c,context,context.baseExtras||{},s)).errors,e=derive(c,context,context.baseExtras||{},next),errors=R.resolveProficiencies(c,e).errors.filter(err=>!before.some(old=>old.id===err.id&&old.message===err.message));
+   if(errors.length){if(!replay)return {errors:errors.map(x=>({...x,field:x.id})),state:s};for(const x of errors)warn(x.id,x.message);}
+  }
   return {errors:[],state:next};
  }
- function classOptionsFromState(c,context,s,cls){const a=R.finalAbilities(c,context.baseExtras||{}),unmet=[];for(const id of [...Object.keys(s.classStates),cls])for(const alternatives of REQUIREMENTS[id])if(!alternatives.some(ab=>a[ab]>=13))unmet.push(NAMES[id]+': '+alternatives.map(ab=>ABILITY_NAMES[ab]||ab).join(' или ')+' ≥ 13');return unmet;}
+ const prefixPermission=cls=>cls+':'+PERMISSION_FIELD;
+ function unmetForNewClass(c,context,s,cls){return unmetRequirements(R.finalAbilities(c,context.baseExtras||{}),[...Object.keys(s.classStates),cls]);}
  function inspect(c,context={}){
-  let state=multiState(c);const errors=[],ledger=c.advancement;
-  if(ledger!==undefined&&(!ledger||![1,2].includes(ledger.version)||!Array.isArray(ledger.entries)))return {state,errors:[{field:'advancement',message:'Повреждён журнал повышения.'}]};
-  for(const entry of ledger?.entries||[]){const result=transition(c,entry,context,state);if(result.errors.length){errors.push(...result.errors);break;}state=result.state;}
+  let state=multiState(c);const errors=[],warnings=[],ledger=c.advancement;
+  if(ledger!==undefined&&(!ledger||![1,2].includes(ledger.version)||!Array.isArray(ledger.entries)))return {state,errors:[{field:'advancement',message:'Повреждён журнал повышения.'}],warnings};
+  for(const entry of ledger?.entries||[]){const result=transition(c,entry,context,state,true,warnings);if(result.errors.length){errors.push(...result.errors);break;}state=result.state;}
   if(c.level!==undefined&&c.level!==state.level)errors.push({field:'level',message:'Уровень не совпадает с последовательным журналом. Повышение не применяется.'});
-  return {state:errors.length?multiState(c):state,errors};
+  return {state:errors.length?multiState(c):state,errors,warnings};
  }
  function begin(c,context={}){const res=inspect(c,context);if(res.errors.length)throw new Error(res.errors[0].message);if(res.state.level>=3)throw new Error('Достигнут предел: 3-й уровень.');return {version:2,classId:c.class,from:res.state.level,to:res.state.level+1,foundation:foundation(c),hp:{mode:'average',value:R.CLASSES[c.class].hitDie/2+1},choices:{}};}
  function selectClass(c,p,classId,context={}){if(!classOptions(c,context).find(o=>o.value===classId)?.eligible)throw new Error('Не выполнены требования мультикласса.');return {...p,version:2,classId,hp:{mode:'average',value:R.CLASSES[classId].hitDie/2+1},choices:{}};}
  function commit(c,p,context={}){const checked=inspect(c,context);if(checked.errors.length)throw new Error(checked.errors[0].message);const t=transition(c,p,context,checked.state);if(t.errors.length)throw new Error(t.errors[0].message);const next=clone(c);next.level=t.state.level;next.advancement={version:2,entries:t.state.entries};delete next.pendingAdvancement;return next;}
- function hpGain(c,p,context={}){const cls=p.classId||c.class,con=mod(R.finalAbilities(c,context.baseExtras||{}).constitution),s=inspect(c,context).state,q=s.classStates[cls]?.character||entryCharacter(c,p),bonus=(R.RACES[c.race]?.subraces?.[c.race_sub]?.hpBonus||0)+(c.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='tough'?2:0)+(cls==='sorcerer'&&q.creation_origin==='draconic'?1:0);return {die:R.CLASSES[cls]?.hitDie,raw:p.hp?.value,constitution:con,bonus,gain:Math.max(1,Number(p.hp?.value||0)+con+bonus)};}
+ // Single source of per-level hit-point bonuses (derive() -> R.derivedStats and hpGain() both use it).
+ // entry: per-class-level bonus (Draconic Resilience on sorcerer levels), same condition as creation-options.js derive (adds +1 when class is sorcerer with creation_origin 'draconic').
+ // shared: every level of every class = creation hpBonus (Tough and any future source) minus the draconic +1 that is only applied to the starting class (`starting`).
+ function entryHpBonus(cls,q){return cls==='sorcerer'&&q.creation_origin==='draconic'?1:0;}
+ function hpBonusModel(c,base={}){const starting=entryHpBonus(c.class,c);return {starting,shared:Math.max(0,(base.hpBonus||0)-starting)};}
+ // Same baseExtras the UI passes (levelup-ui.js getAdvancementContext); computed here when a caller omits it.
+ function hpBaseExtras(c,context){return context.baseExtras||optionsAPI().derive(c,{abilities:context.abilities||R.finalAbilities(c)});}
+ function hpGain(c,p,context={}){const cls=p.classId||c.class,base=hpBaseExtras(c,context),con=mod(R.finalAbilities(c,base).constitution),s=inspect(c,context).state,q=s.classStates[cls]?.character||entryCharacter(c,p),bonus=R.subraceHpBonus(c)+hpBonusModel(c,base).shared+entryHpBonus(cls,q),raw=Number(p.hp?.value||0);return {die:R.CLASSES[cls]?.hitDie,raw:p.hp?.value,constitution:con,bonus,gain:R.levelHp(raw,con,bonus)};}
  function derive(c,context={},base={},providedState){
   const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates){const single=deriveSingle(c,context,base,s),abilities=context.abilities||R.finalAbilities(c,base);if(s.choices?.['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(single,abilities);subclassAttacks(single,abilities);return single;}
   const primary=s.classStates[c.class],e=deriveSingle(c,context,base,primary.state);
   e.classes=Object.entries(s.classStates).filter(([id])=>R.CLASSES[id]).map(([id,x])=>({id,label:NAMES[id],level:x.state.level}));e.effectiveLevel=s.level;e.progressionErrors=inspected.errors;
   e.hitDicePools=Object.entries(e.classes.reduce((pool,x)=>{const die=R.CLASSES[x.id].hitDie;pool[die]=(pool[die]||0)+x.level;return pool;},{})).map(([die,count])=>({die:Number(die),count}));
-  e.hpContributions=s.entries.map(p=>{const cls=p.classId||c.class,q=s.classStates[cls].character;return {classId:cls,die:R.CLASSES[cls].hitDie,raw:p.hp.value,bonus:cls==='sorcerer'&&q.creation_origin==='draconic'?1:0};});
-  e.startingClassHpBonus=c.class==='sorcerer'&&c.creation_origin==='draconic'?1:0;e.hpBonus=(base.hpBonus||0)-e.startingClassHpBonus;
+  e.hpContributions=s.entries.map(p=>{const cls=p.classId||c.class,q=s.classStates[cls].character;return {classId:cls,die:R.CLASSES[cls].hitDie,raw:p.hp.value,bonus:entryHpBonus(cls,q)};});
+  const hpModel=hpBonusModel(c,base);e.startingClassHpBonus=hpModel.starting;e.hpBonus=hpModel.shared;
   e.unarmoredDefense=Object.keys(s.classStates).find(id=>['barbarian','monk'].includes(id));
   e.subclasses=e.subclass?[{...e.subclass,classId:c.class}]:[];
   e.spellcastingByClass=e.spellcasting?[{classId:c.class,label:NAMES[c.class],level:primary.state.level,...e.spellcasting}]:[];

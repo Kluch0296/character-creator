@@ -855,6 +855,27 @@ test('version-one pending advancement resumes on its original decision step and 
   dom.root.querySelectorAll('button').find(button=>button.textContent==='Отменить повышение').click();assert.equal(vm.runInContext('character.level',context),1);assert.equal(vm.runInContext('character.pendingAdvancement',context),undefined);
 });
 
+test('choosing own HP roll leaves the result empty, focuses the input and blocks commit until a real roll is typed', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  vm.runInContext("currentPageIndex=config.pages.length;startAdvancement();character.pendingAdvancement.step=1;renderPage();",context);
+  const before=vm.runInContext('getDerivedCharacter().hp',context);
+  dom.root.querySelectorAll('button').find(button=>button.getAttribute('data-focus-key')==='advancement-hp:roll').click();
+  assert.equal(vm.runInContext('character.pendingAdvancement.hp.mode',context),'roll');
+  assert.equal(vm.runInContext('character.pendingAdvancement.hp.value',context),null);
+  const input=dom.root.querySelector('#advancement-hp-roll');assert.ok(input);assert.equal(input.value,'');assert.equal(dom.document.activeElement,input);
+  const field=dom.root.querySelector('.advancement-hp');assert.ok(field.textContent.includes('Введите целый бросок от 1 до 10.'));assert.ok(!/NaN|null|undefined/.test(field.textContent));
+  assert.ok(!/NaN|null|undefined/.test(dom.root.querySelector('.advancement-sheet').textContent));
+  assert.ok(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.transition(character,character.pendingAdvancement,getAdvancementContext()).errors)',context)).some(e=>e.field==='hp'));
+  assert.equal(vm.runInContext('LevelUpRules.hpGain(character,character.pendingAdvancement,getAdvancementContext()).gain>=1',context),true);
+  vm.runInContext("character.pendingAdvancement.step=4;renderPage();",context);
+  assert.equal(dom.root.querySelectorAll('button').find(button=>button.textContent==='Применить повышение').disabled,true);
+  assert.equal(vm.runInContext('getDerivedCharacter().hp',context),before);
+  vm.runInContext("character.pendingAdvancement.step=1;renderPage();",context);
+  const typed=dom.root.querySelector('#advancement-hp-roll');typed.value='7';typed.dispatchEvent({type:'input'});
+  assert.equal(vm.runInContext('character.pendingAdvancement.hp.value',context),7);
+  assert.ok(!JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.transition(character,character.pendingAdvancement,getAdvancementContext()).errors)',context)).some(e=>e.field==='hp'));
+});
+
 test('multiclass advancement selects class, explains +7 HP and renders independent magic in preview and result', async () => {
   const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'wizard',abilities:{strength:13,dexterity:13,constitution:14,intelligence:14,wisdom:13,charisma:14}});
   vm.runInContext("currentPageIndex=config.pages.length;startAdvancement();",context);
@@ -1246,4 +1267,129 @@ test('PR26 round twenty-nine: native Fey skills and complete magic rules survive
   if(c.class==='ranger'){const skillSection=dom.root.querySelectorAll('.result-section').find(n=>n.children[0]?.textContent==='Навыки и спасброски');for(const [name,skill] of Object.entries(data.skills)){const id=name.replaceAll(' ','_'),total=Math.floor((data.stats[skill.baseStat].score-10)/2)+skill.isProf*data.proficiency+data.bonuses.filter(b=>b.target==='skill.'+name).reduce((sum,b)=>sum+Number(b.expr),0);assert.equal(total,stats.skills[id]);const label=skillSection.querySelectorAll('dt').find(n=>n.textContent===R.SKILLS[id]),value=label.parentNode.children[label.parentNode.children.indexOf(label)+1].textContent;assert.ok(value.startsWith((total>=0?'+':'')+total));}}
   assert.equal(vm.runInContext('JSON.stringify(character)',ctx),before);assert.equal(JSON.stringify(JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character),before);
  }
+});
+
+test('restoreDraft treats DM permission as given for restricted-subclass heroes whose ledger already confirmed it',async()=>{
+ const H=require('./fixtures/characters');
+ for(const levelled of [true,false]){
+  let hero=H.create('cleric','death',{abilityMethod:'manual'});if(levelled)hero=H.advance(hero);
+  assert.equal(!!hero.advancement,levelled);
+  if(levelled)hero.advancement.entries[0].choices.campaign_permission='yes';
+  delete hero.creation_campaign_permission;
+  const dom=createDOM();storeRoundSixteen(dom,hero);const context=loadScript(dom,readConfig());await flush();
+  const stored=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;
+  assert.equal(stored.creation_campaign_permission,levelled?'yes':undefined);
+  if(levelled){assert.equal(vm.runInContext('findFirstInvalidPage()',context),null);assert.equal(JSON.parse(context.getExportData()[0].data).info.level.value,2);assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(LevelUpRules.inspect(character,getAdvancementContext()).errors)',context)),[]);}
+  else assert.ok(vm.runInContext('currentPageIndex<config.pages.length',context));
+ }
+});
+
+test('restoreDraft keeps a hero with a malformed advancement ledger and skips the DM permission migration',async()=>{
+ const H=require('./fixtures/characters');
+ const levelled=H.advance(H.create('cleric','death',{abilityMethod:'manual'}));
+ const valid=JSON.parse(JSON.stringify(levelled.advancement.entries[0]));
+ valid.choices.campaign_permission='yes';
+ for(const [label,entries] of [['null entry',[null,valid]],['object instead of array',{0:valid}]]){
+  const hero=JSON.parse(JSON.stringify(levelled));
+  hero.advancement.entries=entries;
+  delete hero.creation_campaign_permission;
+  const dom=createDOM();storeRoundSixteen(dom,hero);const context=loadScript(dom,readConfig());await flush();
+  const stored=JSON.parse(dom.window.localStorage.getItem('dnd-character-draft-v2')).character;
+  assert.equal(vm.runInContext('character.class',context),'cleric',label);
+  assert.equal(vm.runInContext('character.name',context),hero.name,label);
+  assert.equal(stored.class,'cleric',label);
+  assert.equal(stored.name,hero.name,label);
+  if(Array.isArray(entries))assert.equal(stored.creation_campaign_permission,'yes',label);
+  else{assert.equal(stored.creation_campaign_permission,undefined,label);assert.deepEqual(stored,hero,label);}
+ }
+});
+test('tolerated legacy choices show a non-blocking note and keep export available', async () => {
+  const dom=createDOM(),context=loadScript(dom,readConfig());await flush();fillWizard(context,{class:'fighter'});
+  vm.runInContext("const p=LevelUpRules.begin(character,getAdvancementContext());for(const g of LevelUpRules.getChoices(character,p,getAdvancementContext()))p.choices[g.id]=g.count===1?g.options[0].value:g.options.slice(0,g.count).map(o=>o.value);p.choices.vanished_group='yes';character.advancement={version:2,entries:[p]};character.level=2;currentPageIndex=config.pages.length;renderPage();",context);
+  assert.ok(dom.root.textContent.includes('герой сохранён без изменений'));assert.ok(dom.root.textContent.includes('vanished_group'));
+  assert.ok(!dom.root.querySelectorAll('button').find(b=>b.textContent==='Копировать JSON').disabled);
+  assert.doesNotThrow(()=>vm.runInContext('getExportData()',context));
+});
+
+test('getCreationExtras is memoised by character snapshot: equal across calls, fresh after a change, private to each caller', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig()); await flush(); fillWizard(context, { class: 'fighter' });
+  const json = expression => vm.runInContext(`JSON.stringify(${expression})`, context);
+  const first = json('getCreationExtras()');
+  assert.equal(json('getCreationExtras()'), first);
+  vm.runInContext(`globalThis.deriveCalls = 0; { const derive = CreationOptions.derive; CreationOptions.derive = (...args) => { deriveCalls++; return derive(...args); }; }`, context);
+  assert.equal(json('getCreationExtras()'), first);
+  assert.equal(vm.runInContext('deriveCalls', context), 0, 'a repeated call must come from the cache');
+  // A character change is picked up immediately, and changing it back returns the original answer.
+  const strength = vm.runInContext('getDerivedCharacter().abilities.strength', context);
+  vm.runInContext('character.abilities.strength += 4', context);
+  assert.equal(vm.runInContext('getDerivedCharacter().abilities.strength', context), strength + 4);
+  assert.ok(vm.runInContext('deriveCalls', context) > 0);
+  vm.runInContext('character.abilities.strength -= 4', context);
+  assert.equal(vm.runInContext('getDerivedCharacter().abilities.strength', context), strength);
+  assert.equal(json('getCreationExtras()'), first);
+  // The unfinished draft is not an input of the saved hero: editing it keeps the cache, committed changes do not.
+  vm.runInContext('startAdvancement(); deriveCalls = 0; character.pendingAdvancement.hp = { mode: "roll", value: 9 };', context);
+  assert.equal(json('getCreationExtras()'), first);
+  assert.equal(vm.runInContext('deriveCalls', context), 0);
+  vm.runInContext('character.class = "barbarian"', context);
+  const changed = json('getCreationExtras()');
+  assert.notEqual(changed, first);
+  assert.equal(changed, json('computeCreationExtras()'), 'the cached answer must equal an uncached derivation');
+});
+
+test('mutating a returned extras or advancement context object does not poison the cache', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig()); await flush(); fillWizard(context, { class: 'wizard' });
+  const json = expression => vm.runInContext(`JSON.stringify(${expression})`, context);
+  const poisonReturned = () => vm.runInContext(`{
+    const poison = value => { if (Array.isArray(value)) { value.forEach(poison); value.push('poison'); } else if (value && typeof value === 'object') { Object.values(value).forEach(poison); value.poison = true; } };
+    for (const copy of [getCreationExtras(), getAdvancementContext()]) {
+      poison(copy);
+      if (copy.abilityBonuses) copy.abilityBonuses.strength = 99;
+    }
+  }`, context);
+  const extras = json('getCreationExtras()'), advancement = json('getAdvancementContext()');
+  // Cache hits: poisoning what a hit returns must not reach the stored entry.
+  poisonReturned();
+  assert.equal(json('getCreationExtras()'), extras);
+  assert.equal(json('getAdvancementContext()'), advancement);
+  assert.ok(!/poison/.test(json('getDerivedCharacter()')));
+  // Cache misses: a changed character recomputes, and poisoning the object a miss returns must not reach the stored entry.
+  // The uncached answers are taken before poisoning, so the comparison never depends on what a caller did to the character.
+  vm.runInContext("character.name += 'x'", context);
+  const freshExtras = json('computeCreationExtras()'), freshAdvancement = json('computeAdvancementContext()');
+  poisonReturned();
+  assert.equal(json('getCreationExtras()'), freshExtras);
+  assert.equal(json('getAdvancementContext()'), freshAdvancement);
+  // A cached answer must not alias live character state either: an in-place edit made after a miss must not reach it.
+  vm.runInContext("character.name += 'y'", context);
+  const aliasFresh = json('computeAdvancementContext()');
+  json('getAdvancementContext()');
+  vm.runInContext("{ const kept = character.creation_spellbook.slice(); character.creation_spellbook.push('poison'); character.creation_spellbook = kept; }", context);
+  assert.equal(json('getAdvancementContext()'), aliasFresh);
+});
+
+test('advancement HP preview follows every typed roll without a re-render', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig()); await flush(); fillWizard(context, { class: 'fighter' });
+  vm.runInContext('currentPageIndex = config.pages.length; startAdvancement(); character.pendingAdvancement.step = 1; renderPage();', context);
+  const before = vm.runInContext('getDerivedCharacter().hp', context);
+  dom.root.querySelectorAll('button').find(button => button.getAttribute('data-focus-key') === 'advancement-hp:roll').click();
+  const input = dom.root.querySelector('#advancement-hp-roll');
+  const sheetHp = () => Number(/(\d+)Хиты/.exec(dom.root.querySelector('.advancement-sheet').textContent)?.[1]);
+  const type = value => { input.value = value; input.dispatchEvent({ type: 'input' }); };
+  const constitution = vm.runInContext('getDerivedCharacter().modifiers.constitution', context);
+  for (const roll of [7, 3, 10]) {
+    type(String(roll));
+    const gain = Math.max(1, roll + constitution);
+    assert.ok(dom.root.querySelector('.advancement-hp-strip').textContent.includes(`Максимум хитов: ${before} → ${before + gain}`));
+    assert.equal(sheetHp(), before + gain);
+    assert.ok(dom.root.querySelector('.advancement-sheet').textContent.includes('Предпросмотр повышения'));
+  }
+  type('');
+  assert.equal(sheetHp(), before);
+  assert.ok(dom.root.querySelector('.advancement-sheet').textContent.includes('Сохранённый герой'));
+  assert.ok(dom.root.querySelector('.advancement-hp-strip').textContent.includes('Введите целый бросок от 1 до 10.'));
+  type('11');
+  assert.equal(sheetHp(), before);
+  type('4');
+  assert.equal(sheetHp(), before + Math.max(1, 4 + constitution));
 });

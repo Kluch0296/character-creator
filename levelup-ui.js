@@ -1,9 +1,12 @@
 /* Pending advancement is saved beside, never over, the committed character. */
-function getAdvancementContext() {
+function computeAdvancementContext() {
   const abilities=getCreationContext().abilities;
   const creation=CreationOptions.derive(character,{abilities});
   return {abilities,baseExtras:creation,proficiencies:CharacterRules.resolveProficiencies(character,creation)};
 }
+
+const memoAdvancementContext = memoizeForCharacter(computeAdvancementContext);
+function getAdvancementContext() { return memoAdvancementContext(); }
 
 function startAdvancement() {
   try {
@@ -132,8 +135,11 @@ function advancementHp(p, context) {
   if (LevelUpRules.hpGain) return LevelUpRules.hpGain(character,p,context);
   const die=CharacterRules.CLASSES[p.classId || character.class]?.hitDie,raw=p.hp?.value;
   const constitution=Math.floor((context.abilities.constitution-10)/2),bonus=context.baseExtras.hpBonus||0;
-  return {die,raw,constitution,bonus,gain:Math.max(1,raw+constitution+bonus)};
+  return {die,raw,constitution,bonus,gain:CharacterRules.levelHp(raw,constitution,bonus)};
 }
+
+// The 1-HP minimum applies to die + CON, so the formula shows it whenever it kicks in.
+function hpFloorNote(hp){return hp.raw+hp.constitution<1?' → минимум 1':'';}
 
 function advancementHpField(card, p, context, onChange) {
   const die=advancementHp(p,context).die,average=die/2+1,before=getDerivedCharacter().hp;
@@ -145,18 +151,18 @@ function advancementHpField(card, p, context, onChange) {
     const button=createElement('button',`advancement-hp-mode${p.hp.mode===id?' is-selected':''}`);button.type='button';
     button.setAttribute('aria-pressed',p.hp.mode===id?'true':'false');button.setAttribute('data-focus-key',`advancement-hp:${id}`);
     button.appendChild(createElement('span','advancement-hp-mode__title',title));button.appendChild(createElement('span','advancement-hp-mode__text',text));
-    button.addEventListener('click',()=>{if(p.hp.mode===id)return;p.hp={mode:id,value:id==='average'?average:1};saveDraft('result');renderPage();focusByKey(getApp(),`advancement-hp:${id}`);});
+    button.addEventListener('click',()=>{if(p.hp.mode===id)return;p.hp={mode:id,value:id==='average'?average:null};saveDraft('result');renderPage();focusByKey(getApp(),id==='roll'?'advancement-hp-roll':`advancement-hp:${id}`);});
     modes.appendChild(button);
   };
-  mode('average',`Среднее: +${averageGain.gain} хитов`,`${average} + ТЕЛ ${signedValue(averageGain.constitution)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''} · без броска`);
+  mode('average',`Среднее: +${averageGain.gain} хитов`,`${average} + ТЕЛ ${signedValue(averageGain.constitution)}${hpFloorNote(averageGain)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''} · без броска`);
   mode('roll','Свой бросок',`Бросьте к${die} и введите результат`);
   field.appendChild(modes);
-  if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select advancement-hp-roll');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.inputMode='numeric';input.value=p.hp.value;input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
+  if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select advancement-hp-roll');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.inputMode='numeric';input.value=p.hp.value??'';input.setAttribute('data-focus-key','advancement-hp-roll');input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
   const strip=createElement('div','advancement-hp-strip');strip.setAttribute('aria-live','polite');field.appendChild(strip);
   const updateStrip=()=>{
     const hp=advancementHp(p,context),valid=Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=die;strip.textContent='';strip.classList.remove('is-invalid');
     if(!valid){strip.classList.add('is-invalid');strip.textContent=`Введите целый бросок от 1 до ${die}.`;return;}
-    const formula=createElement('span','advancement-hp-strip__formula',`${hp.raw} кость + (${signedValue(hp.constitution)}) ТЕЛ${hp.bonus ? ` + ${hp.bonus} бонусы` : ''} = `);
+    const formula=createElement('span','advancement-hp-strip__formula',`${hp.raw} кость + (${signedValue(hp.constitution)}) ТЕЛ${hpFloorNote(hp)}${hp.bonus ? ` + ${hp.bonus} бонусы` : ''} = `);
     formula.appendChild(createElement('strong','advancement-hp-strip__gain',`+${hp.gain} хитов`));strip.appendChild(formula);
     strip.appendChild(createElement('span','advancement-hp-strip__total',`Максимум хитов: ${before} → ${before+hp.gain}`));
   };updateStrip();
@@ -191,17 +197,25 @@ function showAdvancement(container) {
     const index=createElement('span','advancement-progress__index',i<step?'✓':String(i+1));index.setAttribute('aria-hidden','true');
     target.appendChild(index);target.appendChild(createElement('span','advancement-progress__name',name));item.appendChild(target);progress.appendChild(item);
   });card.appendChild(progress);
-  const groups=LevelUpRules.getChoices(character,p,context),transition=LevelUpRules.transition(character,p,context),errors=transition.errors;
+  // Per-render values are computed once: this page re-renders on every card click, and each rules call replays the ledger.
+  const transition=LevelUpRules.transition(character,p,context),errors=transition.errors;
+  const groups=step>=2?LevelUpRules.getChoices(character,p,context):[];
   const aside=createElement('aside','character-sheet advancement-sheet');aside.setAttribute('aria-label','Лист персонажа при повышении');
-  const updateSheet=()=>{
-    const current=LevelUpRules.transition(character,p,context),base=context.baseExtras,committed=LevelUpRules.derive(character,context,base);
-    const extras=current.errors.length?committed:LevelUpRules.derive(character,context,base,current.state);
+  // The saved hero does not depend on the pending draft, and the preview depends only on the transition state.
+  let committedExtras=null,previewCache=null;
+  const savedExtras=()=>committedExtras||(committedExtras=LevelUpRules.derive(character,context,context.baseExtras));
+  const previewExtras=state=>{if(previewCache?.state!==state)previewCache={state,extras:LevelUpRules.derive(character,context,context.baseExtras,state)};return previewCache.extras;};
+  const renderSheet=current=>{
+    const extras=current.errors.length?savedExtras():previewExtras(current.state);
     const stats=CharacterRules.derivedStats(character,extras),hp=advancementHp(p,context);
     const eligible=!!selectedClass?.eligible;
     const validHp=eligible&&Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=hp.die&&(p.hp.mode==='roll'||p.hp.mode==='average'&&hp.raw===hp.die/2+1);
     if (current.errors.length&&validHp) {stats.hp+=hp.gain;stats.maxHp=stats.hp;}
     renderCharacterSheet(aside,null,{character,extras,stats,label:current.errors.length?(validHp?'Предпросмотр хитов':'Сохранённый герой'):'Предпросмотр повышения',note:current.errors.length?(validHp?'Умения и магия показывают сохранённого героя, пока выборы не завершены. Хиты учитывают допустимую прибавку.':'Укажите допустимые класс, хиты и решения. До проверки здесь показан сохранённый герой.'):'Все решения проверены. Изменения применятся после подтверждения.'});
-  };updateSheet();
+  };
+  // The HP input changes the draft without a re-render, so only that path recomputes the transition.
+  const updateSheet=()=>renderSheet(LevelUpRules.transition(character,p,context));
+  renderSheet(transition);
   if(step===0){
     advancementClassPicker(card,p,context,classOptions);
   } else if(step===1){
@@ -213,7 +227,7 @@ function showAdvancement(container) {
   } else {
     if(errors.length){const list=createElement('ul','validation-summary');list.setAttribute('role','alert');errors.forEach(e=>list.appendChild(createElement('li','',e.message)));card.appendChild(list);}
     else {
-      const extra=LevelUpRules.derive(character,context,context.baseExtras,transition.state),after=CharacterRules.derivedStats(character,extra),before=getDerivedCharacter();
+      const extra=previewExtras(transition.state),after=CharacterRules.derivedStats(character,extra),before=getDerivedCharacter();
       const review=createElement('dl','summary-grid');appendDefinition(review,'Общий уровень',`${p.from} → ${p.to}`);appendDefinition(review,'Классы',characterClassLabel(character,extra));appendDefinition(review,'Максимум хитов',`${before.hp} → ${after.hp} (+${advancementHp(p,context).gain})`);appendDefinition(review,'Кости хитов',characterHitDiceLabel(after,extra));const multiclass=(extra.classes||[]).length>1;appendDefinition(review,'Подклассы',(extra.subclasses||[]).map(item=>multiclass?`${extra.classes.find(x=>x.id===item.classId)?.label||item.classId}: ${item.label}`:item.label).join(' / ')||extra.subclass?.label||'—');
       const slots=Object.entries(extra.spellcasting?.slotTiers||{}).map(([level,count])=>`${count} × ${level}-й круг`);if(extra.spellcasting?.pactSlots) slots.push(`${extra.spellcasting.pactSlots.count} × ${extra.spellcasting.pactSlots.level}-й круг (договор, короткий отдых)`);appendDefinition(review,'Ячейки',slots.join('; ')||'—');card.appendChild(review);
       appendResultList(card,'Ресурсы',(extra.resources||[]).map(x=>`${x.name}: ${x.max}, ${x.recovery||(x.rest==='short-rest'?'короткий или долгий':'долгий')+' отдых'}`));

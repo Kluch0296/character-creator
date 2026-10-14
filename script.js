@@ -214,6 +214,25 @@ function restoreDraft() {
           markDraftSaved(false);
         }
       }
+      // Heroes who already levelled a restricted subclass confirmed the DM permission in their ledger; creation need not ask again.
+      // The field is outside the foundation fingerprint, so adding it never invalidates saved advancement.
+      // The migration is best-effort: a malformed ledger must never reach the outer catch, which would discard the hero.
+      try {
+        const entries = character.advancement?.entries;
+        if (!character.creation_campaign_permission && LevelUpRules.subclass(character)?.restrictions
+          && Array.isArray(entries)
+          && entries.some(entry => entry && typeof entry === 'object' && (!entry.classId || entry.classId === character.class) && entry.choices?.campaign_permission === 'yes')) {
+          character = { ...character, creation_campaign_permission: 'yes' };
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...draft, character }));
+            markDraftSaved(true);
+          } catch (error) {
+            markDraftSaved(false);
+          }
+        }
+      } catch (error) {
+        // Skip the migration; damaged ledgers are reported by LevelUpRules.inspect.
+      }
     }
     if (draft.pageId === 'result') {
       currentPageIndex = config.pages.length;
@@ -1335,8 +1354,11 @@ function showResult(container) {
   restart.type = 'button';
   restart.addEventListener('click', restartWizard);
   actions.appendChild(edit);
+  let notes=[];
   if(typeof LevelUpRules!=='undefined') {
     const ledger=LevelUpRules.inspect(character,getAdvancementContext());
+    // Warnings are already worded with human-readable group and option names (LevelUpRules.label). Only a saved key the rules no longer know at all (a vanished group) falls back to the key itself, so such a note may contain the raw key.
+    notes=ledger.errors.length?[]:(ledger.warnings||[]).map(w=>w.message);
     if(ledger.errors.length) {
       status.textContent='Журнал повышения требует исправления: '+ledger.errors[0].message;
       copy.disabled=true;download.disabled=true;
@@ -1348,6 +1370,8 @@ function showResult(container) {
   actions.appendChild(download);
   actions.appendChild(restart);
   result.appendChild(status);
+  // Non-blocking: older saved choices that current rules no longer offer are kept as they were.
+  if(notes.length){const warnings=createElement('p','result-status result-warnings','Часть сохранённой прокачки расходится с текущими правилами (герой сохранён без изменений): '+notes.join(' '));warnings.setAttribute('role','note');result.appendChild(warnings);}
   result.appendChild(actions);
 
   main.appendChild(result);

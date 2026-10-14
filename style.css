@@ -2986,6 +2986,10 @@ fieldset.form-field {
   font-size: 0.8rem;
 }
 
+.result-warnings {
+  color: var(--gold);
+}
+
 .result-actions {
   padding: 8px var(--pad) 28px;
 }

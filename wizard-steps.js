@@ -5,7 +5,47 @@ function getCreationContext() {
   return { abilities: CharacterRules.finalAbilities(character, extras) };
 }
 
-function getCreationExtras() {
+/* Rules derivation replays the whole advancement ledger, and one render asks for it many times.
+   Results are memoised by a snapshot of the only input (the character), so a changed character is a cache miss by itself.
+   That is correct only while the rules modules (rules.js, creation-options.js, levelup-rules.js) are pure functions of the
+   character apart from constant module data: a rule that read anything else (time, DOM, mutable module state) would be
+   served stale from the cache. Callers get a private deep copy on hits and misses: the cache can never be poisoned by a
+   caller that edits what it received, and a cached answer never aliases live character state.
+   The unfinished pendingAdvancement draft is left out of the key because derive/inspect never read it (the load-time
+   migration upgradeLegacyFoundation does, but it only edits the draft), so every card click in the advancement UI still hits. */
+function cloneRulesData(value) {
+  if (Array.isArray(value)) return value.map(cloneRulesData);
+  if (value && Object.prototype.toString.call(value) === '[object Object]') {
+    const copy = {};
+    for (const key of Object.keys(value)) copy[key] = cloneRulesData(value[key]);
+    return copy;
+  }
+  return value;
+}
+
+function memoizeForCharacter(compute, limit = 6) {
+  const cache = new Map();
+  return () => {
+    let key;
+    try {
+      const { pendingAdvancement, ...saved } = character;
+      key = JSON.stringify(saved);
+    } catch (error) { return compute(); }
+    if (typeof key !== 'string') return compute();
+    if (cache.has(key)) {
+      const hit = cache.get(key);
+      cache.delete(key);
+      cache.set(key, hit);
+      return cloneRulesData(hit);
+    }
+    const value = compute();
+    cache.set(key, cloneRulesData(value));
+    if (cache.size > limit) cache.delete(cache.keys().next().value);
+    return cloneRulesData(value);
+  };
+}
+
+function computeCreationExtras() {
   const context = getCreationContext();
   const extras = CreationOptions.derive(character, context);
   const proficiencies = CharacterRules.resolveProficiencies(character, extras);
@@ -16,6 +56,9 @@ function getCreationExtras() {
   const recalculated=CreationOptions.derive(character,{...context,proficiencies:finalProficiencies});
   return LevelUpRules.derive(character,{...context,baseExtras:base,proficiencies},recalculated);
 }
+
+const memoCreationExtras = memoizeForCharacter(computeCreationExtras);
+function getCreationExtras() { return memoCreationExtras(); }
 
 function getResolvedProficiencies() {
   return CharacterRules.resolveProficiencies(character, getCreationExtras());
