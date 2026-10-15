@@ -700,7 +700,7 @@ test('native barbarian sheet: the starting-kit physical weapons are not appended
  const raw=JSON.parse(NATIVE.barbarian.data).weaponsList;
  assert.deepEqual(rows.slice(0,raw.length),raw);
  const appended=rows.slice(raw.length);
-assert.ok(appended.every(r=>r.id.startsWith('weapon-creator-spell-')));
+assert.ok(appended.every(r=>!['колющий','рубящий','дробящий'].includes(r.dmgType.value)));
  assert.ok(appended.every(r=>!physical.has(r.dmgType.value)));
  assert.ok(!appended.some(r=>physicalNames.includes(r.name.value)));
  assertMergedSchema(merged,1);
@@ -740,4 +740,23 @@ test('our own exports keep every generated weapon row, including the physical on
  const merged=merge(second,sanitized(first));
  for(const name of names(second))assert.ok(names(merged).includes(name),name);
  assertMergedSchema(merged,2);
+});
+
+test('native barbarian sheet: class-feature attacks with non-physical damage are added (soulknife 3, armorer 3); starting-kit physical weapons are not', () => {
+ const cases=[
+  [advance(advance(create('rogue'),null),'soulknife'),['Психический клинок','Психический клинок (бонусное действие)']],
+  [advance(advance(create('artificer'),null),'armorer'),['Громовые перчатки (Страж)','Громовые перчатки (Страж) (Интеллект)','Метатель молний (Лазутчик)','Метатель молний (Лазутчик) (Интеллект)']]
+ ];
+ for(const [c,added] of cases){
+  const gen=exportCharacter(c).out, genRows=parsed(gen).weaponsList;
+  for(const name of added)assert.ok(genRows.some(r=>r.name.value===name),'generated '+name);
+  const physicalNames=genRows.filter(r=>!r.id.startsWith('weapon-creator-spell-')&&['колющий','рубящий','дробящий'].includes(r.dmgType.value)).map(r=>r.name.value);
+  assert.ok(physicalNames.length>0);
+  const merged=merge(gen,nativeOriginal('barbarian')), out=parsed(merged), rows=out.weaponsList, names=rows.map(r=>r.name.value);
+  for(const name of added)assert.equal(names.filter(n=>n===name).length,1,name);
+  for(const name of physicalNames)assert.equal(names.includes(name),false,'physical starting-kit weapon '+name);
+  assert.equal(new Set(rows.map(r=>r.id)).size,rows.length);
+  for(const b of out.bonuses){const m=/^weapon\.(.+)\.attack$/.exec(b.target);if(m)assert.ok(rows.some(r=>r.id===m[1]),'dangling '+b.target);}
+  assertMergedSchema(merged,3);
+ }
 });

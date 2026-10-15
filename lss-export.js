@@ -347,9 +347,10 @@
     const ownByName = new Map();
     for(const row of ownRows) { const key = normName(rowName(row)); if(!ownByName.has(key)) ownByName.set(key, row); }
     const genRows = list(data.weaponsList);
-    // A sheet with no physical weapon row of ours is a native or foreign sheet: its weapons are the user's inventory, so only generated spell
-    // attacks (weapon-creator-spell- ids) are added to it. Our own exports keep every generated row. Only non-spell rows decide ownership:
-    // spell rows appended to a native sheet must not flip it to ours on the next cycle, whatever their damage type.
+    // A sheet with no physical weapon row of ours is a native or foreign sheet: its weapons are the user's inventory. Such a sheet gets the generated
+    // spell attacks (weapon-creator-spell- ids) and the class-feature attacks with non-physical damage (e.g. psychic or thunder), but not the physical
+    // starting-kit weapons. Our own exports keep every generated row. Only non-spell physical rows decide ownership, so the rows appended to a native
+    // sheet cannot flip it to ours on the next cycle.
     const PHYSICAL_DAMAGE = new Set(Object.values(DAMAGE).map(normText));
     const ownExport = ownRows.some(row => typeof row.id === 'string' && /^weapon-creator-(?!spell-)/.test(row.id) && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value)));
     const used = new Set([...ownById, ...genRows.map(row => row.id)]);
@@ -359,7 +360,7 @@
     for(const row of genRows) {
       const match = ownByName.get(normName(rowName(row)));
       if(match) { weaponIds.set(row.id, typeof match.id === 'string' && match.id.startsWith('weapon-creator-') ? match.id : null); continue; }
-      if(!ownExport && !String(row.id).startsWith('weapon-creator-spell-')) { weaponIds.set(row.id, null); continue; }
+      if(!ownExport && !String(row.id).startsWith('weapon-creator-spell-') && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value))) { weaponIds.set(row.id, null); continue; }
       const id = ownById.has(row.id) ? freshId(String(row.id).startsWith('weapon-creator-spell-') ? 'weapon-creator-spell-' : 'weapon-creator-') : row.id;
       weaponIds.set(row.id, id);
       addedRows.push({...row, id});
