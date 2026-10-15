@@ -980,7 +980,7 @@
       if (!a && !b) break;
     }
 
-    // HP: hp-max of the sheet minus the level-1 maximum, inverted through levelHp (plan flag lssHpInferred is set by the UI, not here).
+    // HP: hp-max of the sheet minus the level-1 maximum, inverted through levelHp (the plan flag lssHpInferred is set here; the UI clears it on a manual HP change and strips it before commit).
     const base = L.derive(character, context, context.baseExtras || {});
     const hpBefore = D.rules.derivedStats(character, base).hp;
     const info = L.hpGain(character, p, context);
