@@ -146,18 +146,19 @@ function advancementHpField(card, p, context, onChange) {
   const averageGain=advancementHp({...p,hp:{mode:'average',value:average}},context);
   const field=createElement('div','form-field advancement-hp');
   field.appendChild(createElement('p','choice-help',`Кость выбранного класса: к${die}. Минимальная прибавка — 1 хит.`));
+  if(p.lssHpInferred===true)field.appendChild(createElement('p','choice-help lss-import-hp-note','Хиты подобраны по листу LSS.'));
   const modes=createElement('div','advancement-hp-modes');modes.setAttribute('role','group');modes.setAttribute('aria-label','Способ получения хитов');
   const mode=(id,title,text)=>{
     const button=createElement('button',`advancement-hp-mode${p.hp.mode===id?' is-selected':''}`);button.type='button';
     button.setAttribute('aria-pressed',p.hp.mode===id?'true':'false');button.setAttribute('data-focus-key',`advancement-hp:${id}`);
     button.appendChild(createElement('span','advancement-hp-mode__title',title));button.appendChild(createElement('span','advancement-hp-mode__text',text));
-    button.addEventListener('click',()=>{if(p.hp.mode===id)return;p.hp={mode:id,value:id==='average'?average:null};saveDraft('result');renderPage();focusByKey(getApp(),id==='roll'?'advancement-hp-roll':`advancement-hp:${id}`);});
+    button.addEventListener('click',()=>{if(p.hp.mode===id)return;p.hp={mode:id,value:id==='average'?average:null};delete p.lssHpInferred;saveDraft('result');renderPage();focusByKey(getApp(),id==='roll'?'advancement-hp-roll':`advancement-hp:${id}`);});
     modes.appendChild(button);
   };
   mode('average',`Среднее: +${averageGain.gain} ${CharacterRules.ruPlural(averageGain.gain,['хит','хита','хитов'])}`,`${average} + ТЕЛ ${signedValue(averageGain.constitution)}${hpFloorNote(averageGain)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''} · без броска`);
   mode('roll','Свой бросок',`Бросьте к${die} и введите результат`);
   field.appendChild(modes);
-  if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select advancement-hp-roll');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.inputMode='numeric';input.value=p.hp.value??'';input.setAttribute('data-focus-key','advancement-hp-roll');input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
+  if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select advancement-hp-roll');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.inputMode='numeric';input.value=p.hp.value??'';input.setAttribute('data-focus-key','advancement-hp-roll');input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);delete p.lssHpInferred;saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
   const strip=createElement('div','advancement-hp-strip');strip.setAttribute('aria-live','polite');field.appendChild(strip);
   const updateStrip=()=>{
     const hp=advancementHp(p,context),valid=Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=die;strip.textContent='';strip.classList.remove('is-invalid');
@@ -188,7 +189,7 @@ function showAdvancement(container) {
   if(selectedClass)chips.appendChild(createElement('span','advancement-chip advancement-chip--class',`${plainLabel(selectedClass.label)} ${selectedClass.level ? `${selectedClass.level} → ${selectedClass.nextLevel}` : '· новый класс'}`));
   chips.appendChild(createElement('span','advancement-chip',`Кость хитов к${CharacterRules.CLASSES[p.classId||character.class]?.hitDie}`));
   chips.appendChild(createElement('span','advancement-chip advancement-chip--muted','Исходный герой сохранён до подтверждения'));
-  head.appendChild(chips);card.appendChild(head);
+  head.appendChild(chips);card.appendChild(head);if(character.lssImport&&Number.isInteger(character.lssImport.sourceLevel)&&p.to<=character.lssImport.sourceLevel)card.appendChild(createElement('p','lss-import-note lss-import-note--advancement','Восстановление уровня из листа LSS: проверьте выборы.'));if(lssAdvancementNotice){card.appendChild(createElement('p','lss-import-note lss-import-note--advancement',lssAdvancementNotice));lssAdvancementNotice='';}
   const progress=createElement('ol','advancement-progress');progress.setAttribute('aria-label','Шаги повышения');
   steps.forEach((name,i)=>{
     const item=createElement('li',i<step?'is-done':i===step?'is-current':'');if(i===step)item.setAttribute('aria-current','step');
@@ -241,7 +242,7 @@ function showAdvancement(container) {
   button('Отменить повышение','text-button',cancelAdvancement);
   if(step>0)button('← Назад','secondary-button',()=>{p.step=step-1;saveDraft('result');renderPage();scrollToPageTop();});
   if(step<4)button('Далее →','primary-button',()=>{p.step=step+1;saveDraft('result');renderPage();scrollToPageTop();});
-  else {const commit=button('Применить повышение','primary-button',()=>{try{character=LevelUpRules.commit(character,p,context);saveDraft('result');renderPage();scrollToPageTop();}catch(e){showValidationErrors([{id:'advancement',message:e.message}]);}});commit.disabled=errors.length>0;}
+  else {const commit=button('Применить повышение','primary-button',()=>{try{character=LevelUpRules.commit(character,(({lssHpInferred,...plan})=>plan)(p),context);syncLssBaseline();saveDraft('result');renderPage();scrollToPageTop();}catch(e){showValidationErrors([{id:'advancement',message:e.message}]);}});commit.disabled=errors.length>0;}
   card.appendChild(actions);layout.appendChild(card);layout.appendChild(aside);main.appendChild(layout);shell.appendChild(main);container.appendChild(shell);heading.focus({preventScroll:true});
 }
 

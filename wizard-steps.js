@@ -28,7 +28,7 @@ function memoizeForCharacter(compute, limit = 6) {
   return () => {
     let key;
     try {
-      const { pendingAdvancement, ...saved } = character;
+      const { pendingAdvancement, lssImport, ...saved } = character;
       key = JSON.stringify(saved);
     } catch (error) { return compute(); }
     if (typeof key !== 'string') return compute();

@@ -218,7 +218,7 @@ function loadScript(dom, configData) {
     clearTimeout
   };
   vm.createContext(context);
-  for (const name of ['rules.js', 'levelup-data.js', 'levelup-rules.js', 'creation-options.js', 'lss-export.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js', 'levelup-ui.js']) {
+  for (const name of ['rules.js', 'levelup-data.js', 'levelup-rules.js', 'creation-options.js', 'lss-export.js', 'lss-import.js', 'spell-info.js', 'wizard-steps.js', 'wizard-ui.js', 'levelup-ui.js']) {
     vm.runInContext(fs.readFileSync(path.join(projectRoot, name), 'utf8'), context, { filename: name });
   }
   const script = fs.readFileSync(path.join(projectRoot, 'script.js'), 'utf8');
@@ -1429,4 +1429,448 @@ test('Green-Flame Blade shows as a weapon attack whose modifier damage goes to t
  const native=JSON.parse(context.getExportData()[0].data);
  assert.ok(!native.weaponsList.some(w=>w.name.value===L.label('green-flame-blade')));
  assert.ok(JSON.stringify(native.text.attacks).includes('атака оружием, 3 огнём второй цели'));
+});
+
+/* ---------- Long Story Short import screen (3.5.0) ---------- */
+const LssImportNode = require('../lss-import.js');
+const LssExportNode = require('../lss-export.js');
+const LevelUpNode = require('../levelup-rules.js');
+const RulesNode = require('../rules.js');
+const CreationNode = require('../creation-options.js');
+const FixtureNode = require('./fixtures/characters.js');
+const lssStandard = {strength: 15, dexterity: 14, constitution: 13, intelligence: 12, wisdom: 10, charisma: 8};
+const lssFixture = name => fs.readFileSync(path.join(projectRoot, 'test/fixtures', name), 'utf8');
+const lssFile = (name, text) => ({name, size: text.length, text: async () => text});
+const buttonNamed = (root, text) => root.querySelectorAll('button').find(node => node.textContent === text) || null;
+
+async function chooseLssFile(dom, file) {
+  const input = dom.root.querySelector('input[type="file"]');
+  input.files = [file];
+  input.dispatchEvent({ type: 'change' });
+  await flush();
+}
+
+// Our own sheet for a Node-built character: the same labels script.js passes to buildLssExport.
+function ownSheetText(c, edit = () => {}) {
+  const config = readConfig();
+  const deps = {config, rules: RulesNode, creation: CreationNode, levelup: LevelUpNode, spellIds: LssExportNode.SPELL_IDS};
+  const ctx = LssImportNode.advancementContext(c, deps);
+  const extras = LevelUpNode.derive(c, ctx, ctx.baseExtras);
+  const stats = RulesNode.derivedStats(c, extras);
+  const page = id => config.pages.find(p => p.id === id);
+  const race = page('race').options.find(o => o.value === c.race);
+  const sub = race?.suboptions?.find(o => o.value === c.race_sub);
+  const subField = CreationNode.getChoices(c, ctx).find(g => ['creation_domain', 'creation_origin', 'creation_patron'].includes(g.id));
+  const labels = {
+    class: page('class').elements[0].options.find(o => o.value === c.class)?.label,
+    race: race?.label, subrace: sub?.label,
+    background: page('background').options.find(o => o.value === c.background)?.label,
+    alignment: page('general').elements.find(e => e.id === 'alignment').options.find(o => o.value === c.alignment)?.label,
+    subclass: extras.subclass?.label || subField?.options.find(o => o.value === c[subField.id])?.label
+  };
+  const wrapper = JSON.parse(JSON.stringify(LssExportNode.buildLssExport(c, labels, stats, extras)[0]));
+  wrapper.disabledBlocks._id = '6acff6dd4ee5a75e133287c9';
+  const sheet = JSON.parse(wrapper.data);
+  edit(sheet);
+  wrapper.data = JSON.stringify(sheet);
+  return JSON.stringify([wrapper]);
+}
+
+// Creation completion for a draft (the same rules as the wizard): only missing or invalid choices are filled.
+function completeDraftInNode(context) {
+  const c = JSON.parse(vm.runInContext('JSON.stringify(character)', context));
+  for (let pass = 0; pass < 10; pass++) {
+    for (const g of CreationNode.getChoices(c, FixtureNode.context(c))) {
+      const selected = Array.isArray(c[g.id]) ? c[g.id] : c[g.id] ? [c[g.id]] : [];
+      if (selected.length === g.count && selected.every(id => g.options.some(o => o.value === id))) continue;
+      c[g.id] = g.count === 1 ? g.options[0]?.value : g.options.slice(0, g.count).map(o => o.value);
+    }
+    const prof = RulesNode.resolveProficiencies(c, CreationNode.derive(c, FixtureNode.context(c)));
+    for (const slot of prof.slots) {
+      const chosen = c.proficiencyChoices[slot.id];
+      if (chosen && slot.options.includes(chosen) && !prof.errors.some(e => e.id === slot.id)) continue;
+      const used = [...prof.skills, ...prof.tools, ...prof.languages];
+      c.proficiencyChoices[slot.id] = slot.options.find(id => slot.expertise ? !prof.expertise.includes(id) : !used.includes(id));
+    }
+  }
+  vm.runInContext(`character = ${JSON.stringify(c)}`, context);
+}
+
+// Fills the pending level-up like a user would: restored picks stay, missing ones take the first valid options.
+const FILL_PENDING_ADVANCEMENT = `(() => {
+  const p = character.pendingAdvancement, ctx = getAdvancementContext();
+  for (let pass = 0; pass < 10; pass++) {
+    const groups = LevelUpRules.getChoices(character, p, ctx);
+    const active = new Set(groups.map(g => g.id));
+    for (const key of Object.keys(p.choices)) if (!active.has(key)) delete p.choices[key];
+    for (const g of groups) {
+      const values = g.options.map(o => o.value);
+      const current = Array.isArray(p.choices[g.id]) ? p.choices[g.id] : p.choices[g.id] ? [p.choices[g.id]] : [];
+      const kept = current.filter(id => values.includes(id)).slice(0, g.count);
+      if (kept.length === g.count) { p.choices[g.id] = g.count === 1 ? kept[0] : kept; continue; }
+      const next = [...kept, ...values.filter(id => !kept.includes(id))].slice(0, g.count);
+      p.choices[g.id] = g.count === 1 ? next[0] : next;
+    }
+  }
+})()`;
+
+test('LSS import: header opens a level-1 sheet, review confirms it and the wizard starts on the first unfinished step', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  assert.ok(buttonNamed(dom.root, 'Загрузить из LSS'));
+  await chooseLssFile(dom, lssFile('barbarian.json', lssFixture('lss-native-barbarian-1.json')));
+  assert.ok(dom.root.textContent.includes('Загрузка листа персонажа'));
+  assert.ok(dom.root.querySelector('.lss-import-report'));
+  assert.ok(dom.root.querySelector('.is-check'), 'a checked item is marked by a chip');
+  assert.equal(dom.root.querySelector('.is-recognized'), null, 'recognised items have no chips in the review');
+  assert.ok(dom.root.querySelector('.summary-grid'), 'recognised items are listed in the summary');
+  assert.ok(dom.root.textContent.includes('Распознано'));
+  assert.ok(dom.root.textContent.includes('Проверьте и выберите'));
+  assert.ok(dom.root.textContent.includes('2024'), 'edition warning is shown');
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  const state = JSON.parse(vm.runInContext(`JSON.stringify({
+    cls: character.class, source: character.lssImport && character.lssImport.sourceLevel,
+    pending: character.pendingAdvancement ?? null, index: currentPageIndex, invalid: findFirstInvalidPage()?.index ?? null
+  })`, context));
+  assert.equal(state.cls, 'barbarian');
+  assert.equal(state.source, 1);
+  assert.equal(state.pending, null);
+  assert.notEqual(state.invalid, null);
+  assert.equal(state.index, state.invalid);
+  assert.ok(dom.root.querySelector('.lss-import-note'), 'import banner is shown on the wizard page');
+  assert.equal(dom.root.querySelector('.lss-import-card'), null);
+});
+
+test('LSS import: a file with several characters lists them and disables the level-3 sheet with its reason', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const base = JSON.parse(lssFixture('lss-native-barbarian-1.json'));
+  const withLevel = level => {
+    const wrapper = JSON.parse(JSON.stringify(base));
+    const sheet = JSON.parse(wrapper.data);
+    sheet.info.level.value = level;
+    wrapper.data = JSON.stringify(sheet);
+    return wrapper;
+  };
+  await chooseLssFile(dom, lssFile('several.json', JSON.stringify([withLevel(1), withLevel(2), withLevel(3)])));
+  const options = dom.root.querySelectorAll('.lss-import-option');
+  assert.equal(options.length, 3);
+  assert.equal(options[0].getAttribute('aria-disabled'), null);
+  assert.equal(options[1].getAttribute('aria-disabled'), null);
+  assert.equal(options[2].getAttribute('aria-disabled'), 'true');
+  assert.equal(vm.runInContext('lssImportSession.result.entries[2].support.code', context), 'level_unsupported');
+  assert.ok(options[2].textContent.length > 0, 'the reason is shown on the card');
+  options[2].click();
+  assert.equal(vm.runInContext('lssImportSession !== null', context), true, 'an unsupported card does nothing');
+  assert.equal(vm.runInContext('character.lssImport', context), undefined, 'listing does not touch the draft');
+});
+
+test('LSS import: a corrupt file shows an error and leaves the draft untouched', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  vm.runInContext(`character = {level: 1, class: 'fighter', race: 'human'}; renderPage();`, context);
+  const before = vm.runInContext('JSON.stringify(character)', context);
+  await chooseLssFile(dom, lssFile('broken.json', '{"data": '));
+  const alert = dom.root.querySelector('.is-error');
+  assert.ok(alert);
+  assert.equal(alert.getAttribute('role'), 'alert');
+  assert.ok(alert.textContent.length > 0);
+  assert.ok(buttonNamed(dom.root, 'Выбрать другой файл'));
+  assert.ok(buttonNamed(dom.root, 'Вернуться'));
+  assert.equal(vm.runInContext('JSON.stringify(character)', context), before);
+  buttonNamed(dom.root, 'Вернуться').click();
+  await flush();
+  assert.ok(dom.root.querySelector('.stepper'), 'returning leaves the import screen');
+});
+
+test('LSS import: a level-2 sheet restores level 2 through the advancement, blocks the download until then and exports merged data', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const level2 = FixtureNode.advance(FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  const text = ownSheetText(level2, sheet => { sheet.coins = {gp: {value: 17}, sp: {value: 4}}; });
+  await chooseLssFile(dom, lssFile('fighter-2.json', text));
+  assert.ok(dom.root.querySelector('.lss-import-review'), 'a single supported character goes straight to review');
+  assert.ok(dom.root.textContent.includes('После проверки 1-го уровня мастер предложит восстановить 2-й уровень из листа.'));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  assert.equal(vm.runInContext('character.lssImport.sourceLevel', context), 2);
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+
+  const restore = buttonNamed(dom.root, 'Восстановить 2-й уровень из листа');
+  assert.ok(restore, 'the level-2 restore replaces the normal advance button');
+  assert.equal(buttonNamed(dom.root, 'Повысить до 2-го уровня').className, 'secondary-button', 'the normal advance stays as the fallback');
+  assert.equal(buttonNamed(dom.root, 'Скачать JSON для Long Story Short').disabled, true);
+  assert.equal(buttonNamed(dom.root, 'Копировать JSON').disabled, true);
+  assert.ok(dom.root.textContent.includes('Сначала восстановите 2-й уровень из листа'));
+
+  restore.click();
+  await flush();
+  const plan = JSON.parse(vm.runInContext('JSON.stringify(character.pendingAdvancement)', context));
+  assert.equal(plan.from, 1);
+  assert.equal(plan.to, 2);
+  assert.equal(plan.step, 0);
+  assert.equal(plan.classId, 'fighter');
+  assert.equal(typeof plan.lssHpInferred, 'boolean');
+  assert.ok(dom.root.textContent.includes('Восстановление уровня из листа LSS: проверьте выборы.'));
+
+  vm.runInContext(`${FILL_PENDING_ADVANCEMENT}; character.pendingAdvancement.step = 4; renderPage();`, context);
+  const commit = buttonNamed(dom.root, 'Применить повышение');
+  assert.ok(commit);
+  assert.equal(commit.disabled, false);
+  commit.click();
+  await flush();
+
+  assert.equal(vm.runInContext('LevelUpRules.inspect(character, getAdvancementContext()).state.level', context), 2);
+  assert.equal(buttonNamed(dom.root, 'Скачать JSON для Long Story Short').disabled, false);
+  const exported = JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context));
+  const data = JSON.parse(exported[0].data);
+  assert.equal(data.info.level.value, 2);
+  assert.deepEqual(data.coins, {gp: {value: 17}, sp: {value: 4}});
+  assert.ok(!JSON.stringify(exported).includes('"_id"'));
+  assert.equal(vm.runInContext('JSON.stringify(character.advancement).includes("lssHpInferred")', context), false, 'the HP flag never reaches the ledger');
+  vm.runInContext("character = LevelUpRules.reset(character); saveDraft('result'); currentPageIndex = config.pages.length; renderPage();", context);
+  assert.equal(!!buttonNamed(dom.root, 'Восстановить 2-й уровень из листа'), true, 'a reset hero must restore level 2 again');
+  assert.equal(buttonNamed(dom.root, 'Скачать JSON для Long Story Short').disabled, true);
+});
+
+test('LSS import: a level-1 monk keeps its sheet speed, and after level 2 exports the generated 40 ft', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const monk = FixtureNode.create('monk', null, {abilities: lssStandard, abilityMethod: 'standard'});
+  await chooseLssFile(dom, lssFile('monk-1.json', ownSheetText(monk)));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+  assert.equal(vm.runInContext('character.lssImport.baseline.speed', context), 30);
+
+  const levelled = FixtureNode.advance(JSON.parse(vm.runInContext('JSON.stringify(character)', context)));
+  vm.runInContext(`character = ${JSON.stringify(levelled)}; currentPageIndex = config.pages.length; renderPage();`, context);
+  const exported = JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context));
+  const data = JSON.parse(exported[0].data);
+  assert.equal(data.info.level.value, 2);
+  assert.equal(data.vitality.speed.value, 40);
+  assert.equal(vm.runInContext('character.lssImport.baseline.speed', context), 30, 'the baseline stays frozen above the imported level');
+});
+
+/* ---------- LSS import: restore gating, storage, race and merge notices (3.5.0 review) ---------- */
+const LSS_STORAGE_KEY = 'dnd-character-draft-v2';
+const LSS_ORIGINAL_KEY_NAME = 'dnd-character-draft-v2:lss-original';
+const LSS_TEXT = {
+  quota: 'Исходный лист слишком большой для сохранения в браузере: после перезагрузки страницы заметки и снаряжение из него не перенесутся.',
+  oversized: 'Лист слишком большой — JSON выгрузится без заметок, снаряжения и монет из LSS; не удаляйте старый лист.',
+  reloadQuota: 'Загрузите лист снова прямо перед выгрузкой — браузеру не хватает места, чтобы хранить его копию.',
+  unavailable: 'Браузер не сохраняет черновик: объединение с исходным листом работает до перезагрузки страницы.',
+  reload: 'Исходный лист из LSS не найден в браузере: JSON выгрузится без заметок и снаряжения из LSS. Загрузите лист снова.',
+  mergeFailed: 'Не удалось объединить с исходным листом — выгружен лист без пользовательских данных LSS.',
+  restoreFallback: 'Не удалось подобрать выборы из листа — выберите их вручную.'
+};
+
+// Imports a sheet built from a Node character, completes the draft and opens the result page.
+async function importOwnSheet(dom, context, hero, edit = () => {}) {
+  await chooseLssFile(dom, lssFile('own.json', ownSheetText(hero, edit)));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+}
+
+// Storage whose writes of the sheet copy fail; the draft key keeps working.
+function failingOriginalStorage(name, fields) {
+  return win => {
+    const write = win.localStorage.setItem;
+    win.localStorage.setItem = (key, value) => {
+      if (key === LSS_ORIGINAL_KEY_NAME) throw Object.assign(new Error('storage refused'), fields);
+      return write(key, value);
+    };
+  };
+}
+
+test('LSS restore: a changed class offers only the normal advance and keeps export blocked', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const level2 = FixtureNode.advance(FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  await importOwnSheet(dom, context, level2);
+  assert.equal(!!buttonNamed(dom.root, 'Восстановить 2-й уровень из листа'), true);
+  vm.runInContext(`character.class = 'wizard'; renderPage();`, context);
+  assert.equal(!!buttonNamed(dom.root, 'Восстановить 2-й уровень из листа'), false, 'no sheet plan for another class');
+  assert.equal(dom.root.textContent.includes('Сначала повысьте до 2-го уровня — иначе в LSS попадёт персонаж ниже исходного уровня.'), true);
+  assert.equal(dom.root.textContent.includes('Сначала восстановите'), false);
+  assert.throws(() => context.getExportData(), /Сначала восстановите 2-й уровень из листа/, 'export stays blocked');
+  const advance = buttonNamed(dom.root, 'Повысить до 2-го уровня');
+  assert.equal(!!advance, true, 'the normal advance is the fallback');
+  assert.equal(advance.className, 'primary-button');
+  assert.equal(buttonNamed(dom.root, 'Скачать JSON для Long Story Short').disabled, true);
+  advance.click();
+  await flush();
+  assert.equal(vm.runInContext('!!character.pendingAdvancement && character.pendingAdvancement.from === 1 && character.pendingAdvancement.to === 2', context), true);
+});
+
+test('LSS restore: an unrecognised sheet class offers the manual advance and the start class stays empty', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const level2 = FixtureNode.advance(FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  await chooseLssFile(dom, lssFile('unknown-class.json', ownSheetText(level2, sheet => { sheet.info.charClass.value = 'Боец 2'; })));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  assert.equal(vm.runInContext('character.lssImport.startClass', context), null);
+  vm.runInContext(`character.class = 'fighter'; character.proficiencyChoices = character.proficiencyChoices || {};`, context);
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+  assert.equal(!!buttonNamed(dom.root, 'Восстановить 2-й уровень из листа'), false);
+  const advance = buttonNamed(dom.root, 'Повысить до 2-го уровня');
+  assert.equal(!!advance, true);
+  advance.click();
+  await flush();
+  assert.equal(vm.runInContext('!!character.pendingAdvancement && character.pendingAdvancement.to === 2', context), true);
+});
+
+test('LSS restore: a plan that fails to build falls back to the normal advance with a notice', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const level2 = FixtureNode.advance(FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  await importOwnSheet(dom, context, level2);
+  vm.runInContext(`character.lssImport.restore.classId = 'no-such-class'; renderPage();`, context);
+  const restore = buttonNamed(dom.root, 'Восстановить 2-й уровень из листа');
+  assert.equal(!!restore, true);
+  restore.click();
+  await flush();
+  assert.equal(vm.runInContext('!!character.pendingAdvancement && character.pendingAdvancement.to === 2', context), true);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.restoreFallback), true, 'the advancement names the fallback');
+  assert.equal(vm.runInContext('character.lssImport.sourceLevel', context), 2, 'the imported level is kept');
+});
+
+test('LSS storage: a quota refusal keeps the sheet copy for this session and says so', async () => {
+  const dom = createDOM();
+  failingOriginalStorage('QuotaExceededError', {name: 'QuotaExceededError'})(dom.window);
+  const context = loadScript(dom, readConfig());
+  await flush();
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}), sheet => { sheet.coins = {gp: {value: 17}}; });
+  assert.equal(vm.runInContext('lssStorage', context), 'quota');
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), true);
+  assert.equal(dom.window.localStorage.getItem(LSS_ORIGINAL_KEY_NAME), null);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.quota), true);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.oversized), false, 'quota is not described as oversized');
+  assert.equal(vm.runInContext('character.lssImport.originalStoreFailed', context), 'quota');
+  const data = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
+  assert.deepEqual(data.coins, {gp: {value: 17}});
+  vm.runInContext("lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();", context);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.reloadQuota), true, 'after a reload the quota variant asks for a fresh upload');
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), false);
+  assert.equal(!!buttonNamed(dom.root, 'Загрузить лист снова'), true);
+});
+
+test('LSS storage: unavailable storage keeps the sheet copy until reload and says so', async () => {
+  const dom = createDOM();
+  failingOriginalStorage('SecurityError', {name: 'SecurityError'})(dom.window);
+  const context = loadScript(dom, readConfig());
+  await flush();
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}), sheet => { sheet.coins = {gp: {value: 9}}; });
+  assert.equal(vm.runInContext('lssStorage', context), 'unavailable');
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.unavailable), true);
+  const data = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
+  assert.deepEqual(data.coins, {gp: {value: 9}});
+});
+
+test('LSS import: a read started before a restart never shows its screen afterwards', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const text = lssFixture('lss-native-barbarian-1.json');
+  const slow = {name: 'slow.json', size: text.length, text: () => new Promise(resolve => setTimeout(() => resolve(text), 80))};
+  const input = dom.root.querySelector('input[type="file"]');
+  input.files = [slow];
+  input.dispatchEvent({type: 'change'});
+  vm.runInContext('restartWizard()', context);
+  await new Promise(resolve => setTimeout(resolve, 160));
+  await flush();
+  assert.equal(!!dom.root.querySelector('.lss-import-card'), false);
+  assert.equal(vm.runInContext('lssImportSession', context), null);
+});
+
+test('LSS draft: the sheet copy has its own key, survives a reload, is migrated out of older drafts and is reported when missing', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}), sheet => { sheet.coins = {gp: {value: 17}}; });
+  const storage = dom.window.localStorage;
+  const draft = JSON.parse(storage.getItem(LSS_STORAGE_KEY));
+  assert.equal(draft.character.lssImport.original, undefined, 'the draft carries no sheet copy');
+  const stored = JSON.parse(storage.getItem(LSS_ORIGINAL_KEY_NAME));
+  assert.equal(stored.importedAt, draft.character.lssImport.importedAt);
+
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); renderPage();', context);
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), true, 'reload loads the copy of this import');
+  const reloaded = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
+  assert.deepEqual(reloaded.coins, {gp: {value: 17}});
+
+  const older = {...draft, character: {...draft.character, lssImport: {...draft.character.lssImport, original: stored.original}}};
+  storage.removeItem(LSS_ORIGINAL_KEY_NAME);
+  storage.setItem(LSS_STORAGE_KEY, JSON.stringify(older));
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); renderPage();', context);
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), true, 'the older draft still merges');
+  assert.notEqual(storage.getItem(LSS_ORIGINAL_KEY_NAME), null, 'the copy moves to its own key');
+  assert.equal(JSON.parse(storage.getItem(LSS_STORAGE_KEY)).character.lssImport.original, undefined, 'and leaves the draft');
+
+  storage.removeItem(LSS_ORIGINAL_KEY_NAME);
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();', context);
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), false);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), true);
+  assert.equal(!!buttonNamed(dom.root, 'Загрузить лист снова'), true);
+  const plain = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
+  assert.notEqual(plain.coins.gp.value, 17, 'without the copy the export is a plain sheet');
+});
+
+test('LSS storage: a sheet over the stored size never gets a copy and says so without offering a reload', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}), sheet => { sheet.junk = 'x'.repeat(1100000); });
+  assert.equal(vm.runInContext('character.lssImport.originalTooLarge', context), true);
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), false);
+  assert.equal(dom.window.localStorage.getItem(LSS_ORIGINAL_KEY_NAME), null);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.oversized), true);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.quota), false, 'not the quota wording');
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), false, 'not the reload wording');
+  assert.equal(!!buttonNamed(dom.root, 'Загрузить лист снова'), false);
+  const exported = JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context));
+  const data = JSON.parse(exported[0].data);
+  assert.equal(data.junk, undefined, 'the plain sheet carries no sheet data');
+});
+
+test('LSS export: a failing merge falls back to the plain sheet and the result page says so', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}), sheet => { sheet.coins = {gp: {value: 5}}; });
+  vm.runInContext(`LssExport.mergeLssExport = () => { throw new Error('merge refused'); }; renderPage();`, context);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.mergeFailed), true);
+  const plain = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
+  assert.notEqual(plain.coins.gp.value, 5, 'the plain sheet has no sheet data');
+  assert.equal(vm.runInContext('lastExportNotice', context), LSS_TEXT.mergeFailed);
+});
+
+test('LSS draft: a sheet copy without a draft that refers to it is removed on load', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const storage = dom.window.localStorage;
+  const copy = JSON.stringify({importedAt: 'orphan', original: {}});
+  // no lssImport in the draft
+  storage.setItem(LSS_ORIGINAL_KEY_NAME, copy);
+  storage.setItem(LSS_STORAGE_KEY, JSON.stringify({version: 3, edition: readConfig().meta.edition, pageId: 'result', character: {level: 1, class: 'fighter'}}));
+  vm.runInContext('restoreDraft()', context);
+  assert.equal(storage.getItem(LSS_ORIGINAL_KEY_NAME), null, 'no lssImport: the copy is removed');
+  // another edition: the draft is ignored and so is its copy
+  storage.setItem(LSS_ORIGINAL_KEY_NAME, copy);
+  storage.setItem(LSS_STORAGE_KEY, JSON.stringify({version: 3, edition: '2024', pageId: 'result', character: {level: 1, lssImport: {importedAt: 'orphan', sourceLevel: 1}}}));
+  vm.runInContext('restoreDraft()', context);
+  assert.equal(storage.getItem(LSS_ORIGINAL_KEY_NAME), null, 'other edition: the copy is removed');
+  // unreadable draft
+  storage.setItem(LSS_ORIGINAL_KEY_NAME, copy);
+  storage.setItem(LSS_STORAGE_KEY, '{broken');
+  vm.runInContext('restoreDraft()', context);
+  assert.equal(storage.getItem(LSS_ORIGINAL_KEY_NAME), null, 'unreadable draft: the copy is removed');
+  // no draft at all
+  storage.setItem(LSS_ORIGINAL_KEY_NAME, copy);
+  storage.removeItem(LSS_STORAGE_KEY);
+  vm.runInContext('restoreDraft()', context);
+  assert.equal(storage.getItem(LSS_ORIGINAL_KEY_NAME), null, 'no draft: the copy is removed');
 });
