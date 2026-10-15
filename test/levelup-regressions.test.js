@@ -1296,3 +1296,16 @@ test('LSS damage type of spell-group rows is Russian; unarmed Astral Arms stay a
   for(const w of exported(c).weaponsList.filter(w=>names.has(w.name.value)))assert.match(w.dmgType.value,/^[а-яё ]+$/,w.name.value);
  }
 });
+test('PR26 round thirty-two: nine rule gaps (dnd.su) are reflected in the sheet',()=>{
+ const desc=(c,name)=>extras(c).features.find(f=>f.name===name)?.description||'';
+ assert.match(desc(create('cleric','grave'),'Глаза могилы'),/не защищённую от магии школы Прорицания/);
+ assert.match(desc(advance(create('druid'),'spores'),'Ореол спор'),/видимое вами существо в 10 футах/);
+ assert.match(desc(create('warlock','celestial'),'Исцеляющий свет'),/видимое вами существо в 60 футах/);
+ const paladin=oath=>advance(advance(create('paladin')),oath);
+ const unholy=desc(paladin('devotion'),'Изгнание нечисти');assert.match(unholy,/видят или слышат вас/);assert.match(unholy,/удаляются от вас.*без реакций.*Рывок.*мешающего двигаться; если двигаться некуда — Уклонение/);
+ const faithless=desc(paladin('ancients'),'Изгнание неверных');assert.match(faithless,/которые слышат вас/);assert.match(faithless,/без реакций.*Рывок.*Уклонение/);assert.match(faithless,/истинный облик раскрывается/);
+ assert.match(desc(paladin('watchers'),'Воля наблюдателей'),/вы и до ХАР видимых вами существ/);
+ assert.match(desc(paladin('oathbreaker'),'Контроль нежити'),/одна видимая вами нежить.*уровня паладина.*до повторного использования умения/);
+ const clap=extras(create('wizard',null,{creation_cantrips:['thunderclap','fire-bolt','light']})).attacks.find(a=>a.cantripId==='thunderclap');assert.match(clap.notes.join(' '),/Каждое существо, кроме вас, в пределах 5 футов/);
+ const blast=extras(advance(create('warlock',null,{creation_cantrips:['eldritch-blast','chill-touch']}),null,{invocations:['agonizing-blast','repelling-blast']})).attacks.find(a=>a.id==='cantrip-eldritch-blast');assert.match(blast.notes.join(' '),/Отталкивающий взрыв: при попадании можно оттолкнуть существо на расстояние до 10 футов/);assert.doesNotMatch(blast.notes.join(' '),/Большой или меньше/);
+});
