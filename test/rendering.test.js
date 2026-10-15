@@ -1098,7 +1098,7 @@ test('PR26 round eighteen: actual sheet and native LSS preserve class-sensitive 
    const profiles=H.extras(c).features.filter(f=>f.name===name),data=JSON.parse(context.getExportData()[0].data);assert.equal(profiles.length,1);const text=profiles[0].description;assert.ok(dom.root.textContent.includes(text));assert.equal(JSON.stringify(data.text.traits).split(text).length-1,1);
    if(patron==='hexblade')assert.ok(text.includes('восстановите '+(level+H.stats(c).modifiers.charisma)+' хит'));
    if(patron==='genie')assert.ok(text.includes({dao:'дробящий',djinni:'звуком',efreeti:'огнём',marid:'холодом'}[genie]));
-   if(patron==='undead'){assert.ok(text.includes('1к10 + '+level+' временных хитов'));assert.ok(text.includes('Мудрости Сл '+(10+H.stats(c).modifiers.charisma)));}
+   if(patron==='undead'){assert.ok(text.includes('1к10 + '+level+' '+(level===1?'временный хит':level<=4?'временных хита':'временных хитов')));assert.ok(text.includes('Мудрости Сл '+(10+H.stats(c).modifiers.charisma)));}
    assert.equal(JSON.stringify(c),before);assert.equal(vm.runInContext('JSON.stringify(character.advancement)',context),JSON.stringify(c.advancement));
   }
  }
@@ -1392,4 +1392,41 @@ test('advancement HP preview follows every typed roll without a re-render', asyn
   assert.equal(sheetHp(), before);
   type('4');
   assert.equal(sheetHp(), before + Math.max(1, 4 + constitution));
+});
+
+test('PR26 round twenty-nine: level-up review names form choices only for classes that have them',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules');
+ for(const [c,shown,pinned={}] of [[H.create('fighter',null,{abilityMethod:'manual'}),false],[H.create('druid',null,{abilityMethod:'manual'}),true],[H.advance(H.create('warlock','fiend',{abilityMethod:'manual'})),true,{pact:'blade'}],[H.advance(H.create('barbarian',null,{abilityMethod:'manual'})),true,{subclass:'beast'}]]){
+  const draft=H.fill(c,L.begin(c,H.context(c)),pinned),dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+  vm.runInContext(`character.pendingAdvancement=${JSON.stringify({...draft,step:4})};renderPage();`,context);
+  assert.ok(dom.root.textContent.includes('Применить повышение'),c.class);
+  assert.equal(dom.root.textContent.includes('Формы Дикого облика'),shown,c.class);
+ }
+});
+
+test('damaging cantrips render as spell attacks: to-hit for attack rolls, DC and save for saving throws',async()=>{
+ const H=require('./fixtures/characters');
+ const cleric=H.create('cleric','life',{abilityMethod:'manual',abilities:{strength:10,dexterity:12,constitution:14,intelligence:10,wisdom:16,charisma:14},creation_cantrips:['sacred-flame','guidance','light']});
+ const c=H.enter(H.enter(cleric,'warlock',{'warlock:creation_patron':'fiend','warlock:creation_cantrips':['eldritch-blast','chill-touch']}),'warlock',{invocations:['agonizing-blast','repelling-blast']});
+ const dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+ const text=dom.root.textContent;
+ assert.ok(text.includes('Мистический заряд: +4 к попаданию, 1к10+2 силовым полем'),'attack-roll cantrip shows to-hit, dice and damage type');
+ assert.ok(text.includes('Священное пламя: Сл 13, спасбросок ЛОВ, 1к8 излучением'),'saving-throw cantrip shows DC and save instead of to-hit');
+ assert.ok(!text.includes('Священное пламя: +'),'saving-throw cantrip never shows a to-hit bonus');
+ assert.ok(!text.includes('undefined')&&!text.includes('NaN'));
+ const native=JSON.parse(context.getExportData()[0].data);
+ assert.ok(native.weaponsList.some(w=>w.name.value==='Мистический заряд'&&w.dmg.value==='1d10+2'&&w.ability==='cha'));
+ assert.ok(!native.weaponsList.some(w=>w.name.value==='Священное пламя'));
+});
+
+test('Green-Flame Blade shows as a weapon attack whose modifier damage goes to the second creature',async()=>{
+ const H=require('./fixtures/characters'),L=require('../levelup-rules');
+ const c=H.create('wizard',null,{abilityMethod:'manual',creation_cantrips:['green-flame-blade','mage-hand','light']});
+ const dom=createDOM();storeRoundSixteen(dom,c);const context=loadScript(dom,readConfig());await flush();
+ const text=dom.root.textContent,line=L.label('green-flame-blade')+': атака оружием, 3 огнём второй цели';
+ assert.ok(text.includes(line),'weapon attack, modifier damage dealt to the second target');
+ assert.ok(!text.includes(L.label('green-flame-blade')+': +'),'no spell to-hit for a weapon attack');
+ const native=JSON.parse(context.getExportData()[0].data);
+ assert.ok(!native.weaponsList.some(w=>w.name.value===L.label('green-flame-blade')));
+ assert.ok(JSON.stringify(native.text.attacks).includes('атака оружием, 3 огнём второй цели'));
 });

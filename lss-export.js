@@ -8,8 +8,10 @@
   const ABILITY_NAMES = {strength:'Сила',dexterity:'Ловкость',constitution:'Телосложение',intelligence:'Интеллект',wisdom:'Мудрость',charisma:'Харизма'};
   const SKILLS = {athletics:'str',acrobatics:'dex','sleight of hand':'dex',stealth:'dex',arcana:'int',history:'int',investigation:'int',nature:'int',religion:'int','animal handling':'wis',insight:'wis',medicine:'wis',perception:'wis',survival:'wis',deception:'cha',intimidation:'cha',performance:'cha',persuasion:'cha'};
   const DAMAGE = {bludgeoning:'дробящий',piercing:'колющий',slashing:'рубящий'};
-  // IDs read from the native 2014 SRD spell picker (2026-09-26). Non-SRD spells
-  // absent from that catalog remain in the sheet text with their source and usage.
+  const SPELL_DAMAGE = {force:'силовое поле',radiant:'излучение',fire:'огонь',cold:'холод',necrotic:'некротическая энергия',lightning:'электричество',thunder:'звук',acid:'кислота',poison:'яд',psychic:'психическая энергия'};
+  // IDs of all 127 SRD 2014 spells of circles 0-2 from the official LSS catalogue
+  // (verified 2026-10-15; cards with playerId, i.e. user homebrew, are never used).
+  // Non-SRD spells absent from it remain in the sheet text with source and usage.
   const SPELL_IDS = {
     'acid-splash':'65d3c170f3d820fa1add476e','mage-hand':'65d3c16af3d820fa1add43a8',shillelagh:'65d3c16bf3d820fa1add4442',
     'vicious-mockery':'65d3c16ef3d820fa1add4695',druidcraft:'65d3c16ff3d820fa1add46fe','chill-touch':'65d3c170f3d820fa1add4759',
@@ -35,12 +37,36 @@
     'create-or-destroy-water':'65d3c173f3d820fa1add48fd','fog-cloud':'65d3c168f3d820fa1add4212',sanctuary:'65d3c171f3d820fa1add47c9',
     sleep:'65d3c16af3d820fa1add437e',goodberry:'65d3c169f3d820fa1add42cf',shield:'65d3c172f3d820fa1add486a',
     'shield-of-faith':'65d3c172f3d820fa1add48be','pass-without-trace':'65d3c16ef3d820fa1add4672',levitate:'65d3c16ef3d820fa1add464f',
-    'animal-messenger':'65d3c16af3d820fa1add43e0','tashas-hideous-laughter':'65d3c176f3d820fa1add49f2','tensers-floating-disk':'65d3c176f3d820fa1add4a31'
+    'animal-messenger':'65d3c16af3d820fa1add43e0','tashas-hideous-laughter':'65d3c176f3d820fa1add49f2','tensers-floating-disk':'65d3c176f3d820fa1add4a31',
+    'hunters-mark':'65d3c170f3d820fa1add474b','spiritual-weapon':'65d3c16bf3d820fa1add440a','continual-flame':'65d3c16ff3d820fa1add470c',
+    'see-invisibility':'65d3c172f3d820fa1add4894',suggestion:'65d3c16af3d820fa1add43ee','magic-mouth':'65d3c169f3d820fa1add4266',
+    'arcane-lock':'65d3c16bf3d820fa1add4411',augury:'65d3c173f3d820fa1add48c5','blindness-deafness':'65d3c168f3d820fa1add419b',
+    'flame-blade':'65d3c16df3d820fa1add457d',shatter:'65d3c175f3d820fa1add49c8',barkskin:'65d3c16ff3d820fa1add46f7',
+    'protection-from-poison':'65d3c173f3d820fa1add4927','melfs-acid-arrow':'65d3c16df3d820fa1add45e6','branding-smite':'65d3c16bf3d820fa1add442d',
+    'nystuls-magic-aura':'65d3c171f3d820fa1add481d',moonbeam:'65d3c175f3d820fa1add49ac','ray-of-enfeeblement':'65d3c16cf3d820fa1add450d',
+    'magic-weapon':'65d3c171f3d820fa1add47de','lesser-restoration':'65d3c171f3d820fa1add4824','prayer-of-healing':'65d3c171f3d820fa1add4839',
+    invisibility:'65d3c172f3d820fa1add48b7','gentle-repose':'65d3c16df3d820fa1add45c3','zone-of-truth':'65d3c169f3d820fa1add4290',
+    'detect-thoughts':'65d3c16ef3d820fa1add468e',knock:'65d3c170f3d820fa1add4767','mirror-image':'65d3c172f3d820fa1add487f',
+    'warding-bond':'65d3c169f3d820fa1add42c8','scorching-ray':'65d3c176f3d820fa1add49dd','spider-climb':'65d3c174f3d820fa1add4989',
+    web:'65d3c173f3d820fa1add48da',aid:'65d3c169f3d820fa1add42eb','locate-animals-or-plants':'65d3c16cf3d820fa1add44b2',
+    'find-traps':'65d3c174f3d820fa1add496d','locate-object':'65d3c16ff3d820fa1add4705','find-steed':'65d3c16cf3d820fa1add44c0',
+    'gust-of-wind':'65d3c169f3d820fa1add4282','flaming-sphere':'65d3c16cf3d820fa1add44ab',blur:'65d3c169f3d820fa1add42dd',
+    'heat-metal':'65d3c168f3d820fa1add41e1',enthrall:'65d3c16bf3d820fa1add4403','alter-self':'65d3c16af3d820fa1add435b',
+    silence:'65d3c16ff3d820fa1add46a3','rope-trick':'65d3c16df3d820fa1add4584','misty-step':'65d3c16bf3d820fa1add4434',
+    darkness:'65d3c173f3d820fa1add4904',darkvision:'65d3c16af3d820fa1add430e','enlarge-reduce':'65d3c168f3d820fa1add41be',
+    'hold-person':'65d3c16cf3d820fa1add44f1','enhance-ability':'65d3c16ef3d820fa1add465d','calm-emotions':'65d3c16cf3d820fa1add4537',
+    'spike-growth':'65d3c16af3d820fa1add433f'
   };
   const field = (name, value = '') => ({name,value:value ?? ''});
   const list = value => Array.isArray(value) ? value : [];
   const valueLabel = value => typeof value === 'string' ? value : value?.label || value?.name || value?.id || '';
   const formatBonus = n => `${n >= 0 ? '+' : ''}${n}`;
+  // Cantrips without their own spell attack roll (saving throw, weapon rider) are not LSS weapon rows: LSS would show a meaningless to-hit.
+  const noRoll = a => !!(a.save || a.weaponRider);
+  // Cantrip text lines (effectText/cantripLine) use the Russian «к» notation (1к8); weapon text lines keep their existing d-notation, and weaponsList.dmg keeps d because LSS parses it.
+  const ruDice = text => String(text).replace(/(\d)d(\d)/g, '$1к$2');
+  const effectText = a => a ? ruDice(`${a.save ? `спасбросок ${a.save.short}, Сл ${a.save.dc}` : 'атака оружием'}, ${a.damage} ${a.damageTypeText || a.type || ''}${a.riderText ? ` ${a.riderText}` : ''}${a.notes?.length ? `; ${a.notes.join('; ')}` : ''}`) : '';
+  const cantripLine = a => noRoll(a) ? `${a.label}: ${effectText(a)}` : ruDice(`${a.label}: атака ${formatBonus(a.attackBonus || 0)}, урон ${a.damage} ${a.damageTypeText || a.type || ''}${a.notes?.length ? `; ${a.notes.join('; ')}` : ''}`);
   // Native LSS rich text is a TipTap document, not an HTML string or a plain textarea.
   function richText(lines) {
     return {value:{data:{type:'doc',content:[...new Set(lines.filter(Boolean).flatMap(line => String(line).split('\n')))].map(text => ({type:'paragraph',...(text ? {content:[{type:'text',text}]} : {})}))}}};
@@ -122,20 +148,21 @@
       if(character[source]) data.text[key]=richText([character[source]]);
     }
     const attacks=list(options.attacks);
-    data.weaponsList=attacks.map((attack,index)=>{
+    data.weaponsList=attacks.filter(a=>!noRoll(a)).map((attack,index)=>{
       const id=`weapon-creator-${index}`, ability=ABILITIES[attack.ability] || 'str';
       const base=Math.floor((data.stats[ability].score-10)/2)+(attack.proficient?data.proficiency:0);
       const bonus=(attack.attackBonus ?? base)-base;
       if(bonus) data.bonuses.push({id:`bonus-creator-attack-${index}`,label:'Бонус атаки',target:`weapon.${id}.attack`,expr:String(bonus),source:{kind:'user'}});
       return {id,name:{value:attack.label || attack.name || attack.id},isProf:!!attack.proficient,ability,
-        dmg:{value:attack.damage || ''},dmgType:{value:DAMAGE[attack.type] || attack.type || ''},notes:{value:list(attack.notes).join('; ')}};
+        dmg:{value:attack.damage || ''},dmgType:{value:DAMAGE[attack.type] || (attack.group === 'spell' && SPELL_DAMAGE[attack.type]) || attack.type || ''},notes:{value:list(attack.notes).join('; ')}};
     });
+    const cantripRows=new Map(attacks.filter(noRoll).map(a=>[a.cantripId+':'+a.ability,a]));
     const spellLines=list(options.spells).map(spell=>{
       const stat=ABILITIES[spell.ability],modifier=stat?Math.floor((data.stats[stat].score-10)/2):null;
       const castingText=stat?`; ${ABILITY_NAMES[spell.ability]}, Сл ${8+data.proficiency+modifier}, атака ${formatBonus(data.proficiency+modifier)}`:'';
-      return `${spell.label || spell.name || spell.id} (${spell.level===0?'заговор':`${spell.level}-й уровень`}; ${spell.source || ''}; ${{cantrip:'заговор',known:'известно',prepared:'подготовлено',spellbook:'книга заклинаний',racial:'расовое',ritual:'ритуал',feat:'черта'}[spell.status] || spell.status || ''}${castingText})${spell.usage?` — ${spell.usage}`:''}${SPELL_IDS[spell.id]?'':' — карточки нет в каталоге LSS, добавьте вручную'}`;
+      return `${spell.label || spell.name || spell.id} (${spell.level===0?'заговор':`${spell.level}-й уровень`}; ${spell.source || ''}; ${{cantrip:'заговор',known:'известно',prepared:'подготовлено',spellbook:'книга заклинаний',racial:'расовое',ritual:'ритуал',feat:'черта'}[spell.status] || spell.status || ''}${castingText}${spell.level===0&&cantripRows.has(spell.id+':'+spell.ability)?`; ${effectText(cantripRows.get(spell.id+':'+spell.ability))}`:''})${spell.usage?` — ${spell.usage}`:''}${SPELL_IDS[spell.id]?'':' — карточки нет в каталоге LSS, добавьте вручную'}`;
     });
-    data.text.attacks=richText([...attacks.map(a=>`${a.label || a.name}: атака ${formatBonus(a.attackBonus || 0)}, урон ${a.damage} ${DAMAGE[a.type] || a.type || ''}${a.notes?.length?`; ${a.notes.join('; ')}`:''}`),...spellLines]);
+    data.text.attacks=richText([...attacks.filter(a=>!noRoll(a)).map(a=>a.cantrip?cantripLine(a):`${a.label || a.name}: атака ${formatBonus(a.attackBonus || 0)}, урон ${a.damage} ${DAMAGE[a.type] || a.type || ''}${a.notes?.length?`; ${a.notes.join('; ')}`:''}`),...spellLines]);
     const casting=options.spellcasting;
     if(casting && ABILITIES[casting.ability]) {
       data.spellsInfo.base={name:'base',code:ABILITIES[casting.ability],value:ABILITY_NAMES[casting.ability]};
@@ -149,7 +176,7 @@
     }
     if(multiclass) {
       for(const c of list(options.spellcastingByClass)) {
-        const text=`${c.label || c.classId} ${c.level}: ${ABILITY_NAMES[c.ability] || c.ability}; Сл ${c.saveDC}, атака ${formatBonus(c.attackBonus)}${c.preparedCount!==undefined?`; подготовка ${c.preparedCount}`:''}${c.knownCount!==undefined?`; известно ${c.knownCount}`:''}${c.spellbook?.length?`; в книге ${c.spellbook.length}`:''}.`;
+        const text=`${c.label || c.classId} ${c.level}: ${ABILITY_NAMES[c.ability] || c.ability}; Сл ${c.saveDC}, атака ${formatBonus(c.attackBonus)}${c.preparedCount?`; подготовка ${c.preparedCount}`:''}${c.knownCount!==undefined?`; известно ${c.knownCount}`:''}${c.spellbook?.length?`; в книге ${c.spellbook.length}`:''}.`;
         data.text.attacks.value.data.content.push(...richText([text]).value.data.content);
       }
     }

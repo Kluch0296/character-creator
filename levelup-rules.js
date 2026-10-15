@@ -282,7 +282,7 @@
  });
  // Items the Replicate Magic Item infusion can copy (fallback list when the catalogue omits it).
  const REPLICAS=D.replicaItems||['alchemy-jug','bag-of-holding','cap-of-water-breathing','goggles-of-night','rope-of-climbing','sending-stones','wand-of-magic-detection','wand-of-secrets'];
- const label=id=>OPTION_NAMES[id]||SUBNAMES[id]||FEATURE_RULES[id]?.[0]||D.labels?.[id]||D.spells[id]?.label||D.spells[id]?.name||R.LABELS[id]||D.options.find(o=>o.id===id)?.name||String(id).replaceAll('-',' ');
+ const label=id=>OPTION_NAMES[id]||SUBNAMES[id]||FEATURE_RULES[id]?.[0]||D.labels?.[id]||D.spells[id]?.label||D.spells[id]?.name||R.LABELS[id]||D.options.find(o=>o.id===id)?.name||String(id).replaceAll('-',' ');const infusionLabel=id=>String(id).startsWith('replicate:')?'Копия магического предмета: '+label(String(id).slice(10)):label(id);
  const url=cls=>'https://5e14.dnd.su/class/'+D.references[cls]+'/';
  function subclasses(cls){return D.subclasses.filter(s=>s.class===cls).map(s=>({...s,label:cls==='wizard'&&s.id==='war'?'Военная магия':cls==='sorcerer'&&s.id==='shadow'?'Теневая магия':SUBNAMES[s.id]||s.name}));}
  function subclass(c,state={}){return subclasses(c.class).find(s=>s.id===(FIELD[c.class]?c[FIELD[c.class]]:state.subclass));}
@@ -415,6 +415,71 @@
      e.attacks.push({id:'radiant-sun-bolt',label:'Луч солнечного света',type:'radiant',group:'spell',properties:['ranged'],ability:'dexterity',proficient:true,attackBonus:2+bonus,damageBonus:bonus,damage:`1d4${bonus>=0?'+':''}${bonus}`,notes:['Дальнобойная атака заклинанием на 30 футов вместо одной атаки действия Атака. Если используете этот луч частью действия Атака в свой ход, можете потратить 1 ци и совершить две такие атаки бонусным действием.']});
     }
   }
+ // Damaging cantrips become attack rows (PHB/XGE/TCE/EGW 2014). Cantrip dice scale only from character level 5, so levels 1-3 use base dice.
+ // Tuple: [kind, dice, damage type, property/save ability, rule note, damage += spellcasting modifier, rider target text]. Kind a = spell attack roll (to-hit = proficiency + ability);
+ // s = saving throw (no to-hit, DC = 8 + proficiency + ability); r = weapon attack with a rider (no spell attack roll of its own). {R} in a note is the spell range (see CANTRIP_RANGE).
+ const AB_RU={strength:['СИЛ','Сила'],dexterity:['ЛОВ','Ловкость'],constitution:['ТЕЛ','Телосложение'],intelligence:['ИНТ','Интеллект'],wisdom:['МДР','Мудрость'],charisma:['ХАР','Харизма']};const AB_GEN={strength:'Силы',dexterity:'Ловкости',constitution:'Телосложения',intelligence:'Интеллекта',wisdom:'Мудрости',charisma:'Харизмы'};
+ const DAMAGE_TEXT={force:'силовым полем',radiant:'излучением',fire:'огнём',cold:'холодом',necrotic:'некротической энергией',lightning:'электричеством',thunder:'звуком',acid:'кислотой',poison:'ядом',psychic:'психической энергией',bludgeoning:'дробящим уроном',piercing:'колющим уроном'};
+ // Spell Sniper doubles the range of attack-roll spells with a numeric range; Self/Touch spells (Produce Flame, Magic Stone, Shocking Grasp, Primal Savagery) keep theirs.
+ const CANTRIP_RANGE={'eldritch-blast':120,'fire-bolt':120,'ray-of-frost':60,'chill-touch':120,'thorn-whip':30};const SELF_TOUCH_RANGE={'produce-flame':'на себя','magic-stone':'касание'};
+ const CANTRIP_ATTACKS={
+  'eldritch-blast':['a','1d10','force','ranged','Дальнобойная атака заклинанием на {R}; до 5-го уровня персонажа один луч.'],
+  'fire-bolt':['a','1d10','fire','ranged','Дальнобойная атака заклинанием на {R}; воспламеняет горючий предмет, который никто не носит и не несёт.'],
+  'ray-of-frost':['a','1d8','cold','ranged','Дальнобойная атака заклинанием на {R}; при попадании скорость цели снижается на 10 футов до начала вашего следующего хода.'],
+  'chill-touch':['a','1d8','necrotic','ranged','Дальнобойная атака заклинанием на {R}; при попадании цель не восстанавливает хиты до начала вашего следующего хода, а у нежити помеха на атаки по вам до конца вашего следующего хода.'],
+  'produce-flame':['a','1d8','fire','ranged','Метание пламени: дальнобойная атака заклинанием на 30 футов; пламя в руке также светит.'],
+  'shocking-grasp':['a','1d8','lightning','melee','Рукопашная атака заклинанием; преимущество, если цель в металлическом доспехе; при попадании цель не может совершать реакции до начала своего следующего хода.'],
+  'thorn-whip':['a','1d6','piercing','melee','Рукопашная атака заклинанием, досягаемость {R}; при попадании цель размера Большой или меньше подтягивается до 10 футов к вам.'],
+  'primal-savagery':['a','1d10','acid','melee','Рукопашная атака заклинанием.'],
+  'magic-stone':['a','1d6','bludgeoning','ranged','Дальнобойная атака заклинанием: камешек бросают или выпускают из пращи (дальность 60 футов; из пращи — по её дальности); урон включает модификатор базовой характеристики. Сотворяется бонусным действием: создаётся до трёх камешков.','mod'],
+  'sacred-flame':['s','1d8','radiant','dexterity','Цель в пределах 60 футов; укрытие не даёт бонуса к спасброску.'],
+  'acid-splash':['s','1d6','acid','dexterity','Одно существо или два существа в пределах 5 футов друг от друга, дальность 60 футов.'],
+  'poison-spray':['s','1d12','poison','constitution','Существо в пределах 10 футов.'],
+  'vicious-mockery':['s','1d4','psychic','wisdom','Цель в пределах 60 футов должна слышать вас; при провале помеха на следующий бросок атаки до конца её следующего хода.'],
+  'toll-the-dead':['s','1d8','necrotic','wisdom','Цель в пределах 60 футов; урон 1к12, если у цели не все хиты.'],
+  'word-of-radiance':['s','1d6','radiant','constitution','Каждое выбранное вами существо в пределах 5 футов от вас.'],
+  'mind-sliver':['s','1d6','psychic','intelligence','Цель в пределах 60 футов; при провале вычтите 1к4 из её следующего спасброска до конца вашего следующего хода.'],
+  'frostbite':['s','1d6','cold','constitution','Цель в пределах 60 футов; при провале помеха на следующий бросок атаки оружием до конца её следующего хода.'],
+  'infestation':['s','1d6','poison','constitution','Цель в пределах 30 футов; при провале она также перемещается на 5 футов в случайном направлении.'],
+  'thunderclap':['s','1d6','thunder','constitution','Каждое существо в пределах 5 футов от вас; звук слышен на 100 футов.'],
+  'create-bonfire':['s','1d8','fire','dexterity','Костёр в кубе со стороной 5 футов в пределах 60 футов (концентрация, до 1 минуты); спасбросок при сотворении — существам в кубе, а также существу, которое впервые за ход входит в куб или заканчивает в нём ход; поджигает горючие предметы, которые никто не носит и не несёт.'],
+  'sword-burst':['s','1d6','force','dexterity','Каждое существо в пределах 5 футов от вас.'],
+  'lightning-lure':['s','1d8','lightning','strength','Существо в пределах 15 футов; при провале подтягивается до 10 футов к вам по прямой и получает урон, только если оказалось в пределах 5 футов от вас.'],
+  'sapping-sting':['s','1d4','necrotic','constitution','Существо в пределах 30 футов; при провале оно также падает ничком.'],
+  'booming-blade':['r','1d8','thunder','melee','Рукопашная атака оружием по цели в пределах 5 футов входит в сотворение заговора; до 5-го уровня персонажа дополнительного урона при попадании нет, но если цель добровольно переместится на 5 и более футов до начала вашего следующего хода, она получит 1к8 урона звуком.',undefined,'при перемещении цели'],
+  'green-flame-blade':['r','=mod','fire','melee','Рукопашная атака оружием по цели в пределах 5 футов входит в сотворение заговора; до 5-го уровня персонажа основной цели дополнительного урона нет, а другое существо в пределах 5 футов от неё получает урон огнём, равный модификатору базовой характеристики.',undefined,'второй цели']
+ };
+ // Eldritch Spear is not listed here: it replaces the range of Eldritch Blast instead of adding a second one.
+ const CANTRIP_INVOCATIONS={'agonizing-blast':'Мучительный взрыв: к урону добавлен модификатор Харизмы.','repelling-blast':'Отталкивающий взрыв: при попадании отталкивает существо размера Большой или меньше на 10 футов.','grasp-of-hadar':'Хватка Хадара: при попадании притягивает существо на 10 футов к вам.','lance-of-lethargy':'Копьё вялости: при попадании скорость цели снижается на 10 футов до конца вашего следующего хода.'};
+ const spellSniper=c=>c?.race==='human'&&c.human_feature==='human_alt'&&c.creation_feat==='spell-sniper';
+ function cantripAttacks(e,a,invocations=[],c){
+  if(!e.attacks)return;
+  const rows=[],pick=id=>(e.spells||[]).filter((x,i,list)=>x.id===id&&x.level===0&&AB_RU[x.ability]&&list.findIndex(y=>y.id===id&&y.ability===x.ability)===i),sniper=spellSniper(c),spear=invocations.includes('eldritch-spear');
+  const sub=(cls,id)=>(e.subclasses||[e.subclass]).some(s=>s?.id===id&&(s.classId||s.class)===cls),reaper=sub('cleric','death'),moonFire=sub('sorcerer','lunar');
+  for(const id of Object.keys(CANTRIP_ATTACKS))rows.push(...pick(id));
+  // Shillelagh turns a held club or quarterstaff into a magical d8 weapon; the caster may use the spellcasting ability instead of Strength, so the better modifier is taken. The plain weapon row stays available.
+  const shillelagh=pick('shillelagh');
+  for(const sp of shillelagh)for(const weapon of e.attacks.filter(x=>['club','quarterstaff'].includes(x.id))){
+   const ability=mod(a[sp.ability])>=mod(a[weapon.ability])?sp.ability:weapon.ability,shift=mod(a[ability])-mod(a[weapon.ability]),id=weapon.id+'-shillelagh'+(shillelagh.length>1?'-'+sp.ability:'');if(e.attacks.some(x=>x.id===id))continue;
+   e.attacks.push({...withDamage({...weapon,damage:weapon.damage.replace(/^\d+d\d+/,'1d8')},weapon.damageBonus+shift),id,label:weapon.label+' (заговор «Дубинка»'+(shillelagh.length>1?', '+AB_RU[sp.ability][1]:'')+')',ability,attackBonus:weapon.attackBonus+shift,shillelagh:true,notes:[...(weapon.notes||[]).filter(n=>!n.startsWith('Двумя руками')),'Заговор «Дубинка»: оружие магическое, кость урона к8; для атаки и урона можно использовать базовую характеристику заклинаний вместо '+AB_GEN[weapon.ability]+(ability===sp.ability?(shift?' — так выгоднее ('+AB_RU[ability][1]+')':' — не хуже ('+AB_RU[ability][1]+')'):' — здесь '+AB_RU[weapon.ability][1]+' не хуже, поэтому она сохранена')+'; действует 1 минуту.']});
+  }
+  for(const sp of rows){
+   const [kind,dice,type,extra,note,plus,rider]=CANTRIP_ATTACKS[sp.id],m=mod(a[sp.ability]),many=rows.filter(x=>x.id===sp.id).length>1,id='cantrip-'+sp.id+(many?'-'+sp.ability:'');
+   if(e.attacks.some(x=>x.id===id))continue;
+   const base={id,label:(sp.label||label(sp.id))+(many?` (${AB_RU[sp.ability][1]})`:''),type,damageTypeText:DAMAGE_TEXT[type],group:'spell',ability:sp.ability,proficient:true,cantrip:true,cantripId:sp.id},notes=[];
+   let range=CANTRIP_RANGE[sp.id];if(range&&sp.id==='eldritch-blast'&&spear)range=300;if(range&&sniper)range*=2;
+   notes.push(note.replace('{R}',range?range+' футов'+(sp.id==='eldritch-blast'&&spear?' (Мистическое копьё)':''):''));
+   if(sniper&&kind==='a'&&(range||extra==='ranged')){const cover=extra==='ranged'?'игнорирует укрытие наполовину и на три четверти':'';notes.push('Меткие заклинания: '+(range?'дальность удвоена — '+range+' футов':'')+(range&&cover?'; ':'')+cover+(!range&&cover&&SELF_TOUCH_RANGE[sp.id]?' (дальность заклинания «'+SELF_TOUCH_RANGE[sp.id]+'» не удваивается)':'')+'.');}
+   if(reaper&&D.spells[sp.id]?.school==='N'&&kind!=='r')notes.push('Жнец (домен Смерти): заговор некромантии с одной целью можно применить к двум существам в пределах дистанции и в 5 футах друг от друга.');
+   if(moonFire&&sp.id==='sacred-flame')notes.push('Лунный огонь: одна цель или два существа в пределах дистанции и в 5 футах друг от друга; каждое делает спасбросок.');
+   if(kind==='s')e.attacks.push({...base,properties:[],save:{ability:extra,short:AB_RU[extra][0],dc:10+m},damageBonus:0,damage:dice,notes});
+   else if(kind==='r')e.attacks.push({...base,properties:['melee'],weaponRider:true,riderText:rider,damageBonus:0,damage:dice==='=mod'?String(Math.max(0,m)):dice,notes});
+   else{
+    const used=sp.id==='eldritch-blast'?invocations.filter(x=>CANTRIP_INVOCATIONS[x]):[],bonus=(plus?m:0)+(used.includes('agonizing-blast')?mod(a.charisma):0);
+    e.attacks.push({...base,properties:extra==='ranged'?['ranged']:[],attackBonus:2+m,damageBonus:bonus,damage:dice+(bonus?(bonus>0?'+':'')+bonus:''),notes:[...notes,...used.map(x=>CANTRIP_INVOCATIONS[x])]});
+   }
+  }
+ }
  function dedicatedWeaponAttacks(e,a){
   if(e.armor||e.shield||!e.attacks)return;
   for(const attack of [...e.attacks]){
@@ -504,9 +569,9 @@
    add('cantrip_remove','Заменить один заговор класса',[option('none','Оставить прежние'),...old.cantrips.map(id=>option(id))],1,'spells','TCE');
    if(p.choices.cantrip_remove&&p.choices.cantrip_remove!=='none')add('cantrip_add','Новый заговор изобретателя',spellList('artificer',0,c,s,true).filter(id=>!old.cantrips.includes(id)),1,'spells','TCE');
    const inf=optionList('AI',c,s).filter(o=>o.value!=='replicate-magic-item');
-   inf.push(...REPLICAS.map(id=>option('replicate:'+id,'Копия магического предмета: '+label(id),'TCE')));
+   inf.push(...REPLICAS.map(id=>option('replicate:'+id,infusionLabel('replicate:'+id),'TCE')));
    if(p.to===2)add('infusions','Четыре изученные инфузии (активны до двух предметов)',inf,4);
-   else {add('infusion_remove','Заменить одну инфузию',[option('none','Оставить прежние'),...old.infusions.map(id=>option(id))]);if(p.choices.infusion_remove&&p.choices.infusion_remove!=='none')add('infusion_add','Новая инфузия',inf.filter(o=>!old.infusions.includes(o.value)));}
+   else {add('infusion_remove','Заменить одну инфузию',[option('none','Оставить прежние'),...old.infusions.map(id=>option(id,infusionLabel(id)))]);if(p.choices.infusion_remove&&p.choices.infusion_remove!=='none')add('infusion_add','Новая инфузия',inf.filter(o=>!old.infusions.includes(o.value)));}
   }
   if(sc?.level===p.to){
    switch(c.class+':'+sc.id){
@@ -786,7 +851,7 @@
   if(!selected.length||uniq(selected).length!==selected.length||selected.length>g.count)return true;
   const stray=selected.filter(id=>!offered(id));
   if(!stray.every(id=>plausibleLegacy(g,id,ctx)))return true;
-  for(const id of stray)warn(g.id,'Выбор «'+label(id)+'» ('+g.label+') больше не предлагается текущими правилами; сохранён как есть.');
+  for(const id of stray)warn(g.id,'Выбор «'+infusionLabel(id)+'» ('+g.label+') больше не предлагается текущими правилами; сохранён как есть.');
   if(selected.length<g.count)warn(g.id,'«'+g.label+'»: выбрано вариантов: '+selected.length+', сейчас требуется '+g.count+'; оставлено как есть.');
   return false;
  }
@@ -818,7 +883,7 @@
   }
   const ctx=singleContext(c,p,old,context);
   // Existing level-three ledgers predate these opt-ins; an absent flag means declined.
-  for(const g of groups){if(!Object.hasOwn(p.choices,g.id)&&DECLINED_WHEN_ABSENT.includes(g.id))continue;if(selectionInvalid(g,p.choices,replay,warn,ctx))fail(g.id,g.label+': выберите '+g.count+' различных допустимых вариантов.');}
+  for(const g of groups){if(!Object.hasOwn(p.choices,g.id)&&DECLINED_WHEN_ABSENT.includes(g.id))continue;if(selectionInvalid(g,p.choices,replay,warn,ctx))fail(g.id,g.label+': выберите '+g.count+' '+(g.count===1?'вариант':R.ruPlural(g.count,['различный вариант','различных варианта','различных вариантов']))+'.');}
   for(const k of Object.keys(p.choices))if(!active.has(k)&&!(replay&&staleAnswer(k)))fail(k,'Неизвестный или неактивный выбор: '+k+'.');
   if(errors.length)return {errors,state:old};
   const s={...clone(old),level:p.to,subclass:p.choices.subclass||old.subclass,choices:{...old.choices,...p.choices},entries:[...old.entries,clone(entry)]};
@@ -915,7 +980,7 @@
     if(sc.id==='hexblade'){
      ['medium','shield'].forEach(id=>grant('armor',id));grant('weapon','martial');resource('hexblade-curse','Проклятие ведьмовского клинка',1,'short-rest');if(e.attacks)hexWarrior(e.attacks,a);
      const healing=Math.max(1,s.level+mod(a.charisma));
-     feature('Проклятие ведьмовского клинка','Бонусное действие: выберите одно видимое существо в 30 футах; проклятие длится 1 минуту. Заканчивается раньше, если цель умирает, вы умираете или становитесь недееспособны. Пока действует: +'+warlockPB+' (бонус мастерства) к броскам урона по проклятой цели; ваши броски атаки по ней критические при 19–20 на к20. Если проклятая цель умирает, восстановите '+healing+' '+(healing===1?'хит':healing<=4?'хита':'хитов')+' (уровень колдуна + модификатор Харизмы, минимум 1). Одно применение; восстановление после короткого или долгого отдыха.',sc.source,1);
+     feature('Проклятие ведьмовского клинка','Бонусное действие: выберите одно видимое существо в 30 футах; проклятие длится 1 минуту. Заканчивается раньше, если цель умирает, вы умираете или становитесь недееспособны. Пока действует: +'+warlockPB+' (бонус мастерства) к броскам урона по проклятой цели; ваши броски атаки по ней критические при 19–20 на к20. Если проклятая цель умирает, восстановите '+healing+' '+R.ruPlural(healing,['хит','хита','хитов'])+' (уровень колдуна + модификатор Харизмы, минимум 1). Одно применение; восстановление после короткого или долгого отдыха.',sc.source,1);
     }
     if(e.attacks)pactWeaponAttacks(e.attacks,a,s,sc.id==='hexblade');
     if(sc.id==='genie'){
@@ -926,7 +991,7 @@
     if(sc.id==='fathomless'){e.swimOverride=40;resource('tentacle','Щупальце глубин',2);}
     if(sc.id==='undead'){
      resource('form-of-dread','Облик ужаса',warlockPB);
-     feature('Облик ужаса','Бонусное действие: примите облик на 1 минуту. При превращении получите 1к10 + '+s.level+' временных хитов (1к10 + уровень колдуна); иммунитет к испугу действует, пока активен облик. Один раз в каждый свой ход после попадания атакой по существу можете заставить его совершить спасбросок Мудрости Сл '+(8+warlockPB+mod(a.charisma))+' (Сл заклинаний колдуна: 8 + бонус мастерства + модификатор Харизмы); только при провале оно испугано вами до конца вашего следующего хода. '+warlockPB+' применения (бонус мастерства); восстановление после долгого отдыха.',sc.source,1);
+     feature('Облик ужаса','Бонусное действие: примите облик на 1 минуту. При превращении получите 1к10 + '+s.level+' '+R.ruPlural(s.level,['временный хит','временных хита','временных хитов'])+' (1к10 + уровень колдуна); иммунитет к испугу действует, пока активен облик. Один раз в каждый свой ход после попадания атакой по существу можете заставить его совершить спасбросок Мудрости Сл '+(8+warlockPB+mod(a.charisma))+' (Сл заклинаний колдуна: 8 + бонус мастерства + модификатор Харизмы); только при провале оно испугано вами до конца вашего следующего хода. '+warlockPB+' применения (бонус мастерства); восстановление после долгого отдыха.',sc.source,1);
     }
    }
    if(c.class==='sorcerer'){
@@ -975,13 +1040,13 @@
     ].join('\n'));
    }
    if(sc?.id==='land')resource('natural-recovery','Естественное восстановление',1,'long-rest');
-   if(c.class==='fighter'){resource('action-surge','Всплеск действий',1,'short-rest');feature('Второе дыхание','Бонусное действие: восстановите 1к10 + '+s.level+' хитов.');}
+   if(c.class==='fighter'){resource('action-surge','Всплеск действий',1,'short-rest');feature('Второе дыхание','Бонусное действие: восстановите 1к10 + '+s.level+' '+R.ruPlural(s.level,['хит','хита','хитов'])+'.');}
    if(c.class==='monk'){resource('ki','Ци',s.level,'short-rest');if(!e.armor&&!e.shield)e.speedBonus=(e.speedBonus||0)+10;feature('Ци','Сл '+(10+mod(a.wisdom))+'; передвижение без доспеха/щита +10 футов; формы и оружие выбираются при применении.');}
    if(c.class==='paladin'){feature('Божественная кара','После попадания рукопашным оружием: ячейка 1-го круга даёт +2к8 излучения, +1к8 против нежити/исчадий.');if(s.level===3)resource('channel-divinity','Божественный канал',1,'short-rest');}
    if(c.class==='rogue')feature('Скрытая атака','+'+(s.level===3?'2':'1')+'к6 урона при попадании один раз за ход. Требуется фехтовальное или дальнобойное оружие и преимущество атаки. Без преимущества: другой враг цели (не вы) в 5 футах от неё, он не недееспособен, а ваша атака без помехи.','PHB',1);
    if(c.class==='sorcerer'){resource('sorcery-points','Единицы чародейства',s.level);if(s.level===3)feature('Метамагия',arr(s.choices.metamagic).map(label).join(', '));}
    if(c.class==='warlock'){feature('Воззвания',s.invocations.map(id=>label(id)+': '+(OPTION_RULES[id]||'')).join('; '));if(s.choices.pact)feature('Предмет договора',label(s.choices.pact)+': '+(OPTION_RULES[s.choices.pact]||''));if(s.choices.pact==='talisman')resource('pact-talisman','Талисман договора: применения к4',2,'long-rest');if(s.choices.pact==='chain')spell('find-familiar','ritual','Договор цепи','charisma',true,'Бонусное заклинание договора; можно применять как ритуал.');}
-   if(c.class==='artificer')feature('Инфузии',s.infusions.map(id=>label(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; ')+'. Изучено 4, одновременно до 2 предметов; каждый предмет имеет одну инфузию.');
+   if(c.class==='artificer')feature('Инфузии',s.infusions.map(id=>infusionLabel(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; ')+'. Изучено 4, одновременно до 2 предметов; каждый предмет имеет одну инфузию.');
    if(c.class==='artificer'&&s.infusions.includes('homunculus-servant')){
     const pb=2+Math.floor((Math.max(1,c.level||s.level)-1)/4),signed=n=>(n>=0?'+':'')+n;
     feature('Слуга-гомункул',[
@@ -1043,17 +1108,17 @@
    if(sc?.id==='scout'){gain('skill','nature');gain('skill','survival');e.fixedExpertise.push('nature','survival');}
    if(sc?.id==='shepherd')gain('language','sylvan');
    if(sc?.id==='dreams'){resource('balm-of-summer-court','Бальзам Летнего двора (к6)',s.level);feature('Бальзам Летнего двора','Запас '+s.level+'к6 / долгий отдых. Бонусное действие: видимое существо в пределах 120 футов; потратьте до '+Math.floor(s.level/2)+' костей (половина уровня друида с округлением вниз). Цель восстанавливает хиты по сумме бросков и получает 1 временный хит за каждую потраченную кость.');}
-   if(sc?.id==='shepherd'){resource('spirit-totem','Тотемный дух',1,'short-rest');feature('Тотемный дух','Бонусным действием призовите дух в видимой точке в пределах 60 футов; аура 30 футов, длительность 1 минута или до вашей недееспособности. Бонусным действием дух можно переместить до 60 футов в видимую точку; одно применение / короткий или долгий отдых. Тип выбирается при призыве. Медведь: выбранные существа в ауре при появлении получают '+(5+s.level)+' временных хитов (5 + уровень друида); у вас и союзников в ауре преимущество на проверки Силы и спасброски Силы. Ястреб: реакцией дайте преимущество одному броску атаки по цели в ауре; у вас и союзников в ауре преимущество на Восприятие. Единорог: у вас и союзников преимущество на проверки обнаружения существ в ауре; если ваше заклинание с тратой ячейки лечит существо внутри или вне ауры, выбранные существа в ауре восстанавливают '+s.level+' хитов (уровень друида).');}
-   if(sc?.id==='abjuration'){resource('arcane-ward','Магическая защита: хиты',2*s.level+mod(a.intelligence));feature('Магическая защита','При накладывании заклинания ограждения от 1-го круга можете создать защиту до конца долгого отдыха; максимум '+(2*s.level+mod(a.intelligence))+' хитов (2 × уровень волшебника + модификатор Интеллекта). Это отдельные хиты защиты, не временные хиты персонажа. Когда получаете урон, защита принимает его первой; избыток получает персонаж. При 0 хитов защита остаётся, но не поглощает урон. Каждое заклинание ограждения от 1-го круга восстанавливает ей 2 × круг заклинания хитов, не выше максимума; создание 1 / долгий отдых.');}
+   if(sc?.id==='shepherd'){resource('spirit-totem','Тотемный дух',1,'short-rest');feature('Тотемный дух','Бонусным действием призовите дух в видимой точке в пределах 60 футов; аура 30 футов, длительность 1 минута или до вашей недееспособности. Бонусным действием дух можно переместить до 60 футов в видимую точку; одно применение / короткий или долгий отдых. Тип выбирается при призыве. Медведь: выбранные существа в ауре при появлении получают '+(5+s.level)+' '+R.ruPlural(5+s.level,['временный хит','временных хита','временных хитов'])+' (5 + уровень друида); у вас и союзников в ауре преимущество на проверки Силы и спасброски Силы. Ястреб: реакцией дайте преимущество одному броску атаки по цели в ауре; у вас и союзников в ауре преимущество на Восприятие. Единорог: у вас и союзников преимущество на проверки обнаружения существ в ауре; если ваше заклинание с тратой ячейки лечит существо внутри или вне ауры, выбранные существа в ауре восстанавливают '+s.level+' '+R.ruPlural(s.level,['хит','хита','хитов'])+' (уровень друида).');}
+   if(sc?.id==='abjuration'){resource('arcane-ward','Магическая защита: хиты',2*s.level+mod(a.intelligence));feature('Магическая защита','При накладывании заклинания ограждения от 1-го круга можете создать защиту до конца долгого отдыха; максимум '+(2*s.level+mod(a.intelligence))+' '+R.ruPlural(2*s.level+mod(a.intelligence),['хит','хита','хитов'])+' (2 × уровень волшебника + модификатор Интеллекта). Это отдельные хиты защиты, не временные хиты персонажа. Когда получаете урон, защита принимает его первой; избыток получает персонаж. При 0 хитов защита остаётся, но не поглощает урон. Каждое заклинание ограждения от 1-го круга восстанавливает ей 2 × круг заклинания хитов, не выше максимума; создание 1 / долгий отдых.');}
    if(sc?.id==='divination')resource('portent','Предзнаменование: сохранённые к20',2);
    if(sc?.id==='chronurgy')resource('chronal-shift','Хрональный сдвиг',2);
    if(sc?.id==='stars')resource('guiding-bolt','Направляющий снаряд без ячейки',2);
    if(sc?.id==='alchemist')resource('experimental-elixir','Случайный экспериментальный эликсир',1);
-   if(sc?.id==='artillerist'){resource('eldritch-cannon','Мистическая пушка без ячейки',1);feature('Мистическая пушка',FEATURE_RULES['eldritch-cannon'][1]+' Одновременно одна пушка; тип выбирается при создании. КД 18, '+(5*s.level)+' хитов. В каждый свой ход можно бонусным действием активировать пушку в пределах 60 футов от вас; этим же действием пушка с ногами перемещается или взбирается до 15 футов. Огнемёт: конус 15 футов от пушки; спасбросок Ловкости Сл '+(10+mod(a.intelligence))+' (Сл заклинаний изобретателя), 2к8 урона огнём при провале, половина при успехе; поджигает ничейные горючие предметы. Силовая баллиста: дальнобойная атака заклинанием из пушки по существу или предмету до 120 футов, бонус атаки '+(2+mod(a.intelligence)>=0?'+':'')+(2+mod(a.intelligence))+'; при попадании 2к8 урона силовым полем, отталкивает существо на 5 футов от пушки. Защитник: выбранным существам в пределах 10 футов от пушки и самой пушке — 1к8'+(mod(a.intelligence)>=0?'+':'')+mod(a.intelligence)+' временных хитов (модификатор Интеллекта; минимум 1 временный хит по сумме).');}
+   if(sc?.id==='artillerist'){resource('eldritch-cannon','Мистическая пушка без ячейки',1);feature('Мистическая пушка',FEATURE_RULES['eldritch-cannon'][1]+' Одновременно одна пушка; тип выбирается при создании. КД 18, '+(5*s.level)+' хитов. В каждый свой ход можно бонусным действием активировать пушку в пределах 60 футов от вас; этим же действием пушка с ногами перемещается или взбирается до 15 футов. Огнемёт: конус 15 футов от пушки; спасбросок Ловкости Сл '+(10+mod(a.intelligence))+' (Сл заклинаний изобретателя), 2к8 урона огнём при провале, половина при успехе; поджигает ничейные горючие предметы. Силовая баллиста: дальнобойная атака заклинанием из пушки по существу или предмету до 120 футов, бонус атаки '+(2+mod(a.intelligence)>=0?'+':'')+(2+mod(a.intelligence))+'; при попадании 2к8 урона силовым полем, отталкивает существо на 5 футов от пушки. Защитник: выбранным существам в пределах 10 футов от пушки и самой пушке — 1к8 + '+Math.max(1,mod(a.intelligence))+' '+R.ruPlural(Math.max(1,mod(a.intelligence)),['временный хит','временных хита','временных хитов'])+' (модификатор Интеллекта, минимум +1).');}
    if(sc?.id==='battle-smith'){
     const hp=2+mod(a.intelligence)+5*s.level,hit=2+mod(a.intelligence);
     resource('steel-defender','Стальной защитник: хиты',hp);
-    feature('Стальной защитник','Средний конструкт, БМ +2. КД 15 (природный доспех). Хиты '+hp+' (2 + модификатор Интеллекта + 5 × уровень изобретателя), кости хитов '+s.level+'к8; скорость 40 футов. СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6. Спасброски: ЛОВ +3, ТЕЛ +4. Навыки: Атлетика +4, Восприятие +4. Иммунитет: яд; состояния отравления, очарования и истощения. Тёмное зрение 60 футов, пассивное Восприятие 14; понимает ваши языки. Бдительность: нельзя застать врасплох. Исполненный силы удар (действие): рукопашная атака оружием, бонус атаки '+(hit>=0?'+':'')+hit+' (бонус атаки заклинаниями изобретателя), одна видимая цель в 5 футах; 1к8+2 силового урона при попадании. Ремонт (действие, 3/день): восстановить 2к8+2 хитов себе, одному конструкту или предмету в 5 футах. Отражение атаки (реакция): помеха одному броску атаки видимого существа в 5 футах по цели, кроме защитника. '+FEATURE_RULES['steel-defender'][1]);
+    feature('Стальной защитник','Средний конструкт, БМ +2. КД 15 (природный доспех). Хиты '+hp+' (2 + модификатор Интеллекта + 5 × уровень изобретателя), кости хитов '+s.level+'к8; скорость 40 футов. СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6. Спасброски: ЛОВ +3, ТЕЛ +4. Навыки: Атлетика +4, Восприятие +4. Иммунитет: яд; состояния отравления, очарования и истощения. Тёмное зрение 60 футов, пассивное Восприятие 14; понимает ваши языки. Бдительность: нельзя застать врасплох. Исполненный силы удар (действие): рукопашная атака оружием, бонус атаки '+(hit>=0?'+':'')+hit+' (бонус атаки заклинаниями изобретателя), одна видимая цель в 5 футах; 1к8+2 силового урона при попадании. Ремонт (действие, 3/день): восстановить 2к8 + 2 '+R.ruPlural(2,['хит','хита','хитов'])+' себе, одному конструкту или предмету в 5 футах. Отражение атаки (реакция): помеха одному броску атаки видимого существа в 5 футах по цели, кроме защитника. '+FEATURE_RULES['steel-defender'][1]);
    }
    if(sc?.id==='armorer'){gain('armor','heavy');resource('defensive-field','Защитное поле',2+Math.floor((Math.max(1,s.level)-1)/4),'long-rest');}if(sc?.id==='battle-smith'){gain('weapon','martial');if(e.attacks)battleReady(e.attacks,a,s.infusions);}
    if(sc?.id==='swords'){gain('armor','medium');gain('weapon','scimitar');}
@@ -1099,7 +1164,9 @@
    if(sc?.id==='gloom-stalker'){e.initiativeBonus=(e.initiativeBonus||0)+mod(a.wisdom);const r=R.RACES[c.race]||{},dark=r.subraces?.[c.race_sub]?.darkvision||r.darkvision||0;e.darkvisionOverride=dark?dark+30:60;}
    if(sc?.id==='fey-wanderer')e.charismaCheckBonus=Math.max(1,mod(a.wisdom));
    if(sc?.id==='shadow'&&c.class==='monk'){spell('minor-illusion','cantrip',sc.label,'wisdom');for(const id of ['darkness','darkvision','pass-without-trace','silence'])spell(id,'feature',sc.label,'wisdom',true,'2 ци; без материальных компонентов.');}
-   for(const [key,status] of Object.entries({bonus_cantrip:'cantrip',illusion_cantrip:'cantrip',archer_cantrip:'cantrip',giant_cantrip:'cantrip',style_cantrips:'cantrip',tome_cantrips:'cantrip',book_rituals:'ritual',guidance_bonus:'cantrip'}))arr(s.choices[key]).forEach(id=>spell(id,status,sc?.label,key==='archer_cantrip'?'intelligence':undefined));
+   for(const [key,status] of Object.entries({bonus_cantrip:'cantrip',illusion_cantrip:'cantrip',archer_cantrip:'cantrip',giant_cantrip:'cantrip',tome_cantrips:'cantrip',book_rituals:'ritual',guidance_bonus:'cantrip'}))arr(s.choices[key]).forEach(id=>spell(id,status,sc?.label,key==='archer_cantrip'?'intelligence':undefined));
+   // Fighting-style cantrips get their own source label: before the subclass exists the class name would be the fallback, and the filter below drops spells whose source is the class name.
+   if(['blessed-warrior','druidic-warrior'].includes(s.choices.style))arr(s.choices.style_cantrips).forEach(id=>spell(id,'cantrip','Боевой стиль: '+label(s.choices.style),s.choices.style==='blessed-warrior'?'charisma':'wisdom'));
    if(sc?.id==='spores')spell('chill-touch','cantrip',sc.label);if(sc?.id==='swarmkeeper')spell('mage-hand','cantrip',sc.label);
    if(sc?.id==='totem-warrior'){spell('beast-sense','ritual',sc.label,'wisdom',true,'Только ритуал');spell('speak-with-animals','ritual',sc.label,'wisdom',true,'Только ритуал');}
    for(const id of [...s.invocations,...arr(s.choices.discipline)]){const o=D.options.find(o=>o.id===id);if(id==='beguiling-influence'){gain('skill','deception');gain('skill','persuasion');}if(o)for(const x of o.additionalSpells||[])for(const values of Object.values(x.innate||{})){const scan=v=>{if(typeof v==='string')spell(slug(v),s.invocations.includes(id)?'invocation':'feature',label(id),s.invocations.includes(id)?'charisma':'wisdom',true,id==='thief-of-five-fates'?'1 раз / долгий отдых; расходует ячейку колдуна.':s.invocations.includes(id)?'Без ячейки, по условиям воззвания':'За ци, по условиям дисциплины',id!=='thief-of-five-fates');else if(Array.isArray(v))v.forEach(scan);else if(v&&typeof v==='object')Object.values(v).forEach(scan);};scan(values);}}
@@ -1113,7 +1180,7 @@
     if(style==='two-weapon-fighting')attack.notes.push('К урону атаки вторым оружием добавляется модификатор характеристики.');
    }
    if(style==='thrown-weapon-fighting'&&e.attacks)thrownStyle(e.attacks,a);
-   if(c.class==='warlock'&&sc?.id==='fiend'){e.features=e.features.filter(f=>!f.name.startsWith('Покровитель:'));feature('Благословение тёмного','При снижении враждебного существа до 0 хитов получаете '+Math.max(1,s.level+mod(a.charisma))+' временных хитов.',sc.source,1);}
+   if(c.class==='warlock'&&sc?.id==='fiend'){e.features=e.features.filter(f=>!f.name.startsWith('Покровитель:'));feature('Благословение тёмного','При снижении враждебного существа до 0 хитов получаете '+Math.max(1,s.level+mod(a.charisma))+' '+R.ruPlural(Math.max(1,s.level+mod(a.charisma)),['временный хит','временных хита','временных хитов'])+'.',sc.source,1);}
    const CHOICE_LABELS={style:'Боевой стиль',metamagic:'Метамагия',totem:'Дух тотема',storm_environment:'Среда ауры бури',divine_damage:'Божественная ярость',giant_cantrip:'Заговор Великана',giant_language:'Язык Великана',expertise:'Компетентность',subclass_skills:'Навыки подкласса',swords_style:'Стиль Коллегии Мечей',bonus_cantrip:'Дополнительный заговор',bladesinger_weapon:'Оружие Песни клинка',illusion_cantrip:'Дополнительный заговор школы Иллюзии',maneuvers:'Боевые приёмы',artisan_tool:'Ремесленный инструмент',arcane_shots:'Мистические выстрелы',archer_skill:'Навык мистического лучника',archer_cantrip:'Заговор мистического лучника',runes:'Руны',discipline:'Стихийная дисциплина',kensei_melee:'Рукопашное оружие кэнсэя',kensei_ranged:'Дальнобойное оружие кэнсэя',kensei_tool:'Путь кисти',dragon_language:'Язык Драконьего ученика',hunter_prey:'Добыча охотника',companion_rules:'Правила спутника',companion:'Спутник',fey_skill:'Навык Странника фей',swarm:'Облик роя',gaming_set:'Игровой набор',languages:'Языки',specialist_tool:'Инструмент специальности',land:'Земля круга',pact:'Предмет договора'};
    for(const [key,value] of Object.entries(s.choices))if(CHOICE_LABELS[key])feature(CHOICE_LABELS[key],arr(value).map(id=>label(id)+(OPTION_RULES[id]?': '+OPTION_RULES[id]:'')).join('; '));
   }
@@ -1229,7 +1296,7 @@
     applied={...p,choices:Object.fromEntries(Object.entries(p.choices).filter(([k])=>!stale.includes(k)))};groups=getChoices(c,applied,context,s);
    }
    const ectx=entryContext(c,applied,s,context);
-   for(const g of groups)if(selectionInvalid(g,applied.choices,replay,warn,ectx))errors.push({id:g.id,field:g.id,message:g.label+': выберите '+g.count+' различных допустимых вариантов.'});
+   for(const g of groups)if(selectionInvalid(g,applied.choices,replay,warn,ectx))errors.push({id:g.id,field:g.id,message:g.label+': выберите '+g.count+' '+(g.count===1?'вариант':R.ruPlural(g.count,['различный вариант','различных варианта','различных вариантов']))+'.'});
    for(const key of Object.keys(applied.choices))if(!groups.some(g=>g.id===key))errors.push({id:key,field:key,message:'Неизвестный или неактивный выбор: '+key+'.'});
    if(errors.length)return {errors,state:s};
    const q=entryCharacter(c,applied);next.classStates[cls]={character:q,state:firstState(q),onboarding:clone(applied.choices)};
@@ -1277,7 +1344,7 @@
  function hpBaseExtras(c,context){return context.baseExtras||optionsAPI().derive(c,{abilities:context.abilities||R.finalAbilities(c)});}
  function hpGain(c,p,context={}){const cls=p.classId||c.class,base=hpBaseExtras(c,context),con=mod(R.finalAbilities(c,base).constitution),s=inspect(c,context).state,q=s.classStates[cls]?.character||entryCharacter(c,p),bonus=R.subraceHpBonus(c)+hpBonusModel(c,base).shared+entryHpBonus(cls,q),raw=Number(p.hp?.value||0);return {die:R.CLASSES[cls]?.hitDie,raw:p.hp?.value,constitution:con,bonus,gain:R.levelHp(raw,con,bonus)};}
  function derive(c,context={},base={},providedState){
-  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates){const single=deriveSingle(c,context,base,s),abilities=context.abilities||R.finalAbilities(c,base);if(s.choices?.['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(single,abilities);subclassAttacks(single,abilities);return single;}
+  const inspected=providedState?{state:providedState,errors:[]}:inspect(c,context),s=inspected.state;if(!s.classStates){const single=deriveSingle(c,context,base,s),abilities=context.abilities||R.finalAbilities(c,base);if(s.choices?.['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(single,abilities);subclassAttacks(single,abilities);cantripAttacks(single,abilities,arr(s.invocations),c);return single;}
   const primary=s.classStates[c.class],e=deriveSingle(c,context,base,primary.state);
   e.classes=Object.entries(s.classStates).filter(([id])=>R.CLASSES[id]).map(([id,x])=>({id,label:NAMES[id],level:x.state.level}));e.effectiveLevel=s.level;e.progressionErrors=inspected.errors;
   e.hitDicePools=Object.entries(e.classes.reduce((pool,x)=>{const die=R.CLASSES[x.id].hitDie;pool[die]=(pool[die]||0)+x.level;return pool;},{})).map(([die,count])=>({die:Number(die),count}));
@@ -1322,7 +1389,7 @@
   const prof=R.resolveProficiencies(c,e);for(const attack of e.attacks||[]){const id=attack.id?.replaceAll('-','_'),allowed=attack.pactWeapon||attack.group==='unarmed'||attack.group==='natural'||prof.weapons.includes(id)||prof.weapons.includes(attack.group);if(allowed&&!attack.proficient)attack.attackBonus+=2;attack.proficient=allowed;if(allowed)attack.notes=(attack.notes||[]).filter(note=>!note.startsWith('Нет владения'));}
   const abilities=context.abilities||R.finalAbilities(c,base);
   if(s.classStates.monk?.state.choices['variant_dedicated-weapon']==='yes')dedicatedWeaponAttacks(e,abilities);
-  subclassAttacks(e,abilities);
+  subclassAttacks(e,abilities);cantripAttacks(e,abilities,arr(s.classStates.warlock?.state.invocations),c);
   return e;
  }
  function setSpellNames(names){for(const [id,name] of Object.entries(names))if(D.spells[id]&&!D.spells[id].label&&/[А-Яа-яЁё]/.test(name))D.spells[id].label=name;for(const [id,s]of Object.entries(D.spells))names[id]=s.label||names[id]||s.name;}

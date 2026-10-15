@@ -880,3 +880,169 @@ test('replay refuses strays that the hero already has (invocations, spellbook, k
  const ek=advance(create('fighter'));
  rejected(forgedReplay(ek,c=>{c.third_free=c.third_restricted[0];},{subclass:'eldritch-knight'}),'third_free','third_free repeats a restricted spell');
 });
+test('artificer infusions name replicated items once and class feature text is spelled in Russian',()=>{
+ const c=advance(create('artificer'),undefined,{infusions:['enhanced-defense','mind-sharpener','replicate:bag-of-holding','replicate:strixhaven-pennant']});
+ const infusions=extras(c).features.filter(f=>f.name==='Инфузии');
+ assert.equal(infusions.length,1);
+ assert.match(infusions[0].description,/Копия магического предмета: Сумка хранения/);
+ assert.equal(infusions[0].description.split('Копия магического предмета: ').length-1,2);
+ assert.doesNotMatch(infusions[0].description,/replicate:/);
+ const tinkering=extras(create('artificer')).features.find(f=>f.name==='Умение 1-го уровня').description;
+ assert.match(tinkering,/^Магическое мастерство: до /);assert.doesNotMatch(tinkering,/tinkering/);
+ assert.match(extras(create('warlock')).features.map(f=>f.description).join(' '),/Воззвания появятся на 2-м уровне/);
+});
+test('Dark One blessing and other variable temporary hit counts use Russian plural forms',()=>{
+ for(const [charisma,phrase] of [[6,'получаете 1 временный хит.'],[8,'получаете 2 временных хита.'],[16,'получаете 6 временных хитов.']]){
+  const abilities={strength:10,dexterity:10,constitution:10,intelligence:10,wisdom:10,charisma};
+  const c=advance(advance(create('warlock','fiend',{abilityMethod:'manual',abilities})),null,{pact:'blade'});
+  assert.equal(c.level,3);
+  const text=extras(c).features.find(f=>f.name==='Благословение тёмного').description;assert.ok(text.includes(phrase),text);
+ }
+ for(const [charisma,phrase] of [[8,'получаете 1 временный хит.'],[16,'получаете 4 временных хита.']]){const abilities={strength:10,dexterity:10,constitution:10,intelligence:10,wisdom:10,charisma};assert.ok(extras(create('warlock','fiend',{abilityMethod:'manual',abilities})).features.find(f=>f.name.startsWith('Покровитель')).description.includes(phrase),phrase);}
+ assert.deepEqual([0,1,2,4,5,11,12,14,21,22,25,101,111].map(n=>R.ruPlural(n,['хит','хита','хитов'])),['хитов','хит','хита','хита','хитов','хитов','хитов','хитов','хит','хита','хитов','хит','хитов']);
+});
+test('selection errors use singular and plural Russian forms for option counts',()=>{
+ const c=create('artificer'),ctx=context(c),p=L.begin(c,ctx);
+ p.choices.infusions=['enhanced-defense','enhanced-defense','mind-sharpener','replicate:bag-of-holding'];
+ const messages=L.transition(c,p,ctx).errors.map(e=>e.message);
+ assert.ok(messages.some(m=>m.endsWith('Четыре изученные инфузии (активны до двух предметов): выберите 4 различных варианта.')),messages.join(' | '));
+ const f=create('fighter',null,{abilityMethod:'manual'});delete f.creation_pack;
+ assert.ok(O.validate(f,context(f)).some(e=>e.message==='Набор: выберите 1 вариант.'),JSON.stringify(O.validate(f,context(f))));
+});
+test('artificer level three infusion swap labels name replicated items, never raw ids',()=>{
+ const c=advance(create('artificer'),undefined,{infusions:['enhanced-defense','mind-sharpener','replicate:bag-of-holding','replicate:strixhaven-pennant']});
+ const swap=L.getChoices(c,L.begin(c,context(c)),context(c)).find(g=>g.id==='infusion_remove');
+ assert.ok(swap);
+ const labels=swap.options.map(o=>o.label);
+ assert.ok(labels.includes('Копия магического предмета: Сумка хранения'),labels.join(' | '));
+ assert.ok(labels.every(l=>!l.includes('replicate:')),labels.join(' | '));
+});
+test('damaging cantrips become spell attack rows: attack rolls with to-hit, saving throws with a DC, per casting ability',()=>{
+ const abilities={strength:10,dexterity:12,constitution:14,intelligence:10,wisdom:16,charisma:14};
+ const cleric=create('cleric','life',{abilityMethod:'manual',abilities,creation_cantrips:['sacred-flame','guidance','light']});
+ const warlock={'warlock:creation_patron':'fiend','warlock:creation_cantrips':['eldritch-blast','chill-touch']};
+ const c=enter(enter(cleric,'warlock',warlock),'warlock',{invocations:['agonizing-blast','repelling-blast']});
+ const e=extras(c),by=id=>e.attacks.find(a=>a.id===id),blast=by('cantrip-eldritch-blast'),flame=by('cantrip-sacred-flame'),touch=by('cantrip-chill-touch');
+ assert.equal(c.level,3);
+ assert.equal(blast.attackBonus,4);assert.equal(blast.damage,'1d10+2');assert.equal(blast.type,'force');assert.equal(blast.ability,'charisma');assert.equal(blast.group,'spell');assert.equal(blast.proficient,true);
+ assert.match(blast.notes.join(' '),/Мучительный взрыв/);assert.match(blast.notes.join(' '),/Отталкивающий взрыв/);assert.doesNotMatch(blast.notes.join(' '),/300 футов/);
+ assert.equal(touch.attackBonus,4);assert.equal(touch.damage,'1d8');assert.equal(touch.type,'necrotic');
+ assert.deepEqual(flame.save,{ability:'dexterity',short:'ЛОВ',dc:13});assert.equal(flame.attackBonus,undefined);assert.equal(flame.damage,'1d8');assert.equal(flame.type,'radiant');assert.equal(flame.ability,'wisdom');
+ assert.ok(!e.attacks.some(a=>['cantrip-guidance','cantrip-light'].includes(a.id)));
+ const last=e.attacks.findLastIndex(a=>!a.cantrip),first=e.attacks.findIndex(a=>a.cantrip);assert.ok(last>=0&&last<first,'weapon rows come before spell rows');
+ assert.equal(new Set(e.attacks.map(a=>a.id)).size,e.attacks.length);
+ // Without Agonizing Blast the beam carries no flat bonus; Eldritch Spear only changes the noted range.
+ const plain=enter(enter(cleric,'warlock',warlock),'warlock',{invocations:['eldritch-spear','repelling-blast']}),plainBlast=extras(plain).attacks.find(a=>a.id==='cantrip-eldritch-blast');
+ assert.equal(plainBlast.damage,'1d10');assert.match(plainBlast.notes.join(' '),/300 футов/);
+ // No damaging cantrips -> no rows.
+ assert.ok(!extras(create('cleric','life',{creation_cantrips:['guidance','light','mending']})).attacks.some(a=>a.cantrip));
+ assert.ok(!extras(create('fighter')).attacks.some(a=>a.cantrip));
+});
+test('racial and feat cantrips use their own ability; one row per cantrip and ability',()=>{
+ const elf=create('wizard',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt',creation_cantrips:['fire-bolt','mage-hand','light']});
+ const bolts=extras(elf).attacks.filter(a=>a.cantripId==='fire-bolt');assert.equal(bolts.length,1);assert.equal(bolts[0].ability,'intelligence');assert.equal(bolts[0].attackBonus,5);assert.equal(bolts[0].id,'cantrip-fire-bolt');
+ const racial=extras(create('fighter',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt'})).attacks.find(a=>a.cantripId==='fire-bolt');assert.equal(racial.ability,'intelligence');
+ const initiate=create('wizard',null,{human_feature:'human_alt',creation_feat:'magic-initiate',creation_feat_class:'warlock',creation_feat_cantrips:['eldritch-blast','chill-touch'],creation_feat_spells:['hex'],creation_cantrips:['chill-touch','mage-hand','light']});
+ const touches=extras(initiate).attacks.filter(a=>a.cantripId==='chill-touch');assert.deepEqual(touches.map(a=>a.ability).sort(),['charisma','intelligence']);assert.equal(new Set(touches.map(a=>a.id)).size,2);assert.ok(touches.every(a=>/\((Харизма|Интеллект)\)$/.test(a.label)));
+ assert.equal(extras(initiate).attacks.filter(a=>a.cantripId==='eldritch-blast').length,1);
+});
+test('every damaging cantrip of the catalogue has the rules-correct row at levels 1-3',()=>{
+ // [id, kind, damage, type, save ability]; a = spell attack, s = saving throw, r = weapon attack with a rider. PHB/XGE/TCE 2014 base dice (no scaling before level 5).
+ const table=[['eldritch-blast','a','1d10','force'],['fire-bolt','a','1d10','fire'],['ray-of-frost','a','1d8','cold'],['chill-touch','a','1d8','necrotic'],['produce-flame','a','1d8','fire'],['shocking-grasp','a','1d8','lightning'],['thorn-whip','a','1d6','piercing'],['primal-savagery','a','1d10','acid'],['magic-stone','a','1d6+3','bludgeoning'],
+  ['sacred-flame','s','1d8','radiant','dexterity'],['acid-splash','s','1d6','acid','dexterity'],['poison-spray','s','1d12','poison','constitution'],['vicious-mockery','s','1d4','psychic','wisdom'],['toll-the-dead','s','1d8','necrotic','wisdom'],['word-of-radiance','s','1d6','radiant','constitution'],['mind-sliver','s','1d6','psychic','intelligence'],['frostbite','s','1d6','cold','constitution'],['infestation','s','1d6','poison','constitution'],['thunderclap','s','1d6','thunder','constitution'],['create-bonfire','s','1d8','fire','dexterity'],['sword-burst','s','1d6','force','dexterity'],['lightning-lure','s','1d8','lightning','strength'],
+  ['booming-blade','r','1d8','thunder'],['green-flame-blade','r','3','fire']];
+ const branch={cleric:'life',sorcerer:'draconic',warlock:'fiend'};
+ for(const [id,kind,damage,type,save] of table){
+  const cls=['wizard','druid','cleric','sorcerer','warlock','bard'].find(x=>D.spells[id].classes.includes(x));assert.ok(cls,id);
+  const base=create(cls,branch[cls]),c={...base,creation_cantrips:[id,...base.creation_cantrips.filter(x=>x!==id)].slice(0,base.creation_cantrips.length)};
+  assert.deepEqual(O.validate(c,context(c)),[],id);
+  const row=extras(c).attacks.find(a=>a.cantripId===id);assert.ok(row,id);assert.equal(row.damage,damage,id);assert.equal(row.type,type,id);assert.equal(row.group,'spell',id);assert.equal(row.proficient,true,id);assert.ok(row.damageTypeText,id);
+  if(kind==='a')assert.equal(row.attackBonus,5,id);else assert.equal(row.attackBonus,undefined,id);
+  if(kind==='s'){assert.equal(row.save.ability,save,id);assert.equal(row.save.dc,13,id);}else assert.equal(row.save,undefined,id);
+  assert.equal(!!row.weaponRider,kind==='r',id);assert.ok(row.notes.length,id);
+ }
+});
+test('Shillelagh adds a spellcasting-ability d8 variant of a held club or quarterstaff',()=>{
+ const druid=create('druid','land',{abilityMethod:'manual',abilities:{strength:10,dexterity:12,constitution:14,intelligence:10,wisdom:16,charisma:10},creation_cantrips:['shillelagh','produce-flame'],creation_weapon:'club'}),e=extras(druid);
+ const plain=e.attacks.find(a=>a.id==='club'),magic=e.attacks.find(a=>a.id==='club-shillelagh');
+ assert.equal(plain.ability,'strength');assert.equal(magic.ability,'wisdom');assert.equal(magic.attackBonus,5);assert.equal(magic.damage,'1d8+3');assert.equal(magic.type,'bludgeoning');assert.ok(!magic.cantrip);
+ assert.ok(e.attacks.indexOf(magic)<e.attacks.findIndex(a=>a.cantrip));
+ const staffless=create('druid','land',{creation_cantrips:['shillelagh','produce-flame'],creation_weapon:'scimitar',creation_shield_weapon:'dagger'});assert.ok(!extras(staffless).attacks.some(a=>a.shillelagh));
+});
+test('cantrip rows: Create Bonfire note lists the real triggers; Spell Sniper doubles range and ignores cover; Eldritch Spear replaces the range',()=>{
+ const warlock=(feat,invocations)=>{let c=create('warlock',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:feat,creation_feat_cantrips:[feat==='druid'?'produce-flame':feat==='sorcerer'?'fire-bolt':'chill-touch'],creation_cantrips:['eldritch-blast','chill-touch']});return invocations?advance(c,null,{invocations}):c;};
+ const row=(c,id)=>extras(c).attacks.find(a=>a.id===id),notes=a=>a.notes.join(' ');
+ // Create Bonfire: the cast-time save hits creatures in the cube, and so does a creature that first enters it or ENDS its turn there (not at the start); concentration, unattended flammable objects.
+ const wizard=create('wizard',null,{creation_cantrips:['create-bonfire','mage-hand','light']}),bonfire=row(wizard,'cantrip-create-bonfire');
+ assert.match(notes(bonfire),/спасбросок при сотворении — существам в кубе, а также существу, которое впервые за ход входит в куб или заканчивает в нём ход/);assert.match(notes(bonfire),/концентрация/);assert.match(notes(bonfire),/горючие предметы/);assert.doesNotMatch(notes(bonfire),/в начале/);
+ // Without the feat: ordinary ranges and no feat note anywhere.
+ const human=create('warlock',null,{creation_cantrips:['eldritch-blast','chill-touch']});
+ assert.ok(!extras(human).attacks.some(a=>/Меткие заклинания|240 футов/.test(a.notes.join(' '))),'no feat, no feat notes');
+ assert.match(notes(row(human,'cantrip-eldritch-blast')),/на 120 футов/);
+ // Spell Sniper: every ranged attack-roll row doubles a numeric range and ignores half/three-quarters cover.
+ const sniper=warlock('sorcerer'),blast=row(sniper,'cantrip-eldritch-blast'),bolt=row(sniper,'cantrip-fire-bolt'),touch=row(sniper,'cantrip-chill-touch');
+ for(const a of [blast,bolt,touch]){assert.match(notes(a),/на 240 футов/,a.id);assert.match(notes(a),/Меткие заклинания: дальность удвоена — 240 футов; игнорирует укрытие наполовину и на три четверти/,a.id);assert.doesNotMatch(notes(a),/120 футов/,a.id);}
+ // Self/touch-range spells keep their range but still ignore cover when the attack is ranged; melee-touch rows get no feat note.
+ const druid=create('warlock',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'druid',creation_feat_cantrips:['produce-flame'],creation_cantrips:['eldritch-blast','chill-touch']}),flame=row(druid,'cantrip-produce-flame');
+ assert.match(notes(flame),/на 30 футов/);assert.match(notes(flame),/игнорирует укрытие наполовину и на три четверти \(дальность заклинания «на себя» не удваивается\)/);
+ // Magic Stone is a Touch-range spell: the sniper note names «касание», not «на себя».
+ const stone=create('warlock',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'druid',creation_feat_cantrips:['magic-stone'],creation_cantrips:['eldritch-blast','chill-touch']}),rock=row(stone,'cantrip-magic-stone');
+ assert.match(notes(rock),/дальность заклинания «касание» не удваивается/);assert.doesNotMatch(notes(rock),/«на себя»/);assert.match(notes(rock),/камешек бросают или выпускают из пращи/);assert.doesNotMatch(notes(rock),/брошенным камнем|на три камня/);
+ const whip=create('warlock',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'druid',creation_feat_cantrips:['thorn-whip'],creation_cantrips:['eldritch-blast','chill-touch']}),thorn=row(whip,'cantrip-thorn-whip');
+ assert.match(notes(thorn),/досягаемость 60 футов/);assert.match(notes(thorn),/подтягивается до 10 футов к вам/);assert.doesNotMatch(notes(thorn),/укрытие/);
+ const grasp=create('warlock',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'sorcerer',creation_feat_cantrips:['shocking-grasp'],creation_cantrips:['eldritch-blast','chill-touch']});
+ assert.doesNotMatch(notes(row(grasp,'cantrip-shocking-grasp')),/Меткие заклинания/);
+ // Saving-throw rows are not attack-roll spells: the feat does not touch them.
+ const sorc=create('sorcerer','draconic',{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'sorcerer',creation_feat_cantrips:['fire-bolt'],creation_cantrips:['acid-splash','poison-spray','light','mage-hand']});
+ assert.doesNotMatch(notes(row(sorc,'cantrip-acid-splash')),/Меткие заклинания/);
+ // Eldritch Spear replaces the 120-foot range with 300 (600 with Spell Sniper); there is never a second, contradictory range.
+ const spear=row(advance(create('warlock',null,{creation_cantrips:['eldritch-blast','chill-touch']}),null,{invocations:['eldritch-spear','agonizing-blast']}),'cantrip-eldritch-blast');
+ assert.match(notes(spear),/на 300 футов \(Мистическое копьё\)/);assert.doesNotMatch(notes(spear),/120 футов|Мистическое копьё: дальность/);assert.equal((notes(spear).match(/\d+ футов/g)||[]).length,1);
+ const both=row(warlock('sorcerer',['eldritch-spear','agonizing-blast']),'cantrip-eldritch-blast');
+ assert.match(notes(both),/на 600 футов \(Мистическое копьё\)/);assert.match(notes(both),/дальность удвоена — 600 футов/);assert.doesNotMatch(notes(both),/\b(120|240|300) футов/);
+});
+test('cantrip riders: Death Domain Reaper on necromancy cantrips, Lunar Sorcery Moon Fire on Sacred Flame, Green-Flame Blade wording',()=>{
+ const notes=a=>a.notes.join(' '),by=(c,id)=>extras(c).attacks.find(a=>a.id===id);
+ const death=create('cleric','death',{creation_cantrips:['toll-the-dead','sacred-flame','guidance']});
+ // Chill Touch is the Reaper's free necromancy cantrip; both necromancy rows carry the two-target rider, the evocation row does not.
+ for(const id of ['cantrip-chill-touch','cantrip-toll-the-dead'])assert.match(notes(by(death,id)),/Жнец \(домен Смерти\): заговор некромантии с одной целью можно применить к двум существам в пределах дистанции и в 5 футах друг от друга/,id);
+ assert.doesNotMatch(notes(by(death,'cantrip-sacred-flame')),/Жнец/);
+ for(const id of ['chill-touch','toll-the-dead','sapping-sting'])assert.equal(D.spells[id].school,'N',id);
+ for(const id of ['infestation','sacred-flame','mind-sliver','poison-spray'])assert.notEqual(D.spells[id].school,'N',id);
+ const life=create('cleric','life',{creation_cantrips:['toll-the-dead','sacred-flame','guidance']});assert.doesNotMatch(notes(by(life,'cantrip-toll-the-dead')),/Жнец/);
+ const lunar=create('sorcerer','lunar'),flame=by(lunar,'cantrip-sacred-flame');
+ assert.match(notes(flame),/Лунный огонь: одна цель или два существа в пределах дистанции и в 5 футах друг от друга/);
+ assert.doesNotMatch(notes(by(create('cleric','life',{creation_cantrips:['sacred-flame','guidance','light']}),'cantrip-sacred-flame')),/Лунный огонь/);
+ // Green-Flame Blade: the cantrip itself is a weapon attack, the modifier damage goes to the second creature.
+ const gfb=by(create('wizard',null,{creation_cantrips:['green-flame-blade','mage-hand','light']}),'cantrip-green-flame-blade');
+ assert.equal(gfb.damage,'3');assert.equal(gfb.riderText,'второй цели');assert.equal(gfb.weaponRider,true);assert.match(notes(gfb),/основной цели дополнительного урона нет, а другое существо в пределах 5 футов от неё получает урон огнём, равный модификатору/);
+});
+test('Shillelagh on a monk quarterstaff names the Dexterity it keeps; equal modifiers say не хуже and drop the inherited two-handed note',()=>{
+ const monk=(dexterity,wisdom)=>create('monk',null,{abilityMethod:'manual',abilities:{strength:10,dexterity,constitution:14,intelligence:10,wisdom,charisma:10},human_feature:'human_alt',creation_feat:'magic-initiate',creation_feat_class:'druid',creation_feat_cantrips:['shillelagh','produce-flame'],creation_cantrips:[],creation_weapon:'quarterstaff'});
+ // DEX 16 (+3) beats WIS 14 (+2): Martial Arts puts the quarterstaff on Dexterity, so the magic row keeps it and the note names Ловкость, never Сила.
+ const c=extras(monk(16,14)),plain=c.attacks.find(a=>a.id==='quarterstaff'),magic=c.attacks.find(a=>a.id==='quarterstaff-shillelagh'),note=magic.notes.join(' ');
+ assert.equal(magic.ability,'dexterity');assert.equal(magic.attackBonus,plain.attackBonus);assert.equal(magic.damage,'1d8+3');
+ assert.match(note,/^Заговор «Дубинка»: /);assert.match(note,/вместо Ловкости/);assert.match(note,/здесь Ловкость не хуже, поэтому она сохранена/);assert.doesNotMatch(note,/Сила/);
+ assert.doesNotMatch(note,/Двумя руками/);assert.match(plain.notes.join(' '),/Двумя руками: 1d8\./);
+ // Equal modifiers (DEX 14 = WIS 14 = +2): the spellcasting ability is taken and the note says не хуже, not так выгоднее.
+ const tie=extras(monk(14,14)).attacks.find(a=>a.id==='quarterstaff-shillelagh');
+ assert.equal(tie.ability,'wisdom');assert.equal(tie.damage,'1d8+2');assert.match(tie.notes.join(' '),/ — не хуже \(Мудрость\)/);assert.doesNotMatch(tie.notes.join(' '),/так выгоднее/);
+});
+test('Shillelagh takes the better of Strength and the spellcasting ability and keeps the weapon bonuses',()=>{
+ const druid=(strength,wisdom,weapon='club')=>create('druid','land',{abilityMethod:'manual',abilities:{strength,dexterity:12,constitution:14,intelligence:10,wisdom,charisma:10},creation_cantrips:['shillelagh','produce-flame'],creation_weapon:weapon});
+ // Strength 16 vs Wisdom 13: Strength is better, so the magic club stays on Strength (+1 better-than-wisdom is irrelevant); only the die becomes d8.
+ const strong=extras(druid(16,13)),plainStrong=strong.attacks.find(a=>a.id==='club'),magicStrong=strong.attacks.find(a=>a.id==='club-shillelagh');
+ assert.equal(magicStrong.ability,'strength');assert.equal(magicStrong.attackBonus,plainStrong.attackBonus);assert.equal(magicStrong.damage,'1d8+3');assert.equal(magicStrong.damageBonus,plainStrong.damageBonus);assert.match(magicStrong.notes.join(' '),/можно использовать базовую характеристику заклинаний вместо Силы/);assert.match(magicStrong.notes.join(' '),/Сила не хуже/);
+ // Strength 10 vs Wisdom 16: Wisdom.
+ const weak=extras(druid(10,16)),magicWeak=weak.attacks.find(a=>a.id==='club-shillelagh');
+ assert.equal(magicWeak.ability,'wisdom');assert.equal(magicWeak.attackBonus,weak.attacks.find(a=>a.id==='club').attackBonus+3);assert.equal(magicWeak.damage,'1d8+3');assert.match(magicWeak.notes.join(' '),/так выгоднее \(Мудрость\)/);
+ // Equal modifiers: no shift either way; a Wisdom penalty never lowers the magic weapon below the plain one.
+ const low=extras(druid(14,8)),magicLow=low.attacks.find(a=>a.id==='club-shillelagh');assert.equal(magicLow.ability,'strength');assert.equal(magicLow.damage,'1d8+2');
+ const equal=extras(druid(14,14)).attacks.find(a=>a.id==='club-shillelagh');assert.equal(equal.damage,'1d8+2');assert.match(equal.notes.join(' '),/ — не хуже \(Мудрость\)/);assert.doesNotMatch(equal.notes.join(' '),/так выгоднее/);
+ // Dueling carry-over: a paladin with Dueling who multiclasses into druid keeps the +2 on both the plain and the magic club.
+ for(const [strength,wisdom,ability] of [[13,16,"wisdom"],[16,13,"strength"]]){
+  const base=create("paladin",null,{abilityMethod:"manual",abilities:{strength,dexterity:12,constitution:14,intelligence:10,wisdom,charisma:14},creation_secondary:"club"}),c=enter(advance(base,null,{style:"dueling"}),"druid",{"druid:creation_cantrips":["shillelagh","produce-flame"]}),rows=extras(c).attacks,plain=rows.find(a=>a.id==="club"),magic=rows.find(a=>a.id==="club-shillelagh");
+  assert.equal(magic.ability,ability);assert.ok(plain.notes.some(n=>/Дуэлянт/.test(n))&&magic.notes.some(n=>/Дуэлянт/.test(n)));
+  assert.equal(magic.damageBonus,plain.damageBonus+(ability==="wisdom"?stats(c).modifiers.wisdom-stats(c).modifiers.strength:0));assert.match(magic.damage,/^1d8+/);
+ }
+});

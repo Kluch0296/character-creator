@@ -156,3 +156,35 @@ test('racial magic, unusual text and empty optional fields keep the LSS schema v
   }
  }
 });
+
+test('damaging cantrips: attack-roll cantrips are LSS weapon rows, saving-throw and rider cantrips stay in the attacks text',()=>{
+ const abilities={strength:10,dexterity:12,constitution:14,intelligence:10,wisdom:16,charisma:14};
+ const cleric=create('cleric','life',{abilityMethod:'manual',abilities,creation_cantrips:['sacred-flame','guidance','light']});
+ const c=enter(enter(cleric,'warlock',{'warlock:creation_patron':'fiend','warlock:creation_cantrips':['eldritch-blast','chill-touch']}),'warlock',{invocations:['agonizing-blast','repelling-blast']});
+ const {extras,out}=exportCharacter(c),{data}=assertLssSchema(out,{level:3,label:'cleric/warlock cantrips'}),rows=data.weaponsList;
+ const blast=rows.find(w=>w.name.value==='Мистический заряд'),touch=rows.find(w=>w.name.value==='Леденящее прикосновение');
+ assert.ok(blast);assert.equal(blast.ability,'cha');assert.equal(blast.isProf,true);assert.equal(blast.dmg.value,'1d10+2');assert.equal(blast.dmgType.value,'силовое поле');
+ assert.match(blast.notes.value,/120 футов/);assert.match(blast.notes.value,/Мучительный взрыв/);
+ assert.ok(touch);assert.equal(touch.dmg.value,'1d8');assert.equal(touch.dmgType.value,'некротическая энергия');
+ assert.ok(!rows.some(w=>w.name.value==='Священное пламя'),'saving-throw cantrips must not become weapon rows');
+ // LSS recomputes to-hit as ability modifier + proficiency, so no manual attack bonus is needed for the spell rows.
+ assert.ok(!data.bonuses.some(b=>b.target===`weapon.${blast.id}.attack`||b.target===`weapon.${touch.id}.attack`));
+ assert.deepEqual(rows.map(w=>w.id),rows.map((_,i)=>'weapon-creator-'+i));
+ assert.ok(rows.findIndex(w=>w===blast)>rows.findLastIndex(w=>!/заряд|прикосновение/.test(w.name.value)),'weapon rows first');
+ assert.equal(rows.length,extras.attacks.filter(a=>!a.save&&!a.weaponRider).length);
+ const lines=data.text.attacks.value.data.content.map(p=>p.content?.[0]?.text||'');
+ const flame=lines.find(l=>l.startsWith('Священное пламя ('));assert.ok(flame);assert.ok(flame.includes('спасбросок ЛОВ, Сл 13, 1к8 излучением'),flame);
+ assert.ok(lines.some(l=>l.startsWith('Мистический заряд: атака +4, урон 1к10+2 силовым полем')));
+ // Weapon-attack riders have no spell attack of their own either.
+ const sniper=create('wizard',null,{creation_cantrips:['green-flame-blade','mage-hand','light']}),sniped=exportCharacter(sniper);
+ assertLssSchema(sniped.out,{level:1,label:'green-flame-blade'});const sdata=JSON.parse(sniped.out[0].data);
+ assert.ok(!sdata.weaponsList.some(w=>w.name.value===L.label('green-flame-blade')));
+ assert.ok(JSON.stringify(sdata.text.attacks).includes('атака оружием, 3 огнём второй цели'));
+ // One notation per text line: dice inside notes are written 1к8 like the damage, while the weapon row's dmg field keeps 1d10.
+ const tolls=exportCharacter(create('wizard',null,{creation_cantrips:['toll-the-dead','mage-hand','light']})),tollLine=JSON.parse(tolls.out[0].data).text.attacks.value.data.content.map(p=>p.content?.[0]?.text||'').find(l=>l.startsWith(L.label('toll-the-dead')+' ('));
+ assert.ok(tollLine&&tollLine.includes('1к8 некротической энергией')&&tollLine.includes('урон 1к12')&&!/ddd/.test(tollLine),tollLine);
+ // A high elf wizard's racial Fire Bolt uses Intelligence; characters without damaging cantrips get no extra rows.
+ const elf=exportCharacter(create('wizard',null,{race:'elf',race_sub:'high_elf',high_elf_cantrip:'fire-bolt',creation_cantrips:['mage-hand','light','prestidigitation']}));
+ const bolt=JSON.parse(elf.out[0].data).weaponsList.find(w=>w.name.value===L.label('fire-bolt'));assert.equal(bolt.ability,'int');assert.equal(bolt.dmg.value,'1d10');assert.equal(bolt.dmgType.value,'огонь');
+ const quiet=exportCharacter(create('fighter'));assert.equal(JSON.parse(quiet.out[0].data).weaponsList.length,quiet.extras.attacks.length);assert.ok(!quiet.extras.attacks.some(a=>a.cantrip));
+});

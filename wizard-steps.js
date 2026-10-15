@@ -561,7 +561,7 @@ function renderMechanicalSummary(container) {
     ...(extras.equipment || []).map(item => `${item.label || item.id} × ${item.quantity || 1}`),
     extras.money ? `Монеты: ${Object.entries(extras.money).filter(([,n]) => n).map(([id,n]) => `${n} ${{cp:'мм',sp:'см',ep:'эм',gp:'зм',pp:'пм'}[id] || id}`).join(', ') || '0'}` : ''
   ]);
-  appendResultList(container, 'Атаки', (extras.attacks || []).map(attack => `${attack.label}: ${signedNumber(attack.attackBonus)} к попаданию, ${attack.damage} урона${attack.notes?.length ? `. ${attack.notes.join(' ')}` : ''}`));
+  appendResultList(container, 'Атаки', (extras.attacks || []).map(attack => `${attack.label}: ${attack.save ? `Сл ${attack.save.dc}, спасбросок ${attack.save.short}` : attack.weaponRider ? 'атака оружием' : `${signedNumber(attack.attackBonus)} к попаданию`}, ${attack.cantrip ? `${String(attack.damage).replace(/(\d)d(\d)/g, '$1к$2')} ${attack.damageTypeText}${attack.riderText ? ` ${attack.riderText}` : ''}` : `${attack.damage} урона`}${attack.notes?.length ? `. ${attack.notes.join(' ')}` : ''}`));
   if (extras.spellcasting) {
     const casting = extras.spellcasting;
     const castings=extras.spellcastingByClass?.length ? extras.spellcastingByClass : [casting];

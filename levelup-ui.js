@@ -154,7 +154,7 @@ function advancementHpField(card, p, context, onChange) {
     button.addEventListener('click',()=>{if(p.hp.mode===id)return;p.hp={mode:id,value:id==='average'?average:null};saveDraft('result');renderPage();focusByKey(getApp(),id==='roll'?'advancement-hp-roll':`advancement-hp:${id}`);});
     modes.appendChild(button);
   };
-  mode('average',`Среднее: +${averageGain.gain} хитов`,`${average} + ТЕЛ ${signedValue(averageGain.constitution)}${hpFloorNote(averageGain)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''} · без броска`);
+  mode('average',`Среднее: +${averageGain.gain} ${CharacterRules.ruPlural(averageGain.gain,['хит','хита','хитов'])}`,`${average} + ТЕЛ ${signedValue(averageGain.constitution)}${hpFloorNote(averageGain)}${averageGain.bonus ? ` + бонусы ${averageGain.bonus}` : ''} · без броска`);
   mode('roll','Свой бросок',`Бросьте к${die} и введите результат`);
   field.appendChild(modes);
   if (p.hp.mode==='roll') {const caption=createElement('label','field-label','Результат броска');caption.htmlFor='advancement-hp-roll';field.appendChild(caption);const input=createElement('input','mechanic-select advancement-hp-roll');input.type='number';input.id='advancement-hp-roll';input.min=1;input.max=die;input.step=1;input.inputMode='numeric';input.value=p.hp.value??'';input.setAttribute('data-focus-key','advancement-hp-roll');input.addEventListener('input',()=>{p.hp.value=input.value.trim()===''?null:Number(input.value);saveDraft('result');updateStrip();onChange();});field.appendChild(input);}
@@ -163,7 +163,7 @@ function advancementHpField(card, p, context, onChange) {
     const hp=advancementHp(p,context),valid=Number.isInteger(hp.raw)&&hp.raw>=1&&hp.raw<=die;strip.textContent='';strip.classList.remove('is-invalid');
     if(!valid){strip.classList.add('is-invalid');strip.textContent=`Введите целый бросок от 1 до ${die}.`;return;}
     const formula=createElement('span','advancement-hp-strip__formula',`${hp.raw} кость + (${signedValue(hp.constitution)}) ТЕЛ${hpFloorNote(hp)}${hp.bonus ? ` + ${hp.bonus} бонусы` : ''} = `);
-    formula.appendChild(createElement('strong','advancement-hp-strip__gain',`+${hp.gain} хитов`));strip.appendChild(formula);
+    formula.appendChild(createElement('strong','advancement-hp-strip__gain',`+${hp.gain} ${CharacterRules.ruPlural(hp.gain,['хит','хита','хитов'])}`));strip.appendChild(formula);
     strip.appendChild(createElement('span','advancement-hp-strip__total',`Максимум хитов: ${before} → ${before+hp.gain}`));
   };updateStrip();
   card.appendChild(field);
@@ -233,7 +233,7 @@ function showAdvancement(container) {
       appendResultList(card,'Ресурсы',(extra.resources||[]).map(x=>`${x.name}: ${x.max}, ${x.recovery||(x.rest==='short-rest'?'короткий или долгий':'долгий')+' отдых'}`));
       appendResultList(card,'Новые решения',groups.map(g=>g.label+': '+(Array.isArray(p.choices[g.id])?p.choices[g.id]:[p.choices[g.id]]).map(id=>g.options.find(o=>o.value===id)?.label||id).join(', ')));
       appendResultList(card,'Умения',(extra.features||[]).map(f=>f.name+': '+f.description));
-      card.appendChild(createElement('p','choice-help','Формы Дикого облика, звёздные формы, модель доспеха, пушка, эссенция дракончика, формы оружия/фамильяра и лунная фаза выбираются при применении или отдыхе по своим правилам.'));
+      if((extra.classes||[]).some(x=>x.id==='druid'&&x.level>=2)||(extra.subclasses||[]).some(s=>['stars','armorer','artillerist','drakewarden','lunar','beast'].includes(s.id))||(extra.features||[]).some(f=>f.name==='Предмет договора'&&/^(Клинок|Цепь):/.test(f.description||'')))card.appendChild(createElement('p','choice-help','Формы Дикого облика, звёздные формы, облик зверя (укус, когти или хвост), модель доспеха, пушка, эссенция дракончика, формы оружия/фамильяра и лунная фаза выбираются при применении или отдыхе по своим правилам.'));
     }
   }
   const actions=createElement('div','result-actions');

@@ -499,7 +499,7 @@ test('PR26 round ten: Shepherd totem exports all mutable spirits with class-leve
  const second=advance(create('druid'),'shepherd');
  for(const c of [second,advance(second),enter(second,'fighter')]){const e=extras(c),level=e.classes.find(x=>x.id==='druid').level,text=e.features.find(f=>f.name==='Тотемный дух').description;
   for(const pattern of [/Медведь/,/Ястреб/,/Единорог/,/30 футов/,/60 футов/,/реакци.*преимущество/,/Восприятие/,/проверки Силы и спасброски Силы/,/внутри или вне ауры/,/ячейк/])assert.match(text,pattern);
-  assert.ok(text.includes((5+level)+' временных хитов'));assert.ok(text.includes('восстанавливают '+level+' хитов'));assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(e.resources.find(r=>r.id.endsWith('spirit-totem')).max,1);assert.ok(!Object.hasOwn(c.advancement.entries.at(-1).choices,'spirit'));
+  assert.ok(text.includes((5+level)+' временных хитов'));assert.ok(text.includes('восстанавливают '+level+' '+R.ruPlural(level,['хит','хита','хитов'])));assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(e.resources.find(r=>r.id.endsWith('spirit-totem')).max,1);assert.ok(!Object.hasOwn(c.advancement.entries.at(-1).choices,'spirit'));
  }
 });
 test('PR26 round ten: Rune Knight gives CON save DC alongside selected rune effects',()=>{
@@ -513,8 +513,8 @@ test('PR26 round ten: Cavalier retaliation keeps advantage, extra damage and mar
 });
 test('PR26 round ten: Artillerist cannon describes activation and all three modes',()=>{
  for(const intelligence of [8,18]){const c=advance(advance(create('artificer',null,{abilities:{strength:16,dexterity:16,constitution:16,intelligence,wisdom:16,charisma:16}})),'artillerist'),text=extras(c).features.find(f=>f.name==='Мистическая пушка').description,m=stats(c).modifiers.intelligence;
-  for(const pattern of [/бонусным действием/,/60 футов/,/Огнемёт.*конус 15/,/2к8.*огн/,/половин/,/Силовая баллиста.*120/,/2к8.*силовым полем/,/отталкивает.*5 футов/,/Защитник.*10 футов/,/самой пушке/,/минимум 1 временный хит/])assert.match(text,pattern);
-  assert.ok(text.includes('Сл '+(10+m)));assert.ok(text.includes('бонус атаки '+(m+2>=0?'+':'')+(m+2)));assert.ok(text.includes('1к8'+(m>=0?'+':'')+m));assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(extras(c).resources.find(r=>r.id==='eldritch-cannon').max,1);
+  for(const pattern of [/бонусным действием/,/60 футов/,/Огнемёт.*конус 15/,/2к8.*огн/,/половин/,/Силовая баллиста.*120/,/2к8.*силовым полем/,/отталкивает.*5 футов/,/Защитник.*10 футов/,/самой пушке/,/минимум \+1\)/])assert.match(text,pattern);
+  assert.ok(text.includes('Сл '+(10+m)));assert.ok(text.includes('бонус атаки '+(m+2>=0?'+':'')+(m+2)));assert.ok(text.includes('1к8 + '+(intelligence===8?'1 временный хит':'4 временных хита')+' (модификатор Интеллекта, минимум +1)'));assert.ok(JSON.stringify(exported(c).text.traits).includes(text));assert.equal(extras(c).resources.find(r=>r.id==='eldritch-cannon').max,1);
  }
 });
 test('PR26 round ten: Swords flourishes retain conditional damage, AC and movement',()=>{
@@ -586,7 +586,7 @@ test('PR26 round twelve: Steel Defender exports a separate usable profile scaled
  for(const intelligence of [6,16]){
   const second=advance(create('artificer',null,{abilities:{strength:8,dexterity:14,constitution:14,intelligence,wisdom:12,charisma:10}})),c=advance(second,'battle-smith'),e=extras(c),f=e.features.find(f=>f.name==='Стальной защитник'),hp=17+stats(c).modifiers.intelligence,attack=2+stats(c).modifiers.intelligence;
   assert.ok(f.description.includes('Хиты '+hp));assert.ok(f.description.includes('бонус атаки '+(attack>=0?'+':'')+attack));assert.equal(e.resources.find(r=>r.id==='steel-defender').max,hp);
-  for(const p of [/Средний конструкт/,/КД 15/,/40 фут/,/СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6/,/ЛОВ \+3, ТЕЛ \+4/,/Атлетика \+4, Восприятие \+4/,/яд/,/отравлен/,/очарован/,/истощен/,/60 фут/,/пассивное Восприятие 14/,/врасплох/,/1к8\+2.*силов/,/Ремонт.*3\/день/,/2к8\+2/,/конструкт.*предмет.*5 фут/,/Отражение атаки.*реакция/,/помех/,/кроме защитника/,/сразу после вас/,/Уклонение/,/бонусным действием/,/недееспособны/,/Заговор «Починка».*отдельно от действия «Ремонт».*2к6/,/часа после смерти/,/1 минуту/])assert.match(f.description,p);
+  for(const p of [/Средний конструкт/,/КД 15/,/40 фут/,/СИЛ 14, ЛОВ 12, ТЕЛ 14, ИНТ 4, МДР 10, ХАР 6/,/ЛОВ \+3, ТЕЛ \+4/,/Атлетика \+4, Восприятие \+4/,/яд/,/отравлен/,/очарован/,/истощен/,/60 фут/,/пассивное Восприятие 14/,/врасплох/,/1к8\+2.*силов/,/Ремонт.*3\/день/,/2к8 \+ 2 хита/,/конструкт.*предмет.*5 фут/,/Отражение атаки.*реакция/,/помех/,/кроме защитника/,/сразу после вас/,/Уклонение/,/бонусным действием/,/недееспособны/,/Заговор «Починка».*отдельно от действия «Ремонт».*2к6/,/часа после смерти/,/1 минуту/])assert.match(f.description,p);
   assert.ok(JSON.stringify(exported(c).text.traits).includes(f.description));assert.equal(stats(c).ac,stats(second).ac);assert.equal(stats(c).speed,stats(second).speed);assert.deepEqual(stats(c).saves,stats(second).saves);
  }
 });
@@ -915,8 +915,8 @@ test('PR26 round eighteen: Genie Wrath and Form of Dread keep complete condition
   const first=round18Warlock(patron,patron==='genie'?{creation_genie:genie}:{}),second=advance(first),entry=enter(create('fighter',null,{abilityMethod:'manual'}),'warlock',{'warlock:creation_patron':patron,...(patron==='genie'?{'warlock:creation_genie':genie}:{})}),cases=[[first,1],[second,2],[advance(second,null,{pact:'blade'}),3],[enter(first,'fighter'),1],[enter(second,'fighter'),2],[entry,1],[enter(entry,'warlock'),2]];
   for(const [c,level] of cases){const before=copy(c),e=extras(c),features=e.features.filter(f=>f.name===name);assert.equal(features.length,1);const text=features[0].description;assert.match(text,/Один раз в каждый свой ход.*попадания атакой.*можете/);
    if(patron==='genie'){const expected={dao:['Дао','дробящий'],djinni:['Джинн','звуком'],efreeti:['Ифрит','огнём'],marid:['Марид','холодом']}[genie];for(const part of expected)assert.ok(text.includes(part),text);assert.match(text,/2.*бонус мастерства/);assert.ok(!e.resources.some(r=>/wrath/.test(r.id)));}
-   else{assert.match(text,/Бонусное действие.*1 минут/);assert.match(text,new RegExp('1к10 \\+ '+level+' временных хитов'));assert.match(text,/уровень колдуна/);assert.match(text,/иммунитет к испугу.*пока.*облик/);assert.match(text,new RegExp('Мудрости Сл '+(10+stats(c).modifiers.charisma)));assert.match(text,/Сл заклинаний колдуна/);assert.match(text,/при провале.*испугано.*конца вашего следующего хода/);const resources=e.resources.filter(r=>r.name==='Облик ужаса');assert.equal(resources.length,1);assert.equal(resources[0].max,stats(c).proficiencyBonus);assert.equal(resources[0].rest,'long-rest');}
-   assert.ok(JSON.stringify(exported(c).text.traits).includes(text));const damageProfiles=attacks=>attacks.filter(a=>!a.pactWeapon).map(({id,damage,damageBonus,type})=>({id,damage,damageBonus,type}));assert.deepEqual(damageProfiles(e.attacks),damageProfiles(context(c).baseExtras.attacks));assert.equal(e.tempHp,undefined);assert.equal(e.resistances,context(c).baseExtras.resistances);const baseline=R.derivedStats(c,{...e,features:[],resources:[]});assert.equal(stats(c).hp,baseline.hp);assert.equal(stats(c).ac,baseline.ac);assert.equal(stats(c).speed,baseline.speed);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);
+   else{assert.match(text,/Бонусное действие.*1 минут/);assert.match(text,new RegExp('1к10 \\+ '+level+' '+(level===1?'временный хит':level<=4?'временных хита':'временных хитов')));assert.match(text,/уровень колдуна/);assert.match(text,/иммунитет к испугу.*пока.*облик/);assert.match(text,new RegExp('Мудрости Сл '+(10+stats(c).modifiers.charisma)));assert.match(text,/Сл заклинаний колдуна/);assert.match(text,/при провале.*испугано.*конца вашего следующего хода/);const resources=e.resources.filter(r=>r.name==='Облик ужаса');assert.equal(resources.length,1);assert.equal(resources[0].max,stats(c).proficiencyBonus);assert.equal(resources[0].rest,'long-rest');}
+   assert.ok(JSON.stringify(exported(c).text.traits).includes(text));const damageProfiles=attacks=>attacks.filter(a=>!a.pactWeapon&&!a.cantrip).map(({id,damage,damageBonus,type})=>({id,damage,damageBonus,type}));assert.deepEqual(damageProfiles(e.attacks),damageProfiles(context(c).baseExtras.attacks));assert.equal(e.tempHp,undefined);assert.equal(e.resistances,context(c).baseExtras.resistances);const baseline=R.derivedStats(c,{...e,features:[],resources:[]});assert.equal(stats(c).hp,baseline.hp);assert.equal(stats(c).ac,baseline.ac);assert.equal(stats(c).speed,baseline.speed);assert.deepEqual(c,before);assert.deepEqual(L.inspect(c,context(c)).errors,[]);
   }
  }
  for(const patron of ['fiend','hexblade','genie','undead']){const e=extras(round18Warlock(patron));for(const [owner,name] of [['hexblade','Проклятие ведьмовского клинка'],['genie','Гнев гения'],['undead','Облик ужаса']])if(patron!==owner)assert.ok(!e.features.some(f=>f.name===name));}
@@ -1242,4 +1242,57 @@ test('PR26 round thirty-one: five Codex rule gaps (dnd.su) are reflected in the 
  const evocation=advance(create('wizard'),'evocation');assert.match(desc(evocation,'Формирование заклинаний'),/других существ, которых вы видите/);
  const clockwork=advance(create('sorcerer','clockwork-soul'));assert.match(desc(clockwork,'Восстановление баланса'),/к20 существа, которое вы видите, в 60 футах/);
  const mastermind=advance(advance(create('rogue')),'mastermind');assert.match(desc(mastermind,'Мастер интриг'),/не менее минуты.*подражать.*манере и акценту/);assert.doesNotMatch(desc(mastermind,'Мастер интриг'),/услышанного гуманоида/);
+});
+test('artificer two into wizard one exports one infusion line and no replicate ids',()=>{
+ const c=enter(advance(create('artificer'),undefined,{infusions:['enhanced-defense','mind-sharpener','replicate:bag-of-holding','replicate:strixhaven-pennant']}),'wizard');
+ assert.deepEqual(extras(c).classes.map(x=>[x.id,x.level]),[['artificer',2],['wizard',1]]);
+ const data=exported(c);
+ assert.equal(JSON.stringify(data.text.traits).split('Инфузии').length-1,1);
+ assert.ok(!JSON.stringify(data).includes('replicate:'));
+});
+test('PR26 round nine: Spell Sniper offers Magic Stone only on the lists that have it',()=>{
+ // Magic Stone (XGE, druid and warlock lists) needs a ranged spell attack, so it qualifies for exactly the classes that list it.
+ for(const [cls,ability] of [['druid','wisdom'],['warlock','charisma']]){
+  const c=create(cls,null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:cls,creation_feat_cantrips:['magic-stone']}),e=extras(c),spell=e.spells.find(s=>s.id==='magic-stone'&&s.limitExempt);
+  assert.ok(O.getChoices(c,context(c)).find(g=>g.id==='creation_feat_cantrips').options.some(o=>o.value==='magic-stone'),cls);assert.deepEqual(O.validate(c,context(c)),[],cls);
+  assert.ok(spell,cls);assert.equal(spell.ability,ability);const row=e.attacks.find(a=>a.id==='cantrip-magic-stone');assert.ok(row,cls);assert.equal(row.ability,ability);
+ }
+ for(const cls of ['wizard','sorcerer','bard','cleric']){const c=create(cls,null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:cls==='bard'||cls==='cleric'?'wizard':cls}),bad=copy(c);bad.creation_feat_cantrips=['magic-stone'];assert.ok(O.validate(bad,context(bad)).some(err=>err.field==='creation_feat_cantrips'),'not on the '+cls+' list');}
+ // Every remaining attack-roll cantrip of the eligible lists is still offered.
+ const wizard=create('wizard',null,{human_feature:'human_alt',creation_feat:'spell-sniper',creation_feat_class:'wizard'}),offered=O.getChoices(wizard,context(wizard)).find(g=>g.id==='creation_feat_cantrips').options.map(o=>o.value).sort();
+ assert.deepEqual(offered,['booming-blade','chill-touch','fire-bolt','green-flame-blade','ray-of-frost','shocking-grasp']);
+});
+test('Blessed Warrior and Druidic Warrior cantrips stay on the spell list at levels 2 and 3 with an explicit source and the right ability',()=>{
+ for(const [cls,style,ability,source,picks,subclass,damaging] of [['paladin','blessed-warrior','charisma','Боевой стиль: Благословенный воин',['sacred-flame','guidance'],'devotion','cantrip-sacred-flame'],['ranger','druidic-warrior','wisdom','Боевой стиль: Воин-друид',['thorn-whip','druidcraft'],'hunter','cantrip-thorn-whip']]){
+  const two=advance(create(cls),null,{style,style_cantrips:picks}),three=advance(two,subclass);
+  for(const c of [two,three]){
+   const e=extras(c),level=c.level;
+   for(const id of picks){const spell=e.spells.find(s=>s.id===id&&s.level===0);assert.ok(spell,cls+' '+level+' '+id);assert.equal(spell.source,source,cls+' '+level);assert.equal(spell.ability,ability,cls+' '+level+' '+id);assert.equal(spell.status,'cantrip');assert.equal(spell.limitExempt,true);}
+   // They also feed the attack rows with the class's own ability and the exported sheet.
+   const row=e.attacks.find(a=>a.id===damaging);assert.ok(row,cls+' '+level);assert.equal(row.ability,ability);
+   if(row.save)assert.equal(row.save.dc,8+2+stats(c).modifiers[ability]);else assert.equal(row.attackBonus,2+stats(c).modifiers[ability]);
+   assert.ok(JSON.stringify(exported(c).text.attacks).includes(source),cls+' '+level);
+  }
+ }
+});
+test('Hexblade and Steel Defender plurals agree with the number they print',()=>{
+ for(const charisma of [6,8,12,16,20]){
+  const c=create('warlock','hexblade',{abilityMethod:'manual',abilities:{strength:10,dexterity:12,constitution:14,intelligence:10,wisdom:10,charisma}}),n=Math.max(1,1+stats(c).modifiers.charisma),word=n===1?'хит':n<=4?'хита':'хитов';
+  const text=extras(c).features.find(f=>f.name==='Проклятие ведьмовского клинка').description;
+  assert.match(text,new RegExp('восстановите '+n+' '+word+' \\(уровень колдуна'),'CHA '+charisma+' -> '+n);
+ }
+ const smith=advance(advance(create('artificer'),'battle-smith'),'battle-smith'),text=extras(smith).features.find(f=>f.name==='Стальной защитник').description;
+ assert.match(text,/восстановить 2к8 \+ 2 хита себе/);assert.doesNotMatch(text,/2к8\+2/);
+});
+test('LSS damage type of spell-group rows is Russian; unarmed Astral Arms stay as the earlier test expects',()=>{
+ const sun=advance(advance(create('monk')),'sun-soul'),bolt=exported(sun).weaponsList.find(w=>w.name.value==='Луч солнечного света');assert.equal(bolt.dmgType.value,'излучение');
+ const stars=advance(create('druid'),'stars'),archer=exported(stars).weaponsList.find(w=>w.name.value==='Звёздный луч (Лучник)');assert.equal(archer.dmgType.value,'излучение');
+ assert.ok(extras(sun).attacks.find(a=>a.id==='radiant-sun-bolt').group==='spell'&&extras(stars).attacks.find(a=>a.id==='starry-archer').group==='spell');
+ // Astral Arms are an unarmed strike (group unarmed): their dmgType stays the English "force" asserted by the Astral Arms test.
+ const astral=advance(advance(create('monk')),'astral-self'),arms=extras(astral).attacks.find(a=>a.id==='unarmed-astral-arms');assert.notEqual(arms.group,'spell');
+ // Every spell-group row of every class is exported with a Russian damage type (no English identifier leaks).
+ for(const c of [sun,stars,create('wizard',null,{creation_cantrips:['fire-bolt','ray-of-frost','shocking-grasp']}),create('warlock',null,{creation_cantrips:['eldritch-blast','chill-touch']})]){
+  const names=new Set(extras(c).attacks.filter(a=>a.group==='spell').map(a=>a.label));
+  for(const w of exported(c).weaponsList.filter(w=>names.has(w.name.value)))assert.match(w.dmgType.value,/^[а-яё ]+$/,w.name.value);
+ }
 });
