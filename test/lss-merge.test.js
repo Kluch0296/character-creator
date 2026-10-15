@@ -700,19 +700,37 @@ test('native barbarian sheet: the starting-kit physical weapons are not appended
  const raw=JSON.parse(NATIVE.barbarian.data).weaponsList;
  assert.deepEqual(rows.slice(0,raw.length),raw);
  const appended=rows.slice(raw.length);
+assert.ok(appended.every(r=>r.id.startsWith('weapon-creator-spell-')));
  assert.ok(appended.every(r=>!physical.has(r.dmgType.value)));
  assert.ok(!appended.some(r=>physicalNames.includes(r.name.value)));
  assertMergedSchema(merged,1);
 });
 
-test('native druid sheet: a generated spell attack (produce flame) is appended, physical starting weapons are not', () => {
- const gen=exportCharacter(create('druid',null,{creation_cantrips:['produce-flame','druidcraft']})).out;
- assert.ok(parsed(gen).weaponsList.some(r=>r.name.value==='Сотворение пламени'&&r.dmgType.value==='огонь'));
- const merged=merge(gen,nativeOriginal('druid'));
- const names=parsed(merged).weaponsList.map(r=>r.name.value);
- assert.ok(names.includes('Сотворение пламени'));
- assert.equal(names.includes('Скимитар'),false);
- assert.equal(names.includes('Безоружный удар'),false);
+test('native druid sheet: generated spell attacks (produce flame, thorn whip) are appended, physical starting weapons are not', () => {
+ const gen=exportCharacter(create('druid',null,{creation_cantrips:['produce-flame','thorn-whip']})).out;
+ const spellRows=parsed(gen).weaponsList.filter(r=>r.id.startsWith('weapon-creator-spell-'));
+ assert.ok(spellRows.some(r=>r.name.value==='Сотворение пламени'&&r.dmgType.value==='огонь'));
+ assert.ok(spellRows.some(r=>r.name.value==='Терновый кнут'&&r.dmgType.value==='колющий'));
+ const merged=merge(gen,nativeOriginal('druid')), out=parsed(merged).weaponsList;
+ const native=JSON.parse(NATIVE.druid.data).weaponsList;
+ assert.deepEqual(out.slice(0,native.length),native);
+ const appended=out.slice(native.length);
+ assert.deepEqual(appended.map(r=>r.name.value).sort(),spellRows.map(r=>r.name.value).sort());
+ assert.ok(appended.every(r=>r.id.startsWith('weapon-creator-spell-')));
+ assert.equal(out.some(r=>r.name.value==='Скимитар'||r.name.value==='Безоружный удар'),false);
+ assertMergedSchema(merged,1);
+});
+
+test('exports from before the spell id prefix still merge: spell rows match by name, every id stays unique', () => {
+ const gen=exportCharacter(create('druid',null,{creation_cantrips:['produce-flame','thorn-whip']})).out;
+ const old=sanitized(gen), plain=new Map();
+ old.data.weaponsList=old.data.weaponsList.map(row=>{if(!row.id.startsWith('weapon-creator-spell-'))return row;const id='weapon-creator-'+row.id.slice('weapon-creator-spell-'.length);plain.set(row.id,id);return {...row,id};});
+ old.data.bonuses=old.data.bonuses.map(b=>{const m=/^weapon\.(.+)\.attack$/.exec(b.target);return m&&plain.has(m[1])?{...b,target:'weapon.'+plain.get(m[1])+'.attack'}:b;});
+ const merged=merge(gen,old), rows=parsed(merged).weaponsList;
+ assert.equal(new Set(rows.map(r=>r.id)).size,rows.length);
+ assert.equal(rows.filter(r=>r.name.value==='Терновый кнут').length,1);
+ assert.equal(rows.find(r=>r.name.value==='Терновый кнут').id,plain.get([...plain.keys()].find(k=>parsed(gen).weaponsList.find(r=>r.id===k).name.value==='Терновый кнут')));
+ assertPureStep(merged,gen,'old spell ids');
  assertMergedSchema(merged,1);
 });
 

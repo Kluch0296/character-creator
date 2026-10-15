@@ -169,7 +169,7 @@ test('damaging cantrips: attack-roll cantrips are LSS weapon rows, saving-throw 
  assert.ok(!rows.some(w=>w.name.value==='Священное пламя'),'saving-throw cantrips must not become weapon rows');
  // LSS recomputes to-hit as ability modifier + proficiency, so no manual attack bonus is needed for the spell rows.
  assert.ok(!data.bonuses.some(b=>b.target===`weapon.${blast.id}.attack`||b.target===`weapon.${touch.id}.attack`));
- assert.deepEqual(rows.map(w=>w.id),rows.map((_,i)=>'weapon-creator-'+i));
+ assert.equal(new Set(rows.map(w=>w.id)).size,rows.length);assert.ok(rows.every(w=>/^weapon-creator-(spell-)?\d+$/.test(w.id)));assert.ok(blast.id.startsWith('weapon-creator-spell-')&&touch.id.startsWith('weapon-creator-spell-'));
  assert.ok(rows.findIndex(w=>w===blast)>rows.findLastIndex(w=>!/заряд|прикосновение/.test(w.name.value)),'weapon rows first');
  assert.equal(rows.length,extras.attacks.filter(a=>!a.save&&!a.weaponRider).length);
  const lines=data.text.attacks.value.data.content.map(p=>p.content?.[0]?.text||'');

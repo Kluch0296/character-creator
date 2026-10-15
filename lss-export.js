@@ -149,7 +149,8 @@
     }
     const attacks=list(options.attacks);
     data.weaponsList=attacks.filter(a=>!noRoll(a)).map((attack,index)=>{
-      const id=`weapon-creator-${index}`, ability=ABILITIES[attack.ability] || 'str';
+      // Spell and cantrip attacks get their own id prefix, so the merge can tell them from the starting-kit weapons of a native sheet.
+      const id=`${attack.cantrip || attack.group === 'spell' ? 'weapon-creator-spell-' : 'weapon-creator-'}${index}`, ability=ABILITIES[attack.ability] || 'str';
       const base=Math.floor((data.stats[ability].score-10)/2)+(attack.proficient?data.proficiency:0);
       const bonus=(attack.attackBonus ?? base)-base;
       if(bonus) data.bonuses.push({id:`bonus-creator-attack-${index}`,label:'Бонус атаки',target:`weapon.${id}.attack`,expr:String(bonus),source:{kind:'user'}});
@@ -346,20 +347,20 @@
     const ownByName = new Map();
     for(const row of ownRows) { const key = normName(rowName(row)); if(!ownByName.has(key)) ownByName.set(key, row); }
     const genRows = list(data.weaponsList);
-    // A sheet with no physical row of ours is a native or foreign sheet: its weapons are the user's inventory, so only generated spell attacks
-    // (non-physical damage) are added to it. Our own exports keep every generated row. The test is physical damage, not any row with a
-    // weapon-creator id: spell rows appended to a native sheet also get such ids, which would flip the sheet to ours on the next cycle.
+    // A sheet with no physical weapon row of ours is a native or foreign sheet: its weapons are the user's inventory, so only generated spell
+    // attacks (weapon-creator-spell- ids) are added to it. Our own exports keep every generated row. Only non-spell rows decide ownership:
+    // spell rows appended to a native sheet must not flip it to ours on the next cycle, whatever their damage type.
     const PHYSICAL_DAMAGE = new Set(Object.values(DAMAGE).map(normText));
-    const ownExport = ownRows.some(row => typeof row.id === 'string' && row.id.startsWith('weapon-creator-') && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value)));
+    const ownExport = ownRows.some(row => typeof row.id === 'string' && /^weapon-creator-(?!spell-)/.test(row.id) && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value)));
     const used = new Set([...ownById, ...genRows.map(row => row.id)]);
     let freshNumber = 0;
-    const freshId = () => { while(used.has(`weapon-creator-${freshNumber}`)) freshNumber++; const id = `weapon-creator-${freshNumber}`; used.add(id); return id; };
+    const freshId = prefix => { while(used.has(`${prefix}${freshNumber}`)) freshNumber++; const id = `${prefix}${freshNumber}`; used.add(id); return id; };
     const weaponIds = new Map(), addedRows = [];
     for(const row of genRows) {
       const match = ownByName.get(normName(rowName(row)));
       if(match) { weaponIds.set(row.id, typeof match.id === 'string' && match.id.startsWith('weapon-creator-') ? match.id : null); continue; }
-      if(!ownExport && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value))) { weaponIds.set(row.id, null); continue; }
-      const id = ownById.has(row.id) ? freshId() : row.id;
+      if(!ownExport && !String(row.id).startsWith('weapon-creator-spell-')) { weaponIds.set(row.id, null); continue; }
+      const id = ownById.has(row.id) ? freshId(String(row.id).startsWith('weapon-creator-spell-') ? 'weapon-creator-spell-' : 'weapon-creator-') : row.id;
       weaponIds.set(row.id, id);
       addedRows.push({...row, id});
     }
