@@ -78,7 +78,7 @@ function actionProfile(a,id){
 }
 function profile(c,all,base=readSources().base){
  const x=resolveMonster(all.find(x=>x.name===c.name&&x.source===c.source),all);
- const p={source:x.source,page:x.page,dataUrl:base+'bestiary/bestiary-'+x.source.toLowerCase()+'.json',size:x.size[0],ac:typeof x.ac[0]==='number'?x.ac[0]:x.ac[0].ac,hp:x.hp.average,hitDice:x.hp.formula,abilities:Object.fromEntries(['str','dex','con','int','wis','cha'].map(k=>[k,x[k]])),speed:x.speed,skills:x.skill||{},saves:x.save||{},senses:x.senses||[],passive:x.passive,languages:x.languages||[],traits:(x.trait||[]).map(t=>traitSummary(t,c.id)),actions:(x.action||[]).map(a=>actionProfile(a,c.id))};
+ const p={source:x.source,page:x.page,size:x.size[0],ac:typeof x.ac[0]==='number'?x.ac[0]:x.ac[0].ac,hp:x.hp.average,hitDice:x.hp.formula,abilities:Object.fromEntries(['str','dex','con','int','wis','cha'].map(k=>[k,x[k]])),speed:x.speed,skills:x.skill||{},saves:x.save||{},senses:x.senses||[],passive:x.passive,languages:x.languages||[],traits:(x.trait||[]).map(t=>traitSummary(t,c.id)),actions:(x.action||[]).map(a=>actionProfile(a,c.id))};
  if(x.spellcasting){if(c.id!=='deep-roth')throw new Error('Unknown companion spellcasting');p.traits.push('Пляшущие огоньки: неограниченно, без компонентов, заклинательная характеристика МУД.');}
  return p;
 }

@@ -4,6 +4,8 @@ const path = require('node:path');
 const {sources,classes,itemSources,slug}=require('./catalogue-policy.cjs');
 const {readSources,serialize}=require('./catalogue-sources.cjs');
 const pages = {barbarian:'87-barbarian',bard:'88-bard',cleric:'89-cleric',druid:'90-druid',fighter:'91-fighter',monk:'93-monk',paladin:'94-paladin',ranger:'97-ranger',rogue:'99-rogue',sorcerer:'101-sorcerer',warlock:'104-warlock',wizard:'105-wizard',artificer:'137-artificer'};
+// Non-catalogue ids the runtime resolves through labels/referenceLinks: class names in replay warnings (keyLabel) and genie kinds (option URLs). Rule vocabulary (languages, tools, races) is labelled by rules.js instead.
+const RUNTIME_IDS=['bard','druid','dao','djinni','efreeti','marid'];
 const alias = s => slug(s).replace('purple-dragon-knight-banneret','banneret');
 const resolveCopy=(x,all)=>x._copy?{...resolveCopy(all.find(y=>y.name===x._copy.name&&y.source===x._copy.source)||{},all),...x}:x;
 async function generate({sourceSet=readSources()}={}){
@@ -52,6 +54,9 @@ async function generate({sourceSet=readSources()}={}){
  if(!translations.spells){Object.assign(data.labels,translations.labels);Object.assign(data.referenceLinks,translations.referenceLinks);}
  for(const x of data.companions){const lookup=slug(x.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,''));x.label=data.labels[x.id]||data.labels[lookup]||x.name;x.url=data.referenceLinks[x.id]||data.referenceLinks[lookup]||'https://5e14.dnd.su/bestiary/';if(x.label!==x.name){data.labels[x.id]=x.label;data.referenceLinks[x.id]=x.url;}}
  await require('./enrich-companions.cjs').enrich(data.companions,get,base);
+ // Public bundle: keep only labels/links the runtime can ask for (catalogue ids + rule vocabulary); provenance stays in catalogue-sources/manifest.json (enrich-companions no longer emits dataUrl).
+ const keep=new Set([...Object.keys(data.spells),...[data.options,data.subclasses,data.features,data.companions].flatMap(l=>l.map(x=>x.id)),...data.replicaItems,...RUNTIME_IDS]);
+ for(const k of ['labels','referenceLinks'])data[k]=Object.fromEntries(Object.entries(data[k]).filter(([id])=>keep.has(id)));
  data.audit=translations.audit?structuredClone(translations.audit):{date:translations.auditDate,primary:'https://5e14.dnd.su/spells/',unmatchedOfficialLowSpells:translations.spellCards.filter(c=>Number(c.level)<=2&&!data.spells[slug(c.title_en)]).map(c=>c.title_en)};
  return data;
 }

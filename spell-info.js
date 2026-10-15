@@ -162,7 +162,8 @@
     const school={A:'abj',C:'con',D:'div',E:'enc',V:'evo',I:'ill',N:'nec',T:'tra'}[s.school];
     const kind=CATALOGUE_KINDS[id]||'unknown';
     const distance=s.range?.type==='feet'?s.range.amount+' фт':({self:'на себя',touch:'касание',sight:'видимость',unlimited:'неограниченно'}[s.range?.type]||'по описанию');
-    return {id,label:s.label||s.name,level:s.level,source:s.source,school,schoolLabel:SCHOOLS[school],kind,kindLabel:KINDS[kind],time:({action:'1 действие',bonus:'бонусное действие',reaction:'реакция',minute:(s.time?.number||1)+' минута',hour:(s.time?.number||1)+' час'}[s.time?.unit]||'по описанию'),range:distance,text:'Источник: '+s.source+'. Эффект, цели и компоненты — по карточке заклинания в справочнике 5e 2014.',ritual:s.ritual,concentration:s.concentration};
+    const n=s.time?.number||1,plural=forms=>{const m=n%100,d=m%10;return n+' '+(m>10&&m<20?forms[2]:d===1?forms[0]:d>1&&d<5?forms[1]:forms[2]);};
+    return {id,label:s.label||s.name,level:s.level,source:s.source,school,schoolLabel:SCHOOLS[school],kind,kindLabel:KINDS[kind],time:({action:'1 действие',bonus:'бонусное действие',reaction:'реакция',minute:plural(['минута','минуты','минут']),hour:plural(['час','часа','часов'])}[s.time?.unit]||'по описанию'),range:distance,text:'Источник: '+s.source+'. Эффект, цели и компоненты — по карточке заклинания в справочнике 5e 2014.',ritual:s.ritual,concentration:s.concentration};
   }
 
   return { SCHOOLS, KINDS, SPELLS, get };

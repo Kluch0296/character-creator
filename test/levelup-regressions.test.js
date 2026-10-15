@@ -646,7 +646,7 @@ test('PR26 round fourteen: all 62 PHB beasts have exact profiles and export once
  assert.deepEqual(L.getChoices(second,pending,context(second)).find(g=>g.id==='companion').options.map(o=>o.value),D.companions.map(x=>x.id));
  let hero;
  for(const beast of D.companions){
-  const p=beast.profile;assert.ok(p,beast.id);assert.equal(p.source,beast.source);assert.ok(p.page>0);assert.match(p.dataUrl,/bestiary-/);assert.equal(Object.keys(p.abilities).length,6);assert.ok(p.ac>0&&p.hp>0);assert.ok(p.hitDice);assert.ok(Object.keys(p.speed).length>0);assert.ok(Array.isArray(p.actions)&&Array.isArray(p.traits));
+  const p=beast.profile;assert.ok(p,beast.id);assert.equal(p.source,beast.source);assert.ok(p.page>0);assert.equal(p.dataUrl,undefined);assert.equal(Object.keys(p.abilities).length,6);assert.ok(p.ac>0&&p.hp>0);assert.ok(p.hitDice);assert.ok(Object.keys(p.speed).length>0);assert.ok(Array.isArray(p.actions)&&Array.isArray(p.traits));
   const c=advance(second,'beast-master',{companion_rules:'phb-beast',companion:beast.id}),e=extras(c),features=e.features.filter(f=>f.name==='Спутник следопыта');assert.equal(features.length,1,beast.id);
   const text=features[0].description;assert.ok(text.includes(beast.label));assert.ok(text.includes('КД '+(p.ac+2)));assert.ok(text.includes('хиты '+Math.max(p.hp,12)));assert.ok(text.includes(beast.url));assert.match(text,/устная команда перемещения/);assert.match(text,/Ваше действие — команда Атака, Отход, Помощь или Рывок/);assert.match(text,/без команды — Уклонение/);assert.match(text,/8 часов/);
   const paragraphs=exported(c).text.traits.value.data.content,texts=paragraphs.flatMap(p=>p.content||[]).map(x=>x.text||'');for(const line of text.split('\n'))assert.equal(texts.filter(x=>x.includes(line)).length,1,beast.id+': exported line '+line);
@@ -1308,4 +1308,14 @@ test('PR26 round thirty-two: nine rule gaps (dnd.su) are reflected in the sheet'
  assert.match(desc(paladin('oathbreaker'),'Контроль нежити'),/одна видимая вами нежить.*уровня паладина.*до повторного использования умения/);
  const clap=extras(create('wizard',null,{creation_cantrips:['thunderclap','fire-bolt','light']})).attacks.find(a=>a.cantripId==='thunderclap');assert.match(clap.notes.join(' '),/Каждое существо, кроме вас, в пределах 5 футов/);
  const blast=extras(advance(create('warlock',null,{creation_cantrips:['eldritch-blast','chill-touch']}),null,{invocations:['agonizing-blast','repelling-blast']})).attacks.find(a=>a.id==='cantrip-eldritch-blast');assert.match(blast.notes.join(' '),/Отталкивающий взрыв: при попадании можно оттолкнуть существо на расстояние до 10 футов/);assert.doesNotMatch(blast.notes.join(' '),/Большой или меньше/);
+});
+
+test('catalogue cast times agree in number and Interception option matches TCE',()=>{
+ const S=require('../spell-info');assert.equal(S.get('find-steed').time,'10 минут');assert.equal(S.get('augury').time,'1 минута');assert.equal(S.get('ceremony').time,'1 час');
+ const text=L.optionList('FS:P',create('paladin'),{level:2,choices:{},cantrips:[],known:[],invocations:[],infusions:[]}).find(o=>o.value==='interception')?.description||'';assert.match(text,/кроме вас/);assert.match(text,/минимум 0/);assert.doesNotMatch(text,/союзник/);
+});
+
+test('proficiency choices use rule labels, never bestiary or item pages of a colliding id',()=>{
+ const options=(cls,sub)=>{const c=advance(create(cls));const p=fill(c,L.begin(c,context(c)),{subclass:sub});return L.getChoices(c,p,context(c)).filter(g=>g.section==='proficiencies').flatMap(g=>g.options);};
+ for(const [cls,sub] of [['fighter','samurai'],['fighter','cavalier'],['barbarian','giant']])for(const o of options(cls,sub)){assert.doesNotMatch(o.url||'',/\/(bestiary|items)\//,cls+':'+sub+':'+o.value);if(R.LABELS[o.value])assert.equal(o.label,R.LABELS[o.value],o.value);}
 });

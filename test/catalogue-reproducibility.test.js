@@ -90,7 +90,7 @@ test('changed projected source affects output and a reviewed lock exposes stale 
 
 test('explicit refresh locks actual responses, projected payloads, SHA and refreshed audit date',async t=>{
  const dir=path.join(temp(t),'sources'),fixture=fixtureFetcher(),manifest=await refresh({dir,revision,date:'2026-10-09',fetcher:fixture.fetcher});
- const source=readSources(dir),data=await generate({sourceSet:source});assert.equal(data.audit.date,'2026-10-09');assert.equal(data.features[0].name,'Fixture Feature');assert.equal(data.spells['fixture-spell'].label,'Тестовая магия');assert.equal(data.companions[0].profile.dataUrl,'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/'+revision+'/data/bestiary/bestiary-mm.json');
+ const source=readSources(dir),data=await generate({sourceSet:source});assert.equal(data.audit.date,'2026-10-09');assert.equal(data.features[0].name,'Fixture Feature');assert.equal(data.spells['fixture-spell'].label,'Тестовая магия');assert.equal(data.companions[0].profile.dataUrl,undefined);
  assert.equal(manifest.translationOrigin.kind,'live-index-metadata');
  for(const raw of manifest.rawResponses)assert.equal(raw.sha256,fixture.responses.get(raw.url));
  for(const [name,meta] of Object.entries(manifest.payloads))assert.equal(meta.sha256,hash(fs.readFileSync(path.join(dir,name))));
