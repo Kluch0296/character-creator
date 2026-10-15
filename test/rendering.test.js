@@ -1661,9 +1661,9 @@ const LSS_ORIGINAL_KEY_NAME = 'dnd-character-draft-v2:lss-original';
 const LSS_TEXT = {
   quota: 'Исходный лист слишком большой для сохранения в браузере: после перезагрузки страницы заметки и снаряжение из него не перенесутся.',
   oversized: 'Лист слишком большой — JSON выгрузится без заметок, снаряжения и монет из LSS; не удаляйте старый лист.',
-  reloadQuota: 'Загрузите лист снова прямо перед выгрузкой — браузеру не хватает места, чтобы хранить его копию.',
+  reloadQuota: 'Прикрепите лист снова прямо перед выгрузкой — браузеру не хватает места, чтобы хранить его копию.',
   unavailable: 'Браузер не сохраняет черновик: объединение с исходным листом работает до перезагрузки страницы.',
-  reload: 'Исходный лист из LSS не найден в браузере: JSON выгрузится без заметок и снаряжения из LSS. Загрузите лист снова.',
+  reload: 'Исходный лист из LSS не найден в браузере: JSON выгрузится без заметок и снаряжения из LSS. Прикрепите лист снова — персонаж не изменится.',
   mergeFailed: 'Не удалось объединить с исходным листом — выгружен лист без пользовательских данных LSS.',
   restoreFallback: 'Не удалось подобрать выборы из листа — выберите их вручную.'
 };
@@ -1759,7 +1759,7 @@ test('LSS storage: a quota refusal keeps the sheet copy for this session and say
   vm.runInContext("lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();", context);
   assert.equal(dom.root.textContent.includes(LSS_TEXT.reloadQuota), true, 'after a reload the quota variant asks for a fresh upload');
   assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), false);
-  assert.equal(!!buttonNamed(dom.root, 'Загрузить лист снова'), true);
+  assert.equal(!!buttonNamed(dom.root, 'Прикрепить исходный лист'), true);
 });
 
 test('LSS storage: unavailable storage keeps the sheet copy until reload and says so', async () => {
@@ -1816,7 +1816,7 @@ test('LSS draft: the sheet copy has its own key, survives a reload, is migrated 
   vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();', context);
   assert.equal(vm.runInContext('lssOriginalMatches()', context), false);
   assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), true);
-  assert.equal(!!buttonNamed(dom.root, 'Загрузить лист снова'), true);
+  assert.equal(!!buttonNamed(dom.root, 'Прикрепить исходный лист'), true);
   const plain = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
   assert.notEqual(plain.coins.gp.value, 17, 'without the copy the export is a plain sheet');
 });
@@ -1831,7 +1831,7 @@ test('LSS storage: a sheet over the stored size never gets a copy and says so wi
   assert.equal(dom.root.textContent.includes(LSS_TEXT.oversized), true);
   assert.equal(dom.root.textContent.includes(LSS_TEXT.quota), false, 'not the quota wording');
   assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), false, 'not the reload wording');
-  assert.equal(!!buttonNamed(dom.root, 'Загрузить лист снова'), false);
+  assert.equal(!!buttonNamed(dom.root, 'Прикрепить исходный лист'), false);
   const exported = JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context));
   const data = JSON.parse(exported[0].data);
   assert.equal(data.junk, undefined, 'the plain sheet carries no sheet data');
@@ -1873,4 +1873,175 @@ test('LSS draft: a sheet copy without a draft that refers to it is removed on lo
   storage.removeItem(LSS_STORAGE_KEY);
   vm.runInContext('restoreDraft()', context);
   assert.equal(storage.getItem(LSS_ORIGINAL_KEY_NAME), null, 'no draft: the copy is removed');
+});
+
+test('LSS attach: a lost sheet copy is re-attached to the level-3 hero without touching it', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const storage = dom.window.localStorage;
+  const fighter = FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'});
+  const sheetText = ownSheetText(fighter, sheet => { sheet.coins = {gp: {value: 17}}; });
+  await chooseLssFile(dom, lssFile('own.json', sheetText));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+  // Level the hero to 3 with the fixture rules (the same rules as the advancement commit).
+  const three = FixtureNode.advance(FixtureNode.advance(JSON.parse(vm.runInContext('JSON.stringify(character)', context)), null), 'champion');
+  vm.runInContext(`character = ${JSON.stringify(three)}; currentPageIndex = config.pages.length; renderPage();`, context);
+  assert.equal(vm.runInContext('LevelUpRules.inspect(character, getAdvancementContext()).state.level', context), 3);
+  const before = vm.runInContext('JSON.stringify({advancement: character.advancement, cls: character.class, abilities: character.abilities, source: character.lssImport.sourceLevel})', context);
+
+  // The copy is lost: the key is removed and the page is reloaded.
+  storage.removeItem(LSS_ORIGINAL_KEY_NAME);
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();', context);
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), false);
+  assert.equal(dom.root.textContent.includes(LSS_TEXT.reload), true);
+
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+  assert.equal(vm.runInContext('lssPickMode', context), 'attach');
+  await chooseLssFile(dom, lssFile('own.json', sheetText));
+  assert.equal(vm.runInContext('lssImportSession.mode', context), 'attach');
+  assert.equal(dom.root.textContent.includes('Лист совпадает с сохранённым персонажем.'), true);
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), true);
+  assert.equal(vm.runInContext('LevelUpRules.inspect(character, getAdvancementContext()).state.level', context), 3);
+  assert.equal(vm.runInContext('JSON.stringify({advancement: character.advancement, cls: character.class, abilities: character.abilities, source: character.lssImport.sourceLevel})', context), before);
+  assert.equal(dom.root.querySelector('.lss-import-card'), null, 'back on the result page');
+  assert.equal(dom.root.textContent.includes('Исходный лист прикреплён — выгрузка снова объединяет данные.'), true);
+  const exported = JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context));
+  const data = JSON.parse(exported[0].data);
+  assert.equal(data.info.level.value, 3);
+  assert.deepEqual(data.coins, {gp: {value: 17}});
+});
+
+test('LSS attach: a different sheet shows the warning, cancel changes nothing and only the explicit attach stores it', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const storage = dom.window.localStorage;
+  const fighter = FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'});
+  await chooseLssFile(dom, lssFile('own.json', ownSheetText(fighter, sheet => { sheet.coins = {gp: {value: 17}}; })));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+  storage.removeItem(LSS_ORIGINAL_KEY_NAME);
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();', context);
+
+  const otherText = ownSheetText(fighter, sheet => { sheet.name = 'Чужой герой'; sheet.coins = {gp: {value: 3}}; });
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+  await chooseLssFile(dom, lssFile('other.json', otherText));
+  assert.equal(dom.root.textContent.includes('Похоже на другой лист'), true, 'the warning names the mismatch');
+  assert.equal(!!buttonNamed(dom.root, 'Всё равно прикрепить'), true);
+
+  buttonNamed(dom.root, 'Отмена').click();
+  await flush();
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), false, 'cancel stores nothing');
+  assert.equal(storage.getItem(LSS_ORIGINAL_KEY_NAME), null);
+  assert.equal(dom.root.querySelector('.lss-import-card'), null);
+
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+  await chooseLssFile(dom, lssFile('other.json', otherText));
+  buttonNamed(dom.root, 'Всё равно прикрепить').click();
+  await flush();
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), true);
+  const data = JSON.parse(JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context))[0].data);
+  assert.deepEqual(data.coins, {gp: {value: 3}});
+});
+
+test('LSS banner: only items whose field still has a problem are listed, the rest is counted', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const labels = () => dom.root.querySelectorAll('.lss-import-report__label').map(node => node.textContent);
+  await chooseLssFile(dom, lssFile('barbarian.json', lssFixture('lss-native-barbarian-1.json')));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  assert.equal(labels().includes('Снаряжение'), true, 'equipment is open before the choice is made');
+  completeDraftInNode(context);
+  vm.runInContext('renderPage();', context);
+  assert.equal(labels().includes('Снаряжение'), false, 'a closed item leaves the banner');
+  assert.equal(labels().includes('Имя персонажа'), true, 'the open name is still listed');
+  vm.runInContext(`character.name = 'Варвар'; renderPage();`, context);
+  assert.equal(labels().includes('Имя персонажа'), false);
+});
+
+test('LSS banner: more than six open items show a count for the rest', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  vm.runInContext(`character.name = ''; character.lssImport.report = Array.from({length: 8}, (_, i) => ({field: 'name', label: 'Пункт ' + i, status: 'missing', value: '', source: ''})); currentPageIndex = 0; renderPage();`, context);
+  const shown = dom.root.querySelectorAll('.lss-import-report__label');
+  assert.equal(shown.length, 6);
+  assert.equal(dom.root.querySelector('.lss-import-note__more').textContent, 'и ещё 2');
+});
+
+test('LSS attach: an oversized sheet is refused on the attach screen, the import state is untouched and a proper sheet still attaches', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const storage = dom.window.localStorage;
+  const fighter = FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'});
+  const goodText = ownSheetText(fighter, sheet => { sheet.coins = {gp: {value: 17}}; });
+  await chooseLssFile(dom, lssFile('own.json', goodText));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+  storage.removeItem(LSS_ORIGINAL_KEY_NAME);
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();', context);
+  const before = vm.runInContext('JSON.stringify(character.lssImport)', context);
+
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+  await chooseLssFile(dom, lssFile('huge.json', ownSheetText(fighter, sheet => { sheet.junk = 'x'.repeat(1100000); })));
+  assert.equal(dom.root.textContent.includes('Лист слишком большой'), true, 'the too-large message is on the attach screen');
+  assert.equal(!!buttonNamed(dom.root, 'Прикрепить исходный лист'), false, 'no attach button for an oversized sheet');
+  assert.equal(!!buttonNamed(dom.root, 'Всё равно прикрепить'), false);
+  assert.equal(vm.runInContext('JSON.stringify(character.lssImport)', context), before, 'the import state is unchanged');
+  assert.equal(vm.runInContext('lssImportSession.mode', context), 'attach');
+
+  await chooseLssFile(dom, lssFile('own.json', goodText));
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), true, 'the right file attaches afterwards');
+});
+
+test('LSS attach: a sheet of another level is refused without an override', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const storage = dom.window.localStorage;
+  const fighter = FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'});
+  await importOwnSheet(dom, context, fighter, sheet => { sheet.coins = {gp: {value: 17}}; });
+  storage.removeItem(LSS_ORIGINAL_KEY_NAME);
+  vm.runInContext('lssOriginal = null; character = {level: 1}; restoreDraft(); currentPageIndex = config.pages.length; renderPage();', context);
+
+  const secondLevel = FixtureNode.advance(FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  buttonNamed(dom.root, 'Прикрепить исходный лист').click();
+  await flush();
+  await chooseLssFile(dom, lssFile('level-2.json', ownSheetText(secondLevel, sheet => { sheet.coins = {gp: {value: 9}}; })));
+  assert.equal(dom.root.textContent.includes('Это лист другого уровня (2-й)'), true, 'the level mismatch is named');
+  assert.equal(dom.root.textContent.includes('нужен исходный лист 1-го уровня, из которого загружен персонаж.'), true);
+  assert.equal(!!buttonNamed(dom.root, 'Всё равно прикрепить'), false, 'a level mismatch has no override');
+  assert.equal(!!buttonNamed(dom.root, 'Прикрепить исходный лист'), false, 'and no attach button');
+  assert.equal(vm.runInContext('lssAttachCheck(lssImportSession.entry).canAttach', context), false);
+  assert.equal(vm.runInContext('lssOriginalMatches()', context), false);
+});
+
+test('LSS banner: malformed report fields are ignored and recognised items never appear in the list', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const labels = () => dom.root.querySelectorAll('.lss-import-report__label').map(node => node.textContent);
+  await importOwnSheet(dom, context, FixtureNode.create('fighter', null, {abilities: lssStandard, abilityMethod: 'standard'}));
+  vm.runInContext(`character.name = ''; character.lssImport.report = [null, 'x', 7, {field: 'name', label: 'Имя персонажа', status: 'missing', value: '', source: ''}, {field: 'name', label: 'Имя признано', status: 'recognized', value: '', source: ''}]; currentPageIndex = 0; renderPage();`, context);
+  assert.deepEqual(labels(), ['Имя персонажа'], 'only the open item is listed');
+  vm.runInContext(`character.lssImport.report = 'oops'; renderPage();`, context);
+  assert.deepEqual(labels(), [], 'a non-array report is ignored');
+  assert.equal(!!dom.root.querySelector('.lss-import-note'), true, 'the banner itself still renders');
+  vm.runInContext(`character.lssImport.report = {field: 'name'}; character.lssImport.sourceName = {bad: 1}; renderPage();`, context);
+  assert.deepEqual(labels(), [], 'an object report is ignored');
+  assert.equal(dom.root.textContent.includes('Безымянный герой'), true, 'a non-string source name falls back to the default');
 });

@@ -11,6 +11,8 @@ let lastExportNotice = '';
 let lssOriginal = null;
 let lssStorage = 'none';
 let lssAdvancementNotice = '';
+let lssPickMode = 'import';
+let lssFlash = '';
 
 const STORAGE_KEY = 'dnd-character-draft-v2';
 const DEFAULT_FLOW = ['class', 'race', 'background', 'abilities', 'mechanics', 'general', 'proficiencies'];
@@ -380,11 +382,11 @@ function renderHeader(container) {
   importInput.hidden = true;
   importInput.tabIndex = -1;
   importInput.setAttribute('aria-hidden', 'true');
-  importInput.addEventListener('change', () => { const file = importInput.files && importInput.files[0]; importInput.value = ''; openLssFile(file); });
+  importInput.addEventListener('change', () => { const file = importInput.files && importInput.files[0]; importInput.value = ''; openLssFile(file, lssPickMode); });
   tools.appendChild(importInput);
   const importButton = createElement('button', 'header-button', 'Загрузить из LSS');
   importButton.type = 'button';
-  importButton.addEventListener('click', openLssPicker);
+  importButton.addEventListener('click', () => openLssPicker());
   tools.appendChild(importButton);
   const reset = createElement('button', 'header-button', 'Начать заново');
   reset.type = 'button';
@@ -1354,9 +1356,9 @@ function showResult(container) {
     const storageNote = lssStorageNote();
     if (storageNote) source.appendChild(createElement('p', '', storageNote));
     if (storageNote === LSS_NOTE_RELOAD || storageNote === LSS_NOTE_RELOAD_QUOTA) {
-      const reload = createElement('button', 'secondary-button', 'Загрузить лист снова');
+      const reload = createElement('button', 'secondary-button', 'Прикрепить исходный лист');
       reload.type = 'button';
-      reload.addEventListener('click', openLssPicker);
+      reload.addEventListener('click', () => openLssPicker('attach'));
       source.appendChild(reload);
     }
   }
@@ -1413,6 +1415,7 @@ function showResult(container) {
   actions.appendChild(download);
   actions.appendChild(restart);
   if(lastExportNotice&&!restoring)status.textContent=lastExportNotice;
+  if(lssFlash){status.textContent=lssFlash;lssFlash='';}
   result.appendChild(status);
   // Non-blocking: older saved choices that current rules no longer offer are kept as they were.
   if(notes.length){const warnings=createElement('p','result-status result-warnings','Часть сохранённой прокачки расходится с текущими правилами (герой сохранён без изменений): '+notes.join(' '));warnings.setAttribute('role','note');result.appendChild(warnings);}
@@ -1494,9 +1497,9 @@ const LSS_ORIGINAL_KEY = `${STORAGE_KEY}:lss-original`;
 const LSS_TOO_LARGE = 'Файл слишком большой для листа персонажа. Скачайте лист из LSS заново.';
 const LSS_NOTE_QUOTA = 'Исходный лист слишком большой для сохранения в браузере: после перезагрузки страницы заметки и снаряжение из него не перенесутся.';
 const LSS_NOTE_OVERSIZED = 'Лист слишком большой — JSON выгрузится без заметок, снаряжения и монет из LSS; не удаляйте старый лист.';
-const LSS_NOTE_RELOAD_QUOTA = 'Загрузите лист снова прямо перед выгрузкой — браузеру не хватает места, чтобы хранить его копию.';
+const LSS_NOTE_RELOAD_QUOTA = 'Прикрепите лист снова прямо перед выгрузкой — браузеру не хватает места, чтобы хранить его копию.';
 const LSS_NOTE_UNAVAILABLE = 'Браузер не сохраняет черновик: объединение с исходным листом работает до перезагрузки страницы.';
-const LSS_NOTE_RELOAD = 'Исходный лист из LSS не найден в браузере: JSON выгрузится без заметок и снаряжения из LSS. Загрузите лист снова.';
+const LSS_NOTE_RELOAD = 'Исходный лист из LSS не найден в браузере: JSON выгрузится без заметок и снаряжения из LSS. Прикрепите лист снова — персонаж не изменится.';
 
 function lssDeps() {
   return {config, rules: CharacterRules, creation: CreationOptions, levelup: LevelUpRules, spellIds: LssExport.SPELL_IDS, spellData: LevelUpData.spells};
@@ -1615,14 +1618,15 @@ function syncLssBaseline() {
   saveDraft('result');
 }
 
-function openLssPicker() {
+function openLssPicker(mode) {
+  lssPickMode = mode === 'attach' ? 'attach' : 'import';
   const input = document.getElementById('lss-file-input');
   if (!input) return;
   input.value = '';
   input.click();
 }
 
-async function openLssFile(file) {
+async function openLssFile(file, mode = 'import') {
   if (!file) return;
   const token = ++lssLoadSequence;
   let result;
@@ -1634,7 +1638,7 @@ async function openLssFile(file) {
     result = {entries: [], errors: [{code: 'read', message: 'Не удалось прочитать файл. Скачайте лист из LSS заново.'}]};
   }
   if (token !== lssLoadSequence) return;
-  lssImportSession = {fileName: typeof file.name === 'string' ? file.name : '', result, selectedIndex: null, entry: null, recognized: null, error: ''};
+  lssImportSession = {mode: mode === 'attach' ? 'attach' : 'import', fileName: typeof file.name === 'string' ? file.name : '', result, selectedIndex: null, entry: null, recognized: null, error: '', attach: null};
   const only = result.entries.length === 1 && result.entries[0].support.ok ? result.entries[0] : null;
   if (only) selectLssEntry(only.index);
   else renderPage();
@@ -1644,7 +1648,14 @@ function selectLssEntry(index) {
   const session = lssImportSession;
   if (!session) return;
   const entry = session.result.entries.find(item => item.index === index);
-  session.selectedIndex = null; session.entry = null; session.recognized = null; session.error = '';
+  session.selectedIndex = null; session.entry = null; session.recognized = null; session.error = ''; session.attach = null;
+  if (session.mode === 'attach') {
+    session.selectedIndex = entry ? index : null;
+    session.entry = entry || null;
+    session.attach = lssAttachCheck(entry);
+    renderPage();
+    return;
+  }
   try {
     session.recognized = LssImport.recognize(entry, lssDeps());
     session.selectedIndex = index;
@@ -1658,7 +1669,7 @@ function selectLssEntry(index) {
 function backToLssList() {
   const session = lssImportSession;
   if (!session) return;
-  session.selectedIndex = null; session.entry = null; session.recognized = null; session.error = '';
+  session.selectedIndex = null; session.entry = null; session.recognized = null; session.error = ''; session.attach = null;
   renderPage();
 }
 
@@ -1685,6 +1696,80 @@ function startLssImport() {
   saveDraft(currentPageIndex < config.pages.length ? config.pages[currentPageIndex].id : 'result');
   renderPage();
   scrollToPageTop();
+}
+
+// Validation problems still open in the wizard, by field id, across every page.
+function lssOpenErrorIds() {
+  const ids = new Set();
+  const previous = currentPageIndex;
+  try {
+    for (let index = 0; index < config.pages.length; index++) {
+      currentPageIndex = index;
+      validateCurrentPage().forEach(error => { if (error.id) ids.add(error.id); });
+    }
+  } finally {
+    currentPageIndex = previous;
+  }
+  return ids;
+}
+
+// A sheet item stays on the banner only while its field still has a problem; restore stays while the level is not reached.
+function lssItemOpen(item, ids) {
+  const field = String(item.field || '');
+  if (field === 'restore') {
+    const ledger = typeof LevelUpRules !== 'undefined' ? LevelUpRules.inspect(character, getAdvancementContext()) : null;
+    return !!ledger && lssRestoreNeeded(ledger);
+  }
+  if (field === 'equipment') return CreationOptions.getChoices(character, getCreationContext()).some(group => group.section === 'equipment' && ids.has(group.id));
+  if (field.startsWith('proficiency:')) return ids.has(field.slice('proficiency:'.length));
+  return ids.has(field);
+}
+
+// What the picked sheet may do for the imported character. Only a name mismatch can be overridden; a level mismatch or an oversized copy cannot.
+function lssAttachCheck(entry) {
+  const lss = character.lssImport || {};
+  if (!entry) return {same: false, canAttach: false, levelMismatch: false, nameMismatch: false, tooLarge: false, original: null};
+  const levelMismatch = entry.level !== lss.sourceLevel;
+  const nameMismatch = LssImport.normalizeLabel(entry.name) !== LssImport.normalizeLabel(lss.sourceName || '');
+  const original = LssImport.sanitizeWrapper(entry.wrapper, entry.sheet);
+  const tooLarge = JSON.stringify(original).length > LssImport.MAX_STORED_CHARS;
+  return {same: !levelMismatch && !nameMismatch, canAttach: !tooLarge && !levelMismatch, levelMismatch, nameMismatch, tooLarge, original};
+}
+
+// Attaches the checked copy to the imported character. The character, its level and its ledger are not touched.
+function attachLssOriginal() {
+  const session = lssImportSession;
+  const lss = character && character.lssImport;
+  const check = session && session.attach;
+  if (!session || !check || !check.canAttach || !check.original || !lss) return;
+  lssLoadSequence++;
+  lssImportSession = null;
+  lssOriginal = {importedAt: lss.importedAt, original: check.original};
+  persistLssOriginal();
+  const next = {...lss, originalTooLarge: false, originalStored: lssStorage === 'stored'};
+  delete next.originalStoreFailed;
+  if (lssStorage === 'quota') next.originalStoreFailed = 'quota';
+  character = {...character, lssImport: next};
+  lssFlash = 'Исходный лист прикреплён — выгрузка снова объединяет данные.';
+  saveDraft('result');
+  renderPage();
+  scrollToPageTop();
+}
+
+function renderLssAttach(card, session) {
+  const lss = character.lssImport || {};
+  const entry = session.entry || {};
+  const check = session.attach;
+  const body = createElement('section', 'result-section lss-import-review');
+  body.appendChild(createElement('h3', '', entry.name || 'Безымянный герой'));
+  body.appendChild(createElement('p', 'result-subtitle', `${entry.classText || 'класс не указан'} · ${entry.raceText || 'раса не указана'} · ${entry.level ? `${entry.level}-й уровень` : 'уровень не определён'}`));
+  const savedLevel = Number.isInteger(lss.sourceLevel) ? lss.sourceLevel : '?';
+  const savedName = (typeof lss.sourceName === 'string' && lss.sourceName) || 'Безымянный герой';
+  if (check.tooLarge) body.appendChild(lssStatus('Лист слишком большой — браузер не сможет его сохранить. Выберите другой файл.', true));
+  else if (check.levelMismatch) body.appendChild(lssStatus(`Это лист другого уровня (${entry.level || '?'}-й) — нужен исходный лист ${savedLevel}-го уровня, из которого загружен персонаж.`, true));
+  else if (check.nameMismatch) body.appendChild(createElement('p', 'result-status result-warnings', `Похоже на другой лист: «${entry.name || 'Безымянный герой'}», а в мастере — «${savedName}».`));
+  else body.appendChild(createElement('p', 'result-status', 'Лист совпадает с сохранённым персонажем.'));
+  card.appendChild(body);
 }
 
 function restoreLssLevel(status) {
@@ -1722,18 +1807,26 @@ function renderLssImportNote(container, compact) {
   note.appendChild(icon);
   const copy = createElement('div', 'lss-import-note__copy');
   if (compact) {
-    copy.appendChild(createElement('p', '', `Загружен лист „${lss.sourceName || 'Безымянный герой'}“ (${lss.sourceLevel}-й уровень) из Long Story Short. Проверьте отмеченные шаги — затем можно повысить уровень и выгрузить JSON обратно.`));
-    const open = (lss.report || []).filter(item => item.status !== 'recognized').slice(0, 6);
+    copy.appendChild(createElement('p', '', `Загружен лист „${(typeof lss.sourceName === 'string' && lss.sourceName) || 'Безымянный герой'}“ (${lss.sourceLevel}-й уровень) из Long Story Short. Проверьте отмеченные шаги — затем можно повысить уровень и выгрузить JSON обратно.`));
+    let allOpen = [];
+    try {
+      const openIds = lssOpenErrorIds();
+      allOpen = Array.isArray(lss.report) ? lss.report.filter(item => item && typeof item === 'object' && item.status !== 'recognized' && lssItemOpen(item, openIds)) : [];
+    } catch (error) {
+      allOpen = [];
+    }
+    const open = allOpen.slice(0, 6);
     if (open.length) {
       copy.appendChild(createElement('p', 'lss-import-note__title', 'При загрузке не распознано:'));
       const list = createElement('ul', 'lss-import-report lss-import-report--compact');
       open.forEach(item => {
         const li = createElement('li', 'lss-import-report__item');
-        li.appendChild(createElement('span', 'lss-import-report__label', item.label));
+        li.appendChild(createElement('span', 'lss-import-report__label', String(item.label ?? '')));
         li.appendChild(lssChip(item.status));
         list.appendChild(li);
       });
       copy.appendChild(list);
+      if (allOpen.length > open.length) copy.appendChild(createElement('p', 'lss-import-note__more', 'и ещё ' + (allOpen.length - open.length)));
     }
   } else {
     copy.appendChild(createElement('p', '', `Лист из LSS: ${lss.sourceLevel}-й уровень. Повысьте уровень и скачайте JSON обратно.`));
@@ -1763,11 +1856,13 @@ function renderLssImport(app) {
   const card = createElement('article', 'result-card lss-import-card');
   const head = createElement('header', 'page-heading');
   head.appendChild(createElement('p', 'result-kicker', 'Long Story Short'));
-  const title = createElement('h2', '', 'Загрузка листа персонажа');
+  const title = createElement('h2', '', session.mode === 'attach' ? 'Прикрепить исходный лист' : 'Загрузка листа персонажа');
   title.id = 'lss-import-title';
   title.tabIndex = -1;
   head.appendChild(title);
-  head.appendChild(createElement('p', 'page-description', 'Мастер распознает лист, а недостающие решения вы подтвердите по шагам. Поддерживаются персонажи 1-го и 2-го уровня.'));
+  head.appendChild(createElement('p', 'page-description', session.mode === 'attach'
+    ? 'Персонаж не меняется: мастер только прикрепит исходный лист, чтобы выгрузка снова объединила заметки, снаряжение и монеты.'
+    : 'Мастер распознает лист, а недостающие решения вы подтвердите по шагам. Поддерживаются персонажи 1-го и 2-го уровня.'));
   if (session.fileName) head.appendChild(createElement('p', 'lss-import-file', `Файл: ${session.fileName}`));
   card.appendChild(head);
 
@@ -1782,17 +1877,24 @@ function renderLssImport(app) {
   const dismiss = () => { lssLoadSequence++; lssImportSession = null; renderPage(); scrollToPageTop(); };
   if (!session.result.entries.length) {
     card.appendChild(lssStatus(session.result.errors[0]?.message || 'Файл не удалось прочитать.', true));
-    button('Выбрать другой файл', 'primary-button', openLssPicker);
+    button('Выбрать другой файл', 'primary-button', () => openLssPicker(session.mode));
     button('Вернуться', 'secondary-button', dismiss);
+  } else if (session.mode === 'attach' && session.attach) {
+    renderLssAttach(card, session);
+    if (session.attach.canAttach && session.attach.same) button('Прикрепить исходный лист', 'primary-button', attachLssOriginal);
+    else if (session.attach.canAttach) button('Всё равно прикрепить', 'secondary-button', attachLssOriginal);
+    button('Другой файл', 'secondary-button', () => openLssPicker('attach'));
+    if (session.result.entries.length > 1) button('← К списку персонажей', 'text-button', backToLssList);
+    button('Отмена', 'text-button', dismiss);
   } else if (session.recognized) {
     renderLssReview(card, session);
     button('Начать проверку', 'primary-button', startLssImport);
-    button('Другой файл', 'secondary-button', openLssPicker);
+    button('Другой файл', 'secondary-button', () => openLssPicker(session.mode));
     if (session.result.entries.length > 1) button('← К списку персонажей', 'text-button', backToLssList);
     button('Отмена', 'text-button', dismiss);
   } else {
     renderLssList(card, session);
-    button('Выбрать другой файл', 'secondary-button', openLssPicker);
+    button('Выбрать другой файл', 'secondary-button', () => openLssPicker(session.mode));
     button('Вернуться', 'text-button', dismiss);
   }
   card.appendChild(actions);
