@@ -1319,3 +1319,13 @@ test('proficiency choices use rule labels, never bestiary or item pages of a col
  const options=(cls,sub)=>{const c=advance(create(cls));const p=fill(c,L.begin(c,context(c)),{subclass:sub});return L.getChoices(c,p,context(c)).filter(g=>g.section==='proficiencies').flatMap(g=>g.options);};
  for(const [cls,sub] of [['fighter','samurai'],['fighter','cavalier'],['barbarian','giant']])for(const o of options(cls,sub)){assert.doesNotMatch(o.url||'',/\/(bestiary|items)\//,cls+':'+sub+':'+o.value);if(R.LABELS[o.value])assert.equal(o.label,R.LABELS[o.value],o.value);}
 });
+
+test('six rule gaps (dnd.su): sight, held weapon, own attack roll, infusion and cannon limits',()=>{
+ const desc=(c,name)=>extras(c).features.find(f=>f.name===name)?.description||'';
+ assert.match(desc(advance(advance(create('bard')),'eloquence'),'Тревожащие слова'),/видимая вами цель в 60 футах/);
+ assert.match(desc(advance(create('cleric','war')),'Божественный канал: Направленный удар'),/Когда вы совершаете бросок атаки/);
+ const sacred=desc(advance(advance(create('paladin')),'devotion'),'Священное оружие');assert.match(sacred,/оружие, которое вы держите/);assert.match(sacred,/не держите и не несёте.*теряете сознание/);
+ const protection=L.optionList('FS:P',create('paladin'),{level:2,choices:{},cantrips:[],known:[],invocations:[],infusions:[]}).find(o=>o.value==='protection')?.description||'';assert.match(protection,/видимое вам существо атакует другую цель в 5 футах/);
+ const infusions=desc(advance(create('artificer')),'Инфузии');assert.match(infusions,/в конце долгого отдыха/);assert.match(infusions,/Каждая инфузия действует только в одном предмете/);assert.match(infusions,/в предмете может быть только одна инфузия/);
+ const cannon=desc(advance(advance(create('artificer')),'artillerist'),'Мистическая пушка');assert.match(cannon,/иммунитет к урону ядом и психическому урону/);assert.match(cannon,/10 \(\+0\) для проверок и спасбросков/);assert.match(cannon,/«Починка» восстанавливает 2к6 хитов/);assert.doesNotMatch(cannon,/состояни/);
+});
