@@ -317,6 +317,8 @@
     for(const key of ['hp-temp','isDying','deathFails','deathSuccesses']) if(pick(ownVitality,key) !== undefined && pick(ownVitality,key) !== null) data.vitality[key] = mergeClone(ownVitality[key]);
     const [currentHp, originalMax, newMax] = [pick(pick(ownVitality,'hp-current'),'value'), pick(pick(ownVitality,'hp-max'),'value'), data.vitality['hp-max']?.value].map(value => looseNumber(value));
     if([currentHp, originalMax, newMax].every(value => Number.isFinite(value))) data.vitality['hp-current'] = {...data.vitality['hp-current'], value:Math.floor(Math.min(newMax, Math.max(0, currentHp + newMax - originalMax)))};
+    // Death saves belong to a dying hero: above 0 HP they are reset; at 0 HP the original state is kept.
+    if(data.vitality['hp-current']?.value > 0) { data.vitality.isDying = false; data.vitality.deathFails = 0; data.vitality.deathSuccesses = 0; }
     // Armour class and speed follow the sheet; a difference from our calculation is reported in the traits (regenerated every cycle).
     const checks = [];
     // A sheet value is used only when plausible and when it differs from our baseline for the sheet's level: equal to the baseline means
@@ -344,6 +346,11 @@
     const ownByName = new Map();
     for(const row of ownRows) { const key = normName(rowName(row)); if(!ownByName.has(key)) ownByName.set(key, row); }
     const genRows = list(data.weaponsList);
+    // A sheet with no physical row of ours is a native or foreign sheet: its weapons are the user's inventory, so only generated spell attacks
+    // (non-physical damage) are added to it. Our own exports keep every generated row. The test is physical damage, not any row with a
+    // weapon-creator id: spell rows appended to a native sheet also get such ids, which would flip the sheet to ours on the next cycle.
+    const PHYSICAL_DAMAGE = new Set(Object.values(DAMAGE).map(normText));
+    const ownExport = ownRows.some(row => typeof row.id === 'string' && row.id.startsWith('weapon-creator-') && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value)));
     const used = new Set([...ownById, ...genRows.map(row => row.id)]);
     let freshNumber = 0;
     const freshId = () => { while(used.has(`weapon-creator-${freshNumber}`)) freshNumber++; const id = `weapon-creator-${freshNumber}`; used.add(id); return id; };
@@ -351,6 +358,7 @@
     for(const row of genRows) {
       const match = ownByName.get(normName(rowName(row)));
       if(match) { weaponIds.set(row.id, typeof match.id === 'string' && match.id.startsWith('weapon-creator-') ? match.id : null); continue; }
+      if(!ownExport && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value))) { weaponIds.set(row.id, null); continue; }
       const id = ownById.has(row.id) ? freshId() : row.id;
       weaponIds.set(row.id, id);
       addedRows.push({...row, id});

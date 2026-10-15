@@ -230,7 +230,8 @@ test('a level-up keeps the user data (incl. resources, conditions, death saves, 
  assert.deepEqual(d.conditions,sheet.data.conditions);
  assert.deepEqual(d.attunementsList,sheet.data.attunementsList);
  assert.deepEqual(d.vitality['hp-temp'],{value:5});
- assert.equal(d.vitality.deathFails,1);assert.equal(d.vitality.deathSuccesses,2);
+ // The merged hero has HP above 0, so the death saves are reset (see the death-state test for the dying case).
+assert.equal(d.vitality.isDying,false);assert.equal(d.vitality.deathFails,0);assert.equal(d.vitality.deathSuccesses,0);
  assert.deepEqual(d.text.notes,sheet.data.text.notes);
  assert.equal(d.hiddenName,'Мой лист');
  assert.deepEqual(d.casterClass,{value:'Жрец'});
@@ -300,7 +301,7 @@ test('weapons: original rows stay verbatim and generated rows are added only for
  const gen=E.buildLssExport(base.c,{class:'Жрец'},base.stats,{...base.extras,attacks});
  const sheet=sanitized(gen);
  sheet.data.weaponsList=[
-  {id:'weapon-0',name:{value:'Длинный меч*'},mod:{value:'+4'},dmg:{value:'1к10 + 2 рубящ.'},isProf:true},
+  {id:'weapon-creator-0',name:{value:'Длинный меч*'},mod:{value:'+4'},dmg:{value:'1к10 + 2 рубящ.'},dmgType:{value:'рубящий'},notes:{value:''},ability:'str',isProf:true},
   {id:'weapon-1',name:{value:'легкий арбалет**'},mod:{value:'+3'},dmg:{value:'1к8 колющий'},ability:'dex',isProf:true},
   {id:'weapon-null',name:{value:'Праща'},ability:null,dmg:{value:'1к4'},isProf:true},
   {id:'weapon-empty',name:{value:''},mod:{value:'+0'},dmg:{value:''}}];
@@ -480,7 +481,8 @@ test('native LSS sheets: legacy abilities, timestamps and service keys are remov
  assert.deepEqual(bd.weaponsList.slice(0,2),rawBarbarian.weaponsList);
  assert.deepEqual(bd.text.personality,rawBarbarian.text.personality);
  assert.deepEqual(bd.text.quests,rawBarbarian.text.quests);
- assert.equal(bd.vitality.isDying,true);
+ // The native sheet is dying, but the merged hero has HP above 0: death state is reset.
+assert.equal(bd.vitality.isDying,false);assert.ok(bd.vitality['hp-current'].value>0);
  assert.deepEqual(b[0].disabledBlocks,gen[0].disabledBlocks);
  assert.equal(JSON.stringify(b).includes('"_id"'),false);
  assert.equal(JSON.stringify(b).includes('lastWriterSessionId'),false);
@@ -674,4 +676,50 @@ test('edition gate compares as text: a numeric 2014 sheet still carries its home
  const gen=exportAt(1).out, s=sanitized(gen);
  s.sheetEdition=2014;s.edition=2014;s.spells={...s.spells,edition:2014,prepared:[CUSTOM]};
  assert.ok(merge(gen,s)[0].spells.prepared.includes(CUSTOM));
+});
+
+test('death state: above 0 HP a native dying sheet is reset; at 0 HP the original death state is kept', () => {
+ const gen=exportAt(1).out;
+ const barbarian=parsed(merge(gen,nativeOriginal('barbarian'))).vitality;
+ assert.ok(barbarian['hp-current'].value>0);
+ assert.deepEqual([barbarian.isDying,barbarian.deathFails,barbarian.deathSuccesses],[false,0,0]);
+ const sheet=sanitized(gen);
+ sheet.data.vitality={...sheet.data.vitality,'hp-current':{value:0},isDying:true,deathFails:2,deathSuccesses:1};
+ const dying=parsed(merge(gen,sheet)).vitality;
+ assert.equal(dying['hp-current'].value,0);
+ assert.deepEqual([dying.isDying,dying.deathFails,dying.deathSuccesses],[true,2,1]);
+ assertMergedSchema(merge(gen,sheet),1);
+});
+
+test('native barbarian sheet: the starting-kit physical weapons are not appended, the user inventory stays', () => {
+ const gen=exportCharacter(create('barbarian')).out, genRows=parsed(gen).weaponsList;
+ const physical=new Set(['колющий','рубящий','дробящий']);
+ const physicalNames=genRows.filter(r=>physical.has(r.dmgType.value)).map(r=>r.name.value);
+ assert.ok(physicalNames.length>0);
+ const merged=merge(gen,nativeOriginal('barbarian')), rows=parsed(merged).weaponsList;
+ const raw=JSON.parse(NATIVE.barbarian.data).weaponsList;
+ assert.deepEqual(rows.slice(0,raw.length),raw);
+ const appended=rows.slice(raw.length);
+ assert.ok(appended.every(r=>!physical.has(r.dmgType.value)));
+ assert.ok(!appended.some(r=>physicalNames.includes(r.name.value)));
+ assertMergedSchema(merged,1);
+});
+
+test('native druid sheet: a generated spell attack (produce flame) is appended, physical starting weapons are not', () => {
+ const gen=exportCharacter(create('druid',null,{creation_cantrips:['produce-flame','druidcraft']})).out;
+ assert.ok(parsed(gen).weaponsList.some(r=>r.name.value==='Сотворение пламени'&&r.dmgType.value==='огонь'));
+ const merged=merge(gen,nativeOriginal('druid'));
+ const names=parsed(merged).weaponsList.map(r=>r.name.value);
+ assert.ok(names.includes('Сотворение пламени'));
+ assert.equal(names.includes('Скимитар'),false);
+ assert.equal(names.includes('Безоружный удар'),false);
+ assertMergedSchema(merged,1);
+});
+
+test('our own exports keep every generated weapon row, including the physical ones', () => {
+ const first=exportCharacter(create('barbarian')).out, second=exportCharacter(advance(create('barbarian'),L.subclasses('barbarian')[0].id)).out;
+ const names=s=>parsed(s).weaponsList.map(r=>r.name.value);
+ const merged=merge(second,sanitized(first));
+ for(const name of names(second))assert.ok(names(merged).includes(name),name);
+ assertMergedSchema(merged,2);
 });
