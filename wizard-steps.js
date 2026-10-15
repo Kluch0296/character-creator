@@ -5,12 +5,60 @@ function getCreationContext() {
   return { abilities: CharacterRules.finalAbilities(character, extras) };
 }
 
-function getCreationExtras() {
+/* Rules derivation replays the whole advancement ledger, and one render asks for it many times.
+   Results are memoised by a snapshot of the only input (the character), so a changed character is a cache miss by itself.
+   That is correct only while the rules modules (rules.js, creation-options.js, levelup-rules.js) are pure functions of the
+   character apart from constant module data: a rule that read anything else (time, DOM, mutable module state) would be
+   served stale from the cache. Callers get a private deep copy on hits and misses: the cache can never be poisoned by a
+   caller that edits what it received, and a cached answer never aliases live character state.
+   The unfinished pendingAdvancement draft is left out of the key because derive/inspect never read it (the load-time
+   migration upgradeLegacyFoundation does, but it only edits the draft), so every card click in the advancement UI still hits. */
+function cloneRulesData(value) {
+  if (Array.isArray(value)) return value.map(cloneRulesData);
+  if (value && Object.prototype.toString.call(value) === '[object Object]') {
+    const copy = {};
+    for (const key of Object.keys(value)) copy[key] = cloneRulesData(value[key]);
+    return copy;
+  }
+  return value;
+}
+
+function memoizeForCharacter(compute, limit = 6) {
+  const cache = new Map();
+  return () => {
+    let key;
+    try {
+      const { pendingAdvancement, ...saved } = character;
+      key = JSON.stringify(saved);
+    } catch (error) { return compute(); }
+    if (typeof key !== 'string') return compute();
+    if (cache.has(key)) {
+      const hit = cache.get(key);
+      cache.delete(key);
+      cache.set(key, hit);
+      return cloneRulesData(hit);
+    }
+    const value = compute();
+    cache.set(key, cloneRulesData(value));
+    if (cache.size > limit) cache.delete(cache.keys().next().value);
+    return cloneRulesData(value);
+  };
+}
+
+function computeCreationExtras() {
   const context = getCreationContext();
   const extras = CreationOptions.derive(character, context);
   const proficiencies = CharacterRules.resolveProficiencies(character, extras);
-  return CreationOptions.derive(character, { ...context, proficiencies });
+  const base=CreationOptions.derive(character, { ...context, proficiencies });
+  if(typeof LevelUpRules==='undefined')return base;
+  const progression=LevelUpRules.derive(character,{...context,baseExtras:base,proficiencies},base);
+  const finalProficiencies=CharacterRules.resolveProficiencies(character,progression);
+  const recalculated=CreationOptions.derive(character,{...context,proficiencies:finalProficiencies});
+  return LevelUpRules.derive(character,{...context,baseExtras:base,proficiencies},recalculated);
 }
+
+const memoCreationExtras = memoizeForCharacter(computeCreationExtras);
+function getCreationExtras() { return memoCreationExtras(); }
 
 function getResolvedProficiencies() {
   return CharacterRules.resolveProficiencies(character, getCreationExtras());
@@ -460,7 +508,7 @@ function renderProficiencies(container) {
       const options = slot.options.map(option => {
         const id = typeof option === 'string' ? option : option.value || option.id;
         const actualType = CharacterRules.optionType(type, id);
-        const duplicate = fixed.some(grant => grant.type === actualType && grant.id === id) || slots.some(other => other.id !== slot.id && CharacterRules.optionType(other.type, choices[other.id]) === actualType && choices[other.id] === id);
+        const duplicate = (!slot.grantExpertise && fixed.some(grant => grant.type === actualType && grant.id === id)) || slots.some(other => other.id !== slot.id && !!other.grantExpertise === !!slot.grantExpertise && CharacterRules.optionType(other.type, choices[other.id]) === actualType && choices[other.id] === id);
         return { value: id, label: (typeof option === 'object' && option.label || proficiencyLabel(type, id)) + (duplicate ? ' · уже выбрано' : ''), disabled: duplicate && choices[slot.id] !== id };
       });
       renderChoiceSelect(group, { id: slot.id, label: slot.label, description: slot.description, options, value: choices[slot.id], onChange(value) {
@@ -485,7 +533,7 @@ function renderMechanicalSummary(container) {
   appendDefinition(list, 'Класс доспеха', stats.armorClass ?? extras.armorClass);
   appendDefinition(list, 'Скорость', typeof stats.speed === 'number' ? `${stats.speed} футов` : stats.speed?.walk);
   appendDefinition(list, 'Инициатива', signedNumber(stats.initiative));
-  appendDefinition(list, 'Кость хитов', `1к${stats.hitDie}`);
+  appendDefinition(list, 'Кости хитов', characterHitDiceLabel(stats, extras));
   appendDefinition(list, 'Бонус мастерства', '+2');
   appendDefinition(list, 'Пассивное Восприятие', stats.passivePerception);
   for (const [id, label] of [['darkvision','Тёмное зрение'],['fly','Полёт'],['swim','Плавание'],['climb','Лазание']]) if (stats[id]) appendDefinition(list, label, `${stats[id]} футов`);
@@ -513,12 +561,18 @@ function renderMechanicalSummary(container) {
     ...(extras.equipment || []).map(item => `${item.label || item.id} × ${item.quantity || 1}`),
     extras.money ? `Монеты: ${Object.entries(extras.money).filter(([,n]) => n).map(([id,n]) => `${n} ${{cp:'мм',sp:'см',ep:'эм',gp:'зм',pp:'пм'}[id] || id}`).join(', ') || '0'}` : ''
   ]);
-  appendResultList(container, 'Атаки', (extras.attacks || []).map(attack => `${attack.label}: ${signedNumber(attack.attackBonus)} к попаданию, ${attack.damage} урона${attack.notes?.length ? `. ${attack.notes.join(' ')}` : ''}`));
+  appendResultList(container, 'Атаки', (extras.attacks || []).map(attack => `${attack.label}: ${attack.save ? `Сл ${attack.save.dc}, спасбросок ${attack.save.short}` : attack.weaponRider ? 'атака оружием' : `${signedNumber(attack.attackBonus)} к попаданию`}, ${attack.cantrip ? `${String(attack.damage).replace(/(\d)d(\d)/g, '$1к$2')} ${attack.damageTypeText}${attack.riderText ? ` ${attack.riderText}` : ''}` : `${attack.damage} урона`}${attack.notes?.length ? `. ${attack.notes.join(' ')}` : ''}`));
   if (extras.spellcasting) {
     const casting = extras.spellcasting;
-    appendResultList(container, 'Использование заклинаний', [`Базовая характеристика: ${ABILITY_LABELS.find(a => a.id === casting.ability)?.label}; атака ${signedNumber(casting.attackBonus)}; Сл спасброска ${casting.saveDC}.`, `Ячейки: ${casting.slots} × ${casting.slotLevel}-го уровня; восстановление после ${casting.slotRecovery === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха.`]);
+    const castings=extras.spellcastingByClass?.length ? extras.spellcastingByClass : [casting];
+    const details=castings.map(item=>`${item.label ? `${plainLabel(item.label)} ${item.level}: ` : ''}базовая характеристика ${ABILITY_LABELS.find(a => a.id === item.ability)?.label}; атака ${signedNumber(item.attackBonus)}; Сл спасброска ${item.saveDC}.`);
+    const ordinary=Object.entries(casting.slotTiers||{}).map(([level,count])=>`${count} × ${level}-й круг`).join(', ');
+    if(ordinary) details.push(`Ячейки заклинаний: ${ordinary}; восстановление после долгого отдыха.`);
+    if(casting.pactSlots)details.push(`Магия договора: ${casting.pactSlots.count} × ${casting.pactSlots.level}-й круг; восстановление после короткого или долгого отдыха.`);
+    appendResultList(container, 'Использование заклинаний', details);
   }
-  appendResultList(container, 'Заклинания и заговоры', (extras.spells || []).map(spell => `${spell.label || spell.id} · ${spell.level ? `${spell.level}-й уровень` : 'заговор'} · ${spell.source}${spell.status ? ` · ${{prepared:'подготовлено',known:'известно',spellbook:'в книге',racial:'от расы',ritual:'ритуал',feat:'от черты',cantrip:'известно'}[spell.status] || spell.status}` : ''}${spell.usage ? ` · ${spell.usage}` : ''}`));
+  appendResultList(container, 'Заклинания и заговоры', (extras.spells || []).map(spell => `${spell.label || spell.id}${spell.ability ? ` · ${ABILITY_LABELS.find(a => a.id === spell.ability)?.label || spell.ability}` : ''} · ${spell.level ? `${spell.level}-й уровень` : 'заговор'} · ${spell.source}${spell.status ? ` · ${{prepared:'подготовлено',known:'известно',spellbook:'в книге',racial:'от расы',ritual:'ритуал',feat:'от черты',cantrip:'известно',invocation:'воззвание',feature:'от умения'}[spell.status] || spell.status}` : ''}${spell.usage ? ` · ${spell.usage}` : ''}`));
+  appendResultList(container, 'Ресурсы', (extras.resources || []).map(resource => `${resource.name}: максимум ${resource.max}; ${resource.recovery || `восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха`}.`));
   appendResultList(container, 'Особенности и примечания', [...new Set([...(stats.notes || []), ...(extras.features || []).map(feature => `${feature.name}: ${feature.description}`)])]);
 }
 

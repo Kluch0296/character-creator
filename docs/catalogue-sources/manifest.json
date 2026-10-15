@@ -1,0 +1,392 @@
+{
+  "version": 1,
+  "upstreamRevision": "b9061583536101068b3a59d27e886d1fa664e366",
+  "auditDate": "2026-10-03",
+  "upstreamOrigin": {
+    "repository": "https://github.com/5etools-mirror-3/5etools-src",
+    "retrievedAt": "2026-10-09T19:09:44.318Z"
+  },
+  "translationOrigin": {
+    "kind": "legacy-catalogue-metadata",
+    "repositoryCommit": "fb2fa5d68f9acf702f51538542213efc96c7c745",
+    "path": "levelup-data.js",
+    "note": "Committed labels, links and audit metadata only; historical dnd.su HTML was not recovered."
+  },
+  "rawResponses": [
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-barbarian.json",
+      "sha256": "15b090c2ede1cc5a522817bf41d83a890aa194f3d7827f98787e1b05d057f319"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-bard.json",
+      "sha256": "e5041a799e8c720db3a28539c2a25e9d6d821b6229a65fd1484f749ea3978b1d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-cleric.json",
+      "sha256": "fa1cdf0f7b85e970e3191d2d516cac26b9cfadbe883ac89b3224c1fa95eb2f61"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-druid.json",
+      "sha256": "e320ecf4f19e49acbbc449fcde4f8448bfad4bfc40a56138dced312a52af13a1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-fighter.json",
+      "sha256": "4353d0a6adf3652c989ed95e29bc1d2d40b393c84e50242b202441113a9c0dbd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-monk.json",
+      "sha256": "16318edac48630b7b83fcf23cc436589f8922e82b0874aefd24a2727b6954ffd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-paladin.json",
+      "sha256": "46666e5793b1b54e0e618560010a5589d25b6ff789f6aa004ff90c1efbe42e00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-ranger.json",
+      "sha256": "e22da39dc2a9cf708f21996cf393af8240442aff6f523281bc65436609840dfb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-rogue.json",
+      "sha256": "1db96ec24a864369de9138a9d51bdf89e09fdd79f3f2d39c25ac73191f2befa0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-sorcerer.json",
+      "sha256": "9f17737aa137ca3979b20cdcc7e8b0120c7be293cf9849c2d27c93f2e0e87c79"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-warlock.json",
+      "sha256": "0339b47396f035de89d098e13099f7c1e010f85ba6987d790fc70706d817751c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-wizard.json",
+      "sha256": "eca6e726f13859842bce9f61fde909b35a386967a1719ec83cddb40e434ad01a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/class/class-artificer.json",
+      "sha256": "1c61ad11500d661350209fe81196e0ddaea31f0252a67891964810f4a98265dd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/generated/gendata-spell-source-lookup.json",
+      "sha256": "14ce167675a2ccebd37a95a11761387ab2625fe64c02776200a65c06ae830e19"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/index.json",
+      "sha256": "210f9924f3cb8caefb46af68c767103541f04ef01bb942740bcdd1553b70dd42"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-aag.json",
+      "sha256": "30cd772fa48ae872b8794fdd5ff4e010fed5448cc3653e6742b5cca1ab866c84"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-ai.json",
+      "sha256": "9bfe1cc5da489e8f5a803aaf3c965b1a1f77dff5d911b7a5a407822502a59ddb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-aitfr-avt.json",
+      "sha256": "d6df59a02812d07ffe6f1d5e5317805eea677586b75d693f1d9904fb0468dcb9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-bmt.json",
+      "sha256": "cdbcb5381e2296e3d1ffdf11b5442be3ddb4c32fff62a60694c6bf1b49af7741"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-egw.json",
+      "sha256": "149e235162c689823324f16414a07f3e2e10b8616d8b2d7412bd8d45acc55bf7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-ftd.json",
+      "sha256": "1989e9eaaacc7f792c98fd63cdb364e3e1c4cb6a5b4b82f75694d85c6a9829fe"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-ggr.json",
+      "sha256": "d85aefacdeccf8bc395f872b3c0ebb64a0bc2cf77da2fbbcd9554eddb58542a1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-idrotf.json",
+      "sha256": "b57aa142fc19fe209332a852a9aa31a99ba8d03d4a4a39348f8f0dbb9d6ea813"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-llk.json",
+      "sha256": "ec4eb3de178b7140067842f6b7ba72fe8c1c9d2ef253722bec102266df0e1f04"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-phb.json",
+      "sha256": "8da452b4de1a1c9e035baf4f2022a93f8acb09e0617b7a941169159a2744560d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-sato.json",
+      "sha256": "4ebeaf6278bc90dbb948588fad5c39a32e0b1e40becc94929e5a17d50756f680"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-scc.json",
+      "sha256": "76cfd4b23cb6c21b74c2e24aaff55113f343b699aafaf8a11656e83978b52ed8"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-tce.json",
+      "sha256": "2366f928759cf4b20807a91f716c1dde3c40727edbc5573eafb61c471a9633bc"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/spells/spells-xge.json",
+      "sha256": "8cb12757ec0e2f80b9250211eea7d86251013820f8439ae6faf92a986c46a8a0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/optionalfeatures.json",
+      "sha256": "a6003fb6c3cee5e77bc6af01167a3c1f47661a986aad9fe88ebb251812b7cb66"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/items.json",
+      "sha256": "b72e9f1fe406603cdb5a301025061d311aa27051930a412ed1be295c7df8bc28"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/index.json",
+      "sha256": "0928114c9bb962aa433c7e41ac6d5ea6da5a09b0bb00437900af62ee7c664a87"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-ai.json",
+      "sha256": "af4594893c0f4c1e70292ee3242021df8a0a9fd2720064d45c22086b3d8843de"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-bgg.json",
+      "sha256": "591fd3a3b3206ffcdc3b64b41b5445cb29a6606953682c2f98590198eafc6f32"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-bmt.json",
+      "sha256": "4456fc28bb8678fa2d6bfa59e363bdde8c5892e0f5c8d6eaa12461a052801b58"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-cm.json",
+      "sha256": "44691ec9607f2ef149979e38b51649c3d936eac963b87179f3ba8bb49e4986a1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-cos.json",
+      "sha256": "aae4dfb59e43eb1452ea555bb93d7d632d4c462d8a220fd711054db1ec578547"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-dc.json",
+      "sha256": "bd8c172ee55d7c4026c1c17909da49f61362a92a11d0637d14ee84715e39095f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-dip.json",
+      "sha256": "3f4c8d6520c98f4e4b64ac19b01eb23cb95c918b406655e5427ef7a47b7f00b4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-dmg.json",
+      "sha256": "a9123613f5f214cbd36f215bef11d0eeb7b5620ee65409830c68a8b9897c85ac"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-dosi.json",
+      "sha256": "bcd21180bf0a6d4beaa3bc74fcb2a992d79b4da28301cf649c4a1222a35049f0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-dsotdq.json",
+      "sha256": "ebf90d43145593967a96eb0a5870cf9baf63f0df75036d8bc626468eee353f6d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-egw.json",
+      "sha256": "427828ae77bc4fd924b2c2747e3c11d843d36653d98c089d27c59fc40293314e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-erlw.json",
+      "sha256": "246edf1e77ea5d476f9c44602dd5de96ba32c15fe7db35b68ec3aa37b2494d1f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-ftd.json",
+      "sha256": "e5cdafdd58a14847e7317c0e721742827ce1678e188eca417ee1a82534f64080"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-ggr.json",
+      "sha256": "ab02e617600f811306364a2bd53302ee525ec08320689a175aa52b4986e03a06"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-gos.json",
+      "sha256": "5d2c662d4fa4050b4e7eca18f000a4e4f5b65345ba04c097072dbd592123b57c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-hotdq.json",
+      "sha256": "7416bc79e78819d732876bded3453df49f88c48c414617d3f4986ee806149cf3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-idrotf.json",
+      "sha256": "077dac83716c2a0dee4116577fb33b68b58cc28103e2ce4e0bb19efc7ee32e8e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-jttrc.json",
+      "sha256": "f766971419cdf9d3f8b89fef83a8737aa2237433ef4367a18a167ea88dc626d3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-llk.json",
+      "sha256": "fbef27a18c2c0b8de8b6616c760869b12a19d6bf03a69428cae2d614932979a3"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-lmop.json",
+      "sha256": "ec471da3ea05e8c1d525b6df2424419a26532dd72d5672bda8eebf977252efe1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-mm.json",
+      "sha256": "7b44bc00ec6fa69f751611e8fd7ddb3f5b66cc70455dc6b3e2218191d81aa794"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-mpmm.json",
+      "sha256": "22d079860584dcaabd9e9dd9ae6478311eb0086b76f4c627e421648fc3e155df"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-mot.json",
+      "sha256": "bd53d4c2510eec95de90f945e6378c96027a29868f7e525ae54a9c27ba4e16fc"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-mtf.json",
+      "sha256": "e1b4fe0ba28edd88d96ddc013a804272cbebf8457c3cc8d15f4f211ebd4a3d9f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-oota.json",
+      "sha256": "82d156c61c605482bfc78264ce05f655f639c21207f118c8cdeb3d397695b00c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-phb.json",
+      "sha256": "00608adf2424c8787f5ef6fdd071e2759312280e64734a13da888422c9d28c2a"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-pota.json",
+      "sha256": "f714a877c1f9ad98933c370fb40820fef0bd22c10aaea8b651f50d23d5ffdb63"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-rot.json",
+      "sha256": "70e0a01940c56651b0babc11a63c5b2f96f6f0afd9c3abdb4c7a03c46b64225b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-scc.json",
+      "sha256": "f0b9ac98bd68551390b8f5991e5ceb1286d6ac5f2c4542afb1f4377606db1b3c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-sdw.json",
+      "sha256": "d13d2848476bc43158e11716289e700dc7b4bb54dadb21f2e3a2708fa1b844c7"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-skt.json",
+      "sha256": "3bf9738fafee9d9c1602b6ee78dc6881415d5cf24bb7bfa4c33c02acda137d04"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-slw.json",
+      "sha256": "e2aba1b411bf27f5c75b76ee28e5f61ab8315a8d571259c2ec3dda578758ca3b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-tce.json",
+      "sha256": "dd45117046b7fa0653ee13d4bb9a22c9b3b65fc052425589091f7b2eb6649326"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-tftyp.json",
+      "sha256": "8330dfe9ffca0f7789397648e87a99fdc33923a70f6978008fa4339b92e9337f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-toa.json",
+      "sha256": "8f95ae09c630268e618f547339c025274657e38ec02cfeccc7f4e4e56801a25d"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-vgm.json",
+      "sha256": "063069c9beadb2cd0833f0fed01665fcd0bb6471f09b8ba4d229e0b74b738ccb"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-vrgr.json",
+      "sha256": "3ae776ceb3e765bb8d5d83edf50eab57b240a5abfbd0509ef647d41d93d2eda8"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-xge.json",
+      "sha256": "953b8c12b160076ac7776d06e3503ef18b9d7fd9b745c058678093689bafa74c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-wbtw.json",
+      "sha256": "08a31a8ef77c775cf2d6743a0f48f3c01f3580fdb347d9ec5052b3e0526293b1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-wdh.json",
+      "sha256": "7c209d1eb53582f5d4407f746106973117cab91a48b7542045b58b2115b49292"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/b9061583536101068b3a59d27e886d1fa664e366/data/bestiary/bestiary-wdmm.json",
+      "sha256": "d711fda9c1ef2209781dad63f8eec9e3c8efdbede0a77892ac7f57767620c6a9"
+    }
+  ],
+  "requiredInputs": [
+    "class/class-barbarian.json",
+    "class/class-bard.json",
+    "class/class-cleric.json",
+    "class/class-druid.json",
+    "class/class-fighter.json",
+    "class/class-monk.json",
+    "class/class-paladin.json",
+    "class/class-ranger.json",
+    "class/class-rogue.json",
+    "class/class-sorcerer.json",
+    "class/class-warlock.json",
+    "class/class-wizard.json",
+    "class/class-artificer.json",
+    "spells/index.json",
+    "spells/spells-aag.json",
+    "spells/spells-ai.json",
+    "spells/spells-aitfr-avt.json",
+    "spells/spells-bmt.json",
+    "spells/spells-egw.json",
+    "spells/spells-ftd.json",
+    "spells/spells-ggr.json",
+    "spells/spells-idrotf.json",
+    "spells/spells-llk.json",
+    "spells/spells-phb.json",
+    "spells/spells-sato.json",
+    "spells/spells-scc.json",
+    "spells/spells-tce.json",
+    "spells/spells-xge.json",
+    "generated/gendata-spell-source-lookup.json",
+    "optionalfeatures.json",
+    "items.json",
+    "bestiary/index.json",
+    "bestiary/bestiary-ai.json",
+    "bestiary/bestiary-bgg.json",
+    "bestiary/bestiary-bmt.json",
+    "bestiary/bestiary-cm.json",
+    "bestiary/bestiary-cos.json",
+    "bestiary/bestiary-dc.json",
+    "bestiary/bestiary-dip.json",
+    "bestiary/bestiary-dmg.json",
+    "bestiary/bestiary-dosi.json",
+    "bestiary/bestiary-dsotdq.json",
+    "bestiary/bestiary-egw.json",
+    "bestiary/bestiary-erlw.json",
+    "bestiary/bestiary-ftd.json",
+    "bestiary/bestiary-ggr.json",
+    "bestiary/bestiary-gos.json",
+    "bestiary/bestiary-hotdq.json",
+    "bestiary/bestiary-idrotf.json",
+    "bestiary/bestiary-jttrc.json",
+    "bestiary/bestiary-llk.json",
+    "bestiary/bestiary-lmop.json",
+    "bestiary/bestiary-mm.json",
+    "bestiary/bestiary-mpmm.json",
+    "bestiary/bestiary-mot.json",
+    "bestiary/bestiary-mtf.json",
+    "bestiary/bestiary-oota.json",
+    "bestiary/bestiary-phb.json",
+    "bestiary/bestiary-pota.json",
+    "bestiary/bestiary-rot.json",
+    "bestiary/bestiary-scc.json",
+    "bestiary/bestiary-sdw.json",
+    "bestiary/bestiary-skt.json",
+    "bestiary/bestiary-slw.json",
+    "bestiary/bestiary-tce.json",
+    "bestiary/bestiary-tftyp.json",
+    "bestiary/bestiary-toa.json",
+    "bestiary/bestiary-vgm.json",
+    "bestiary/bestiary-vrgr.json",
+    "bestiary/bestiary-xge.json",
+    "bestiary/bestiary-wbtw.json",
+    "bestiary/bestiary-wdh.json",
+    "bestiary/bestiary-wdmm.json"
+  ],
+  "payloads": {
+    "upstream.json": {
+      "sha256": "11b1d0cd9a39f99e67e58f971715a7a7584ac72ae208e751538e1057bfc7370c"
+    },
+    "translations.json": {
+      "sha256": "d404a6881cf9a46273e28206cbb71eb499adda1d582b8f37cfb43168f1ba456f"
+    }
+  }
+}

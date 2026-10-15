@@ -108,6 +108,7 @@ let abilityPick = null;
 let liveRefs = null;
 let liveRefreshTimer = null;
 let saveIndicatorNode = null;
+let draftSaved = true;
 let actionBarObserver = null;
 const raceViewState = { filter: 'all', query: '', sort: 'fit' };
 
@@ -387,6 +388,7 @@ function fillStepper(nav, steps, complete) {
     button.setAttribute('aria-label', `${step.label}${step.summary ? `: ${step.summary}` : ''}`);
     button.setAttribute('title', `${step.label}${step.summary ? ` — ${step.summary}` : ''}`);
     button.addEventListener('click', () => {
+      if(typeof LevelUpRules!=='undefined'&&currentPageIndex>=config.pages.length&&!confirmProgressionResetForEdit(()=>{currentPageIndex=step.index;renderPage();scrollToPageTop();}))return;
       currentPageIndex = step.index;
       renderPage();
       scrollToPageTop();
@@ -444,6 +446,7 @@ function trackActionBarHeight(bar) {
 }
 
 function markDraftSaved(saved) {
+  draftSaved = saved;
   if (!saveIndicatorNode) return;
   saveIndicatorNode.textContent = saved ? 'Черновик сохранён' : 'Автосохранение недоступно';
   toggleClass(saveIndicatorNode, 'is-off', !saved);
@@ -513,24 +516,38 @@ function dependsOnMissingAbility(read) {
   }
 }
 
-function renderCharacterSheet(aside, steps) {
+function characterClassLabel(model, extras) {
+  return extras?.classes?.length
+    ? extras.classes.map(item => `${plainLabel(item.label || getSelectedOption('class', item.id)?.label || item.id)} ${item.level}`).join(' / ')
+    : `${plainLabel(getSelectedOption('class', model.class)?.label)} ${extras?.effectiveLevel || model.level || 1}`;
+}
+
+function characterHitDiceLabel(stats, extras) {
+  const pools = extras?.hitDicePools || stats?.hitDicePools;
+  return pools?.length ? pools.map(pool => `${pool.count}к${pool.die}`).join(' + ') : `${stats?.hitDice || stats?.level || 1}к${stats?.hitDie || '—'}`;
+}
+
+function renderCharacterSheet(aside, steps, view = {}) {
   aside.innerHTML = '';
   toggleClass(aside, 'is-expanded', sheetExpanded);
-  const race = getSelectedRace();
-  const subrace = getSelectedSubrace(race);
-  const classOption = getSelectedOption('class', character.class);
-  const background = getSelectedOption('background', character.background);
-  const guide = getClassGuide(character.class);
+  const model = view.character || character;
+  const race = getSelectedOption('race', model.race);
+  const subrace = race?.suboptions?.find(option => option.value === model.race_sub);
+  const classOption = getSelectedOption('class', model.class);
+  const background = getSelectedOption('background', model.background);
+  const guide = getClassGuide(model.class);
   let extras = null;
   let stats = null;
   let profs = null;
   try {
-    extras = getCreationExtras();
-    stats = CharacterRules.derivedStats(character, extras);
-    profs = CharacterRules.resolveProficiencies(character, extras);
+    extras = view.extras || getCreationExtras();
+    stats = view.stats || CharacterRules.derivedStats(model, extras);
+    profs = CharacterRules.resolveProficiencies(model, extras);
   } catch (error) {
     extras = null;
   }
+  const finalAbilities = stats?.abilities || {};
+  const hasScore = id => model.abilities?.[id] !== undefined && model.abilities[id] !== null && model.abilities[id] !== '' && Number.isFinite(Number(model.abilities[id]));
 
   const summary = createElement('div', 'sheet-summary');
   const hero = createElement('div', 'sheet-hero');
@@ -556,10 +573,10 @@ function renderCharacterSheet(aside, steps) {
   hero.appendChild(portrait);
 
   const copy = createElement('div', 'sheet-hero__copy');
-  copy.appendChild(createElement('p', 'sheet-kicker', 'Ваш персонаж'));
-  const name = (character.name || '').trim();
+  copy.appendChild(createElement('p', 'sheet-kicker', view.label || 'Ваш персонаж'));
+  const name = (model.name || '').trim();
   copy.appendChild(createElement('h3', `sheet-name${name ? '' : ' is-placeholder'}`, name ? softHyphenate(name) : 'Без имени'));
-  const line = [plainLabel(subrace ? subrace.label : race && race.label), classOption && `${plainLabel(classOption.label)} ${character.level || 1}`].filter(Boolean);
+  const line = [plainLabel(subrace ? subrace.label : race && race.label), classOption && characterClassLabel(model, extras)].filter(Boolean);
   copy.appendChild(createElement('p', 'sheet-line', line.length ? line.join(' · ') : 'Класс и раса ещё не выбраны'));
   if (background) copy.appendChild(createElement('p', 'sheet-line sheet-line--muted', plainLabel(background.label)));
   hero.appendChild(copy);
@@ -578,12 +595,12 @@ function renderCharacterSheet(aside, steps) {
 
   const vitals = createElement('dl', 'sheet-vitals');
   const walkSpeed = result => (typeof result.speed === 'number' ? result.speed : result.speed && result.speed.walk);
-  const speed = stats && !dependsOnMissingAbility(walkSpeed) ? walkSpeed(stats) : null;
+  const speed = stats && (view.stats || !dependsOnMissingAbility(walkSpeed)) ? walkSpeed(stats) : null;
   const vitalValues = [
-    ['Хиты', classOption && hasAbilityValue('constitution') && stats && Number.isFinite(stats.hp) ? stats.hp : '—'],
-    ['КД', race && stats && Number.isFinite(stats.ac) && !dependsOnMissingAbility(result => result.ac) ? stats.ac : '—'],
+    ['Хиты', classOption && hasScore('constitution') && stats && Number.isFinite(stats.hp) ? stats.hp : '—'],
+    ['КД', race && stats && Number.isFinite(stats.ac) && (view.stats || !dependsOnMissingAbility(result => result.ac)) ? stats.ac : '—'],
     ['Скорость', race && speed ? speed : '—'],
-    ['Иниц.', hasAbilityValue('dexterity') && stats && Number.isFinite(stats.initiative) ? signedValue(stats.initiative) : '—']
+    ['Иниц.', hasScore('dexterity') && stats && Number.isFinite(stats.initiative) ? signedValue(stats.initiative) : '—']
   ];
   vitalValues.forEach(([label, value]) => {
     const item = createElement('div', `sheet-vital${value === '—' ? ' is-unknown' : ''}`);
@@ -595,7 +612,7 @@ function renderCharacterSheet(aside, steps) {
 
   const abilities = createElement('div', 'sheet-abilities');
   ABILITY_LABELS.forEach(ability => {
-    const value = hasAbilityValue(ability.id) ? getFinalAbilityValue(ability.id) : undefined;
+    const value = hasScore(ability.id) ? finalAbilities[ability.id] : undefined;
     const item = createElement('div', 'sheet-ability');
     toggleClass(item, 'is-empty', value === undefined);
     toggleClass(item, 'is-key', !!guide && guide.primary.includes(ability.id));
@@ -607,39 +624,52 @@ function renderCharacterSheet(aside, steps) {
   });
   summary.appendChild(abilities);
   aside.appendChild(summary);
+  if (view.note) summary.appendChild(createElement('p', 'advancement-sheet-note', view.note));
 
   const details = createElement('div', 'sheet-details');
   details.id = 'sheet-details';
 
   const casting = extras && extras.spellcasting;
-  if (casting && classOption) {
-    const known = hasAbilityValue(casting.ability);
-    const magic = sheetSection(details, 'Магия');
+  const castings = extras?.spellcastingByClass?.length ? extras.spellcastingByClass : casting ? [casting] : [];
+  for (const classCasting of castings) {
+    const known = hasScore(classCasting.ability);
+    const magic = sheetSection(details, classCasting.label ? `Магия · ${plainLabel(classCasting.label)} ${classCasting.level}` : 'Магия');
     const grid = createElement('dl', 'sheet-magic');
-    [['Сл спасброска', known ? casting.saveDC : '—'], ['Атака', known ? signedValue(casting.attackBonus) : '—'], ['Базовая', abilityInfo(casting.ability).short]].forEach(([label, value]) => {
+    [['Сл спасброска', known ? classCasting.saveDC : '—'], ['Атака', known ? signedValue(classCasting.attackBonus) : '—'], ['Базовая', abilityInfo(classCasting.ability).short]].forEach(([label, value]) => {
       const item = createElement('div');
       item.appendChild(createElement('dd', '', String(value)));
       item.appendChild(createElement('dt', '', label));
       grid.appendChild(item);
     });
     magic.appendChild(grid);
-    if (casting.slots) {
-      const slots = createElement('p', 'sheet-slots', `Ячейки ${casting.slotLevel}-го круга: `);
-      for (let index = 0; index < casting.slots; index++) slots.appendChild(createElement('span', 'sheet-slot'));
+  }
+  if (casting) {
+    const magic = sheetSection(details, 'Ячейки заклинаний');
+    const slotPools = [...Object.entries(casting.slotTiers || {}).map(([level, count]) => ({ level, count })), ...(casting.pactSlots ? [{ ...casting.pactSlots, pact: true }] : [])];
+    if (!slotPools.length && casting.slots) slotPools.push({level:casting.slotLevel,count:casting.slots});
+    for (const {level,count,pact} of slotPools) {
+      const slots = createElement('p', 'sheet-slots', `Ячейки ${level}-го круга${pact?' (договор, короткий отдых)':''}: `);
+      for (let index = 0; index < count; index++) slots.appendChild(createElement('span', 'sheet-slot'));
       magic.appendChild(slots);
     }
   }
+  if (stats?.hitDie) sheetTags(sheetSection(details, 'Кости хитов'), [{ text: characterHitDiceLabel(stats, extras) }]);
 
   const spells = extras && extras.spells || [];
+  if (extras && extras.resources && extras.resources.length) {
+    const section = sheetSection(details, 'Ресурсы');
+    for (const resource of extras.resources) section.appendChild(createElement('p', 'sheet-note', `${resource.name}: максимум ${resource.max}; ${resource.recovery || `восстановление после ${resource.rest === 'short-rest' ? 'короткого или долгого' : 'долгого'} отдыха`}.`));
+  }
   const cantrips = spells.filter(spell => !spell.level);
   const classSpells = spells.filter(spell => spell.level && ['prepared', 'known'].includes(spell.status));
   const bookOnly = spells.filter(spell => spell.status === 'spellbook');
-  const innate = spells.filter(spell => spell.level && ['racial', 'feat', 'ritual'].includes(spell.status));
-  if (cantrips.length) sheetTags(sheetSection(details, 'Заговоры'), cantrips.map(spell => ({ text: spell.label || spell.id })));
+  const innate = spells.filter(spell => spell.level && ['racial', 'feat', 'ritual', 'feature', 'invocation'].includes(spell.status));
+  const spellLabel = spell => `${spell.label || spell.id}${spell.ability ? ` · ${abilityInfo(spell.ability).label}` : ''}${castings.length > 1 && !['racial','feat','ritual','feature','invocation'].includes(spell.status) ? ` · ${plainLabel(getSelectedOption('class', spell.classId || model.class)?.label)}` : ''}`;
+  if (cantrips.length) sheetTags(sheetSection(details, 'Заговоры'), cantrips.map(spell => ({ text: spellLabel(spell) })));
   if (classSpells.length || bookOnly.length) {
     const section = sheetSection(details, casting && casting.mode === 'book' ? 'Подготовлено' : 'Заклинания');
-    sheetTags(section, classSpells.map(spell => ({ text: spell.label || spell.id, star: spell.status === 'prepared' })), 'Пока ничего не подготовлено');
-    if (bookOnly.length) section.appendChild(createElement('p', 'sheet-note', `Ещё в книге: ${bookOnly.map(spell => spell.label || spell.id).join(', ')}`));
+    sheetTags(section, classSpells.map(spell => ({ text: spellLabel(spell), star: spell.status === 'prepared' })), 'Пока ничего не подготовлено');
+    if (bookOnly.length) section.appendChild(createElement('p', 'sheet-note', `Ещё в книге: ${bookOnly.map(spellLabel).join(', ')}`));
   }
   if (innate.length) {
     sheetTags(sheetSection(details, 'Особые заклинания'), innate.map(spell => ({ text: spell.source ? `${spell.label || spell.id} · ${spell.source}` : spell.label || spell.id })));

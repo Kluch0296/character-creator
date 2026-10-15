@@ -76,7 +76,7 @@ function renderLoading() {
 async function loadConfig() {
   renderLoading();
   try {
-    if (typeof CharacterRules === 'undefined' || typeof CreationOptions === 'undefined' || typeof LssExport === 'undefined' || typeof SpellInfo === 'undefined' || typeof renderMechanics !== 'function' || typeof renderCharacterSheet !== 'function') throw new Error('Не удалось загрузить модули правил. Обновите страницу или проверьте доступность файлов приложения.');
+    if (typeof LevelUpRules === 'undefined' || typeof LevelUpData === 'undefined' || typeof showAdvancement !== 'function' || typeof CharacterRules === 'undefined' || typeof CreationOptions === 'undefined' || typeof LssExport === 'undefined' || typeof SpellInfo === 'undefined' || typeof renderMechanics !== 'function' || typeof renderCharacterSheet !== 'function') throw new Error('Не удалось загрузить модули правил. Обновите страницу или проверьте доступность файлов приложения.');
     const response = await fetch('config.json', { cache: 'no-store' });
     if (response && response.ok === false) {
       throw new Error(`Конфигурация недоступна (HTTP ${response.status || 'ошибка'})`);
@@ -201,7 +201,39 @@ function restoreDraft() {
     const draft = JSON.parse(raw);
     if (!draft || !draft.character || draft.edition !== config.meta.edition) return;
     if (typeof draft.character !== 'object' || Array.isArray(draft.character)) return;
-    character = { ...base, ...draft.character, level: 1 };
+    character = { ...base, ...draft.character };
+    if (typeof LevelUpRules !== 'undefined') {
+      const upgraded = LevelUpRules.upgradeLegacyFoundation(character, getAdvancementContext());
+      if (upgraded !== character) {
+        // Persist before validation can route an incomplete draft to editable creation.
+        character = upgraded;
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...draft, character }));
+          markDraftSaved(true);
+        } catch (error) {
+          markDraftSaved(false);
+        }
+      }
+      // Heroes who already levelled a restricted subclass confirmed the DM permission in their ledger; creation need not ask again.
+      // The field is outside the foundation fingerprint, so adding it never invalidates saved advancement.
+      // The migration is best-effort: a malformed ledger must never reach the outer catch, which would discard the hero.
+      try {
+        const entries = character.advancement?.entries;
+        if (!character.creation_campaign_permission && LevelUpRules.subclass(character)?.restrictions
+          && Array.isArray(entries)
+          && entries.some(entry => entry && typeof entry === 'object' && (!entry.classId || entry.classId === character.class) && entry.choices?.campaign_permission === 'yes')) {
+          character = { ...character, creation_campaign_permission: 'yes' };
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...draft, character }));
+            markDraftSaved(true);
+          } catch (error) {
+            markDraftSaved(false);
+          }
+        }
+      } catch (error) {
+        // Skip the migration; damaged ledgers are reported by LevelUpRules.inspect.
+      }
+    }
     if (draft.pageId === 'result') {
       currentPageIndex = config.pages.length;
     } else {
@@ -250,6 +282,7 @@ function clearDraft() {
 function renderPage() {
   const app = getApp();
   if (!app || !config) return;
+  if (currentPageIndex >= config.pages.length && character.pendingAdvancement && typeof LevelUpRules!=='undefined') { showAdvancement(app); return; }
   if (currentPageIndex >= config.pages.length) {
     showResult(app);
     return;
@@ -326,7 +359,8 @@ function renderHeader(container) {
   header.appendChild(brand);
 
   const tools = createElement('div', 'header-tools');
-  saveIndicatorNode = createElement('span', 'save-indicator', 'Черновик сохранён');
+  saveIndicatorNode = createElement('span', 'save-indicator');
+  markDraftSaved(draftSaved);
   tools.appendChild(saveIndicatorNode);
   const reset = createElement('button', 'header-button', 'Начать заново');
   reset.type = 'button';
@@ -357,7 +391,7 @@ function renderScopeNote(container) {
   const note = createElement('aside', 'scope-note');
   note.appendChild(createElement('span', 'scope-note__icon', 'i'));
   const copy = createElement('p');
-  copy.appendChild(document.createTextNode('Первый уровень, правила 2014 года. Доступность книг и дополнительных вариантов согласуйте с Мастером. Справка: '));
+  copy.appendChild(document.createTextNode('Создание и прокачка до 3-го уровня, правила 2014 года. Доступность книг и дополнительных вариантов согласуйте с Мастером. Справка: '));
   const link = createDndLink('https://5e14.dnd.su/newbie/character-creation/', 'правилам 5e14');
   if (link) copy.appendChild(link);
   copy.appendChild(document.createTextNode('.'));
@@ -1204,9 +1238,9 @@ function showResult(container) {
   }
   hero.appendChild(portrait);
   const heroCopy = createElement('div', 'result-hero__copy');
-  heroCopy.appendChild(createElement('p', 'result-kicker', `${config.meta.edition} · уровень ${character.level || 1}`));
+  heroCopy.appendChild(createElement('p', 'result-kicker', `${config.meta.edition} · уровень ${getDerivedCharacter().level || 1}`));
   heroCopy.appendChild(createElement('h2', '', character.name && character.name.trim() ? softHyphenate(character.name.trim()) : 'Безымянный герой'));
-  const subtitleParts = [classOption && classOption.label, race && race.label, subrace && subrace.label].filter(Boolean);
+  const subtitleParts = [classOption && characterClassLabel(character, getCreationExtras()), race && race.label, subrace && subrace.label].filter(Boolean);
   heroCopy.appendChild(createElement('p', 'result-subtitle', subtitleParts.join(' · ')));
   if (background) heroCopy.appendChild(createElement('span', 'result-tag', background.label));
   hero.appendChild(heroCopy);
@@ -1215,7 +1249,7 @@ function showResult(container) {
   const summary = createElement('section', 'result-section');
   summary.appendChild(createElement('h3', '', 'Персонаж'));
   const summaryGrid = createElement('dl', 'summary-grid');
-  appendDefinition(summaryGrid, 'Класс', classOption && classOption.label);
+  appendDefinition(summaryGrid, 'Классы', classOption && characterClassLabel(character, getCreationExtras()));
   appendDefinition(summaryGrid, 'Раса', race && race.label);
   appendDefinition(summaryGrid, 'Подраса', subrace && subrace.label);
   appendDefinition(summaryGrid, 'Предыстория', background && background.label);
@@ -1295,7 +1329,8 @@ function showResult(container) {
 
   const exportDetails = createElement('details', 'export-details');
   exportDetails.appendChild(createElement('summary', '', 'Данные для экспорта'));
-  exportDetails.appendChild(createElement('pre', '', JSON.stringify(getExportData(), null, 2)));
+  try { exportDetails.appendChild(createElement('pre', '', JSON.stringify(getExportData(), null, 2))); }
+  catch(error) { exportDetails.appendChild(createElement('p', '', 'Экспорт недоступен: '+error.message)); }
   result.appendChild(exportDetails);
 
   const status = createElement('p', 'result-status');
@@ -1305,6 +1340,7 @@ function showResult(container) {
   const edit = createElement('button', 'secondary-button', '← Вернуться к редактированию');
   edit.type = 'button';
   edit.addEventListener('click', () => {
+    if(typeof LevelUpRules!=='undefined'&&!confirmProgressionResetForEdit(()=>{currentPageIndex=config.pages.length-1;renderPage();}))return;
     currentPageIndex = config.pages.length - 1;
     renderPage();
   });
@@ -1318,10 +1354,24 @@ function showResult(container) {
   restart.type = 'button';
   restart.addEventListener('click', restartWizard);
   actions.appendChild(edit);
+  let notes=[];
+  if(typeof LevelUpRules!=='undefined') {
+    const ledger=LevelUpRules.inspect(character,getAdvancementContext());
+    // Warnings are already worded with human-readable group and option names (LevelUpRules.label). Only a saved key the rules no longer know at all (a vanished group) falls back to the key itself, so such a note may contain the raw key.
+    notes=ledger.errors.length?[]:(ledger.warnings||[]).map(w=>w.message);
+    if(ledger.errors.length) {
+      status.textContent='Журнал повышения требует исправления: '+ledger.errors[0].message;
+      copy.disabled=true;download.disabled=true;
+      const reset=createElement('button','secondary-button','Сбросить повреждённую прокачку до уровня 1');reset.type='button';reset.addEventListener('click',()=>{if(confirmProgressionResetForEdit())renderPage();});actions.appendChild(reset);
+    } else if(ledger.state.level<3){const advance=createElement('button','primary-button',`Повысить до ${ledger.state.level+1}-го уровня`);advance.type='button';advance.addEventListener('click',startAdvancement);actions.appendChild(advance);}
+    else status.textContent='Поддерживается прокачка до 3-го уровня включительно.';
+  }
   actions.appendChild(copy);
   actions.appendChild(download);
   actions.appendChild(restart);
   result.appendChild(status);
+  // Non-blocking: older saved choices that current rules no longer offer are kept as they were.
+  if(notes.length){const warnings=createElement('p','result-status result-warnings','Часть сохранённой прокачки расходится с текущими правилами (герой сохранён без изменений): '+notes.join(' '));warnings.setAttribute('role','note');result.appendChild(warnings);}
   result.appendChild(actions);
 
   main.appendChild(result);
@@ -1340,11 +1390,12 @@ function appendDefinition(list, term, value) {
 }
 
 function getExportData() {
+  if(typeof LevelUpRules!=='undefined'){const errors=LevelUpRules.inspect(character,getAdvancementContext()).errors;if(errors.length)throw new Error(errors[0].message);if(character.pendingAdvancement?.foundation!==undefined&&character.pendingAdvancement.foundation!==LevelUpRules.foundation(character))throw new Error('Основные выборы изменились. Сначала явно сбросьте зависимую прокачку.');}
   const invalid = findFirstInvalidPage();
   if (invalid) throw new Error(`Персонаж не завершён: ${invalid.errors[0].message}`);
   const race = getSelectedRace();
   const labels = {
-    class: getSelectedOption('class', character.class)?.label,
+    class: getCreationExtras().classes?.length > 1 ? characterClassLabel(character, getCreationExtras()) : getSelectedOption('class', character.class)?.label,
     race: race?.label,
     subrace: race?.suboptions?.find(option => option.value === character.race_sub)?.label,
     background: getSelectedOption('background', character.background)?.label,
@@ -1353,6 +1404,7 @@ function getExportData() {
   };
   const subclassField = CreationOptions.getChoices(character, getCreationContext()).find(choice => ['creation_domain', 'creation_origin', 'creation_patron'].includes(choice.id));
   labels.subclass = subclassField?.options.find(option => option.value === character[subclassField.id])?.label;
+  if(typeof LevelUpRules!=='undefined') labels.subclass=getCreationExtras().subclass?.label||labels.subclass;
   return LssExport.buildLssExport(character, labels, getDerivedCharacter(), getCreationExtras());
 }
 
