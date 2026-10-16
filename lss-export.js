@@ -293,7 +293,8 @@
     if(own.length) block.value.data.content.push(paragraphNode(MERGE_MARKER), ...own.map(paragraphNode));
     return block;
   }
-  // options.baseline = {ac, speed}: what our exporter computed for this character at the sheet's source level.
+  // options.baseline = {ac, speed, weapons}: what our exporter computed for this character at the sheet's source level. ac and speed decide whether the
+  // sheet value was overridden; weapons (the names of our weapon rows) decide whether a missing generated row was deleted on the site or is new since import.
   function mergeLssExport(generated, original, options = {}) {
     const source = Array.isArray(generated) ? generated[0] : generated;
     if(!isObject(source)) return Array.isArray(generated) ? mergeClone(generated) : [];
@@ -347,11 +348,12 @@
     const ownByName = new Map();
     for(const row of ownRows) { const key = normName(rowName(row)); if(!ownByName.has(key)) ownByName.set(key, row); }
     const genRows = list(data.weaponsList);
-    // A sheet with no physical weapon row of ours is a native or foreign sheet: its weapons are the user's inventory. Such a sheet gets the generated
-    // spell attacks (weapon-creator-spell- ids) and the class-feature attacks with non-physical damage (e.g. psychic or thunder), but not the physical
-    // starting-kit weapons. Our own exports keep every generated row. Only non-spell physical rows decide ownership, so the rows appended to a native
-    // sheet cannot flip it to ours on the next cycle.
+    // Starting-kit rule. options.baseline.weapons holds the names of our weapon rows at the sheet's source level (the same export that imported the sheet).
+    // A generated row the sheet lacks is skipped when the baseline has it: the user deleted it on the site, or a native sheet never had it. A row that
+    // is new since the import is appended whatever its damage (Pact of the Blade, soulknife blades). Spell-attack rows are always appended when
+    // unmatched: a native sheet keeps spells as text, and these rows are how LSS shows them as attacks. Without baseline.weapons the old fallback applies: a sheet with no physical weapon row of ours is native, and gets only its spell rows.
     const PHYSICAL_DAMAGE = new Set(Object.values(DAMAGE).map(normText));
+    const baselineWeapons = Array.isArray(pick(baseline,'weapons')) ? new Set(baseline.weapons.map(name => normName(name))) : null;
     const ownExport = ownRows.some(row => typeof row.id === 'string' && /^weapon-creator-(?!spell-)/.test(row.id) && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value)));
     const used = new Set([...ownById, ...genRows.map(row => row.id)]);
     let freshNumber = 0;
@@ -360,7 +362,8 @@
     for(const row of genRows) {
       const match = ownByName.get(normName(rowName(row)));
       if(match) { weaponIds.set(row.id, typeof match.id === 'string' && match.id.startsWith('weapon-creator-') ? match.id : null); continue; }
-      if(!ownExport && !String(row.id).startsWith('weapon-creator-spell-') && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value))) { weaponIds.set(row.id, null); continue; }
+      const spell = String(row.id).startsWith('weapon-creator-spell-');
+      if(baselineWeapons ? !spell && baselineWeapons.has(normName(rowName(row))) : !ownExport && !spell && PHYSICAL_DAMAGE.has(normText(row.dmgType?.value))) { weaponIds.set(row.id, null); continue; }
       const id = ownById.has(row.id) ? freshId(String(row.id).startsWith('weapon-creator-spell-') ? 'weapon-creator-spell-' : 'weapon-creator-') : row.id;
       weaponIds.set(row.id, id);
       addedRows.push({...row, id});

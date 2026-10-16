@@ -179,10 +179,11 @@ function assertPureStep(merged,generated,label){
  }
 }
 /* A pure chain: export of each level merged with the merged previous level (as the user would do on every level-up). */
-function pureChain(exports,label){
+function pureChain(exports,label,withBaseline=false){
  let previous=exports[0];
  for(let k=1;k<exports.length;k++){
-  const merged=merge(exports[k],sanitized(previous));
+  const options=withBaseline?{baseline:{weapons:exports[k-1][0]&&JSON.parse(exports[k-1][0].data).weaponsList.map(row=>row.name.value)}}:{};
+  const merged=merge(exports[k],sanitized(previous),options);
   assertPureStep(merged,exports[k],label+' L'+(k+1));
   assertMergedSchema(merged,k+1);
   previous=merged;
@@ -579,6 +580,7 @@ test('pure export cycles over every subclass (levels 1–3): no stale line, cons
    c=advance(c,branch);exports.push(exportCharacter(c).out);
    c=advance(c,branch);exports.push(exportCharacter(c).out);
    pureChain(exports,cls+':'+branch);
+   pureChain(exports,cls+':'+branch+' with baseline',true);
    cycles++;
   }
  }
@@ -591,7 +593,9 @@ test('pure export cycles over multiclass pairs: no stale line, consistent weapon
  else CLASSES.forEach((a,i)=>{pairs.push([a,CLASSES[(i+1)%CLASSES.length]]);pairs.push([a,CLASSES[(i+6)%CLASSES.length]]);});
  for(const [a,b] of pairs){
   const one=create(a),two=enter(one,b),three=enter(two,b);
-  pureChain([exportCharacter(one).out,exportCharacter(two).out,exportCharacter(three).out],a+'->'+b);
+  const exports=[exportCharacter(one).out,exportCharacter(two).out,exportCharacter(three).out];
+  pureChain(exports,a+'->'+b);
+  pureChain(exports,a+'->'+b+' with baseline',true);
  }
 });
 
@@ -759,4 +763,97 @@ test('native barbarian sheet: class-feature attacks with non-physical damage are
   for(const b of out.bonuses){const m=/^weapon\.(.+)\.attack$/.exec(b.target);if(m)assert.ok(rows.some(r=>r.id===m[1]),'dangling '+b.target);}
   assertMergedSchema(merged,3);
  }
+});
+
+/* Starting-kit baseline (weapon names of our export at the sheet's source level). Warlock at level 3 gains Pact of the Blade rows. */
+function warlockAt(level){
+ let c=create('warlock',null,{creation_patron:'fiend'});
+ if(level>=2)c=advance(c,'fiend');
+ if(level>=3)c=advance(c,'fiend',{pact:'blade'});
+ return c;
+}
+const weaponNames=out=>parsed(out).weaponsList.map(row=>row.name.value);
+const isPhysical=row=>['колющий','рубящий','дробящий'].includes(row.dmgType.value);
+
+test('baseline: a sheet whose physical rows the user deleted gets none of them back; the Pact of the Blade rows arrive', () => {
+ const l2=exportCharacter(warlockAt(2)).out, l3=exportCharacter(warlockAt(3)).out;
+ const baseline={weapons:weaponNames(l2)};
+ const kit=parsed(l2).weaponsList.filter(isPhysical).map(row=>row.name.value);
+ assert.ok(kit.length>0);
+ const sheet=sanitized(l2);
+ sheet.data.weaponsList=sheet.data.weaponsList.filter(row=>!isPhysical(row));
+ const merged=merge(l3,sheet,{baseline}), names=weaponNames(merged);
+ for(const name of kit)assert.equal(names.includes(name),false,'deleted row came back: '+name);
+ const pact=weaponNames(l3).filter(name=>!baseline.weapons.includes(name));
+ assert.ok(pact.length>0&&pact.every(name=>name.includes('Договор клинка')));
+ for(const name of pact)assert.equal(names.filter(n=>n===name).length,1,name);
+ assertMergedSchema(merged,3);
+});
+
+test('baseline: a partial deletion behaves the same way, the rows kept stay', () => {
+ const l2=exportCharacter(warlockAt(2)).out, l3=exportCharacter(warlockAt(3)).out;
+ const baseline={weapons:weaponNames(l2)};
+ const deleted=['Кинжал','Дубинка'];
+ const sheet=sanitized(l2);
+ sheet.data.weaponsList=sheet.data.weaponsList.filter(row=>!deleted.includes(row.name.value));
+ const names=weaponNames(merge(l3,sheet,{baseline}));
+ for(const name of deleted)assert.equal(names.includes(name),false,'deleted row came back: '+name);
+ for(const name of ['Лёгкий арбалет','Безоружный удар'])assert.equal(names.filter(n=>n===name).length,1,name);
+ assert.ok(names.some(name=>name.includes('Договор клинка')));
+});
+
+test('baseline on a native sheet: the starting kit stays out, the features that arrived after import are added (soulknife blades)', () => {
+ const l2=exportCharacter(advance(create('rogue'),null)).out;
+ const l3=exportCharacter(advance(advance(create('rogue'),null),'soulknife')).out;
+ const baseline={weapons:weaponNames(l2)};
+ const kit=parsed(l2).weaponsList.filter(isPhysical).map(row=>row.name.value);
+ const blades=weaponNames(l3).filter(name=>!baseline.weapons.includes(name));
+ assert.ok(blades.some(name=>name.startsWith('Психический клинок')),blades.join(' | '));
+ const merged=merge(l3,nativeOriginal('barbarian'),{baseline}), names=weaponNames(merged);
+ for(const name of kit)assert.equal(names.includes(name),false,'starting-kit row on a native sheet: '+name);
+ for(const name of blades){assert.equal(names.filter(n=>n===name).length,1,name);assert.ok(!['колющий','рубящий','дробящий'].includes(parsed(merged).weaponsList.find(row=>row.name.value===name).dmgType.value),name);}
+ assertMergedSchema(merged,3);
+});
+
+test('baseline on a native sheet: a new physical feature weapon (Pact of the Blade) IS added, the spell attack too', () => {
+ const l2=exportCharacter(warlockAt(2)).out, l3=exportCharacter(warlockAt(3)).out;
+ const baseline={weapons:weaponNames(l2)};
+ const merged=merge(l3,nativeOriginal('barbarian'),{baseline}), rows=parsed(merged).weaponsList;
+ const pact=rows.filter(row=>row.name.value.includes('Договор клинка'));
+ assert.ok(pact.length>0&&pact.every(isPhysical));
+ assert.ok(rows.some(row=>row.name.value==='Леденящее прикосновение'));
+ for(const name of parsed(l2).weaponsList.filter(isPhysical).map(row=>row.name.value))assert.equal(rows.some(row=>row.name.value===name),false,name);
+ assertMergedSchema(merged,3);
+});
+
+test('no baseline weapons: the old fallback stays, a native sheet gets its spell rows only', () => {
+ const l3=exportCharacter(warlockAt(3)).out;
+ const rows=parsed(merge(l3,nativeOriginal('barbarian'))).weaponsList;
+ assert.equal(rows.some(row=>row.name.value.includes('Договор клинка')),false);
+ assert.ok(rows.some(row=>row.name.value==='Леденящее прикосновение'));
+});
+
+test('regression: a native sheet imported at level 2 (baseline from a level-2 rogue) gets both soulknife blade rows at level 3', () => {
+ const l2=exportCharacter(advance(create('rogue'),null)).out;
+ const l3=exportCharacter(advance(advance(create('rogue'),null),'soulknife')).out;
+ const merged=merge(l3,nativeOriginal('barbarian'),{baseline:{weapons:weaponNames(l2)}}), names=weaponNames(merged);
+ for(const blade of ['Психический клинок','Психический клинок (бонусное действие)']){
+  assert.equal(names.filter(n=>n===blade).length,1,blade);
+ }
+ assertMergedSchema(merged,3);
+});
+
+test('own sheet, production-like 1 → 3: the baseline is recorded at level 1, the level-3 export adds the Pact of the Blade rows and keeps the rest', () => {
+ const l1=exportCharacter(warlockAt(1)).out, l3=exportCharacter(warlockAt(3)).out;
+ const baseline={weapons:weaponNames(l1)};
+ const sheet=sanitized(l1);
+ const merged=merge(l3,sheet,{baseline}), rows=parsed(merged).weaponsList, names=rows.map(row=>row.name.value);
+ for(const name of baseline.weapons)assert.equal(names.filter(n=>n===name).length,1,'kept row '+name);
+ const pact=weaponNames(l3).filter(name=>!baseline.weapons.includes(name));
+ assert.ok(pact.length>0);
+ for(const name of pact)assert.equal(names.filter(n=>n===name).length,1,'pact row '+name);
+ assert.equal(new Set(rows.map(row=>row.id)).size,rows.length);
+ assert.equal(texts(parsed(merged).text.traits).includes(MARKER),false,'an unedited own sheet gets no marker');
+ assertPureStep(merged,l3,'own 1 to 3');
+ assertMergedSchema(merged,3);
 });

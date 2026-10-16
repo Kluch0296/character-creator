@@ -1645,6 +1645,8 @@ test('LSS import: a level-1 monk keeps its sheet speed, and after level 2 export
   completeDraftInNode(context);
   vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
   assert.equal(vm.runInContext('character.lssImport.baseline.speed', context), 30);
+  const weapons = vm.runInContext('character.lssImport.baseline.weapons', context);
+  assert.ok(Array.isArray(weapons) && weapons.includes('Безоружный удар'), 'the baseline records the starting-kit weapon names: ' + JSON.stringify(weapons));
 
   const levelled = FixtureNode.advance(JSON.parse(vm.runInContext('JSON.stringify(character)', context)));
   vm.runInContext(`character = ${JSON.stringify(levelled)}; currentPageIndex = config.pages.length; renderPage();`, context);
@@ -1653,6 +1655,69 @@ test('LSS import: a level-1 monk keeps its sheet speed, and after level 2 export
   assert.equal(data.info.level.value, 2);
   assert.equal(data.vitality.speed.value, 40);
   assert.equal(vm.runInContext('character.lssImport.baseline.speed', context), 30, 'the baseline stays frozen above the imported level');
+  assert.deepEqual(vm.runInContext('character.lssImport.baseline.weapons', context), weapons, 'the weapons baseline stays frozen above the imported level');
+});
+
+// Weapon names of a sheet text (our export), in row order.
+const weaponNamesOf = text => JSON.parse(JSON.parse(text)[0].data).weaponsList.map(row => row.name.value);
+
+test('LSS import: the weapon baseline is recorded once per import; equipment changes leave it unchanged; a level-up adds the Pact of the Blade rows on an own sheet', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const warlock = FixtureNode.create('warlock', null, {creation_patron: 'fiend', abilities: lssStandard, abilityMethod: 'standard'});
+  await chooseLssFile(dom, lssFile('warlock-1.json', ownSheetText(warlock)));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext('currentPageIndex = config.pages.length; renderPage();', context);
+  const recorded = vm.runInContext('character.lssImport.baseline.weapons', context);
+  assert.ok(Array.isArray(recorded) && recorded.length > 0, JSON.stringify(recorded));
+
+  // Equipment chosen at the source level after the first sync: the export would now list a new row, the recorded list must not change.
+  const current = JSON.parse(vm.runInContext('JSON.stringify(character)', context));
+  const weaponChoice = CreationNode.getChoices(current, FixtureNode.context(current)).find(g => g.id === 'creation_weapon');
+  let changed = null, added = [];
+  for (const option of weaponChoice.options) {
+    if (option.value === current.creation_weapon) continue;
+    const candidate = {...current, creation_weapon: option.value};
+    added = weaponNamesOf(ownSheetText(candidate)).filter(name => !recorded.includes(name));
+    if (added.length) { changed = candidate; break; }
+  }
+  assert.ok(changed, 'an equipment choice that adds a weapon row exists');
+  vm.runInContext(`character = ${JSON.stringify(changed)}; saveDraft('result'); currentPageIndex = config.pages.length; renderPage();`, context);
+  assert.equal(vm.runInContext('JSON.stringify(character.lssImport.baseline.weapons)', context), JSON.stringify(recorded), 'the weapons baseline is frozen after the first sync');
+
+  // Level up to 3 with Pact of the Blade: on our own sheet the new physical rows are appended, the recorded rows stay.
+  const levelled = FixtureNode.advance(FixtureNode.advance(JSON.parse(vm.runInContext('JSON.stringify(character)', context)), 'fiend'), 'fiend', {pact: 'blade'});
+  vm.runInContext(`character = ${JSON.stringify(levelled)}; currentPageIndex = config.pages.length; renderPage();`, context);
+  const exported = JSON.parse(vm.runInContext('JSON.stringify(getExportData())', context));
+  const data = JSON.parse(exported[0].data);
+  assert.equal(data.info.level.value, 3);
+  const names = data.weaponsList.map(row => row.name.value);
+  assert.ok(names.some(name => name.includes('Договор клинка')), 'the Pact of the Blade rows are appended');
+  for (const name of [...recorded, ...added]) assert.equal(names.filter(n => n === name).length, 1, name);
+  assert.equal(vm.runInContext('JSON.stringify(character.lssImport.baseline.weapons)', context), JSON.stringify(recorded), 'the baseline stays frozen above the imported level');
+});
+
+test('LSS import: when the weapon export cannot be built, the AC and speed baseline is still refreshed and recorded weapons are kept', async () => {
+  const dom = createDOM(), context = loadScript(dom, readConfig());
+  await flush();
+  const monk = FixtureNode.create('monk', null, {abilities: lssStandard, abilityMethod: 'standard'});
+  await chooseLssFile(dom, lssFile('monk-1.json', ownSheetText(monk)));
+  buttonNamed(dom.root, 'Начать проверку').click();
+  await flush();
+  completeDraftInNode(context);
+  vm.runInContext("LssExport.buildLssExport = () => { throw new Error('export failed'); };", context);
+  // A stale AC/speed baseline without recorded weapons: the export cannot be built, but the AC/speed is still refreshed.
+  vm.runInContext("character = {...character, lssImport: {...character.lssImport, baseline: {ac: 999, speed: 1}}}; currentPageIndex = config.pages.length; renderPage();", context);
+  const derivedAc = vm.runInContext('(getDerivedCharacter().ac ?? getDerivedCharacter().armorClass)', context);
+  assert.equal(vm.runInContext('character.lssImport.baseline.ac', context), derivedAc);
+  assert.equal(vm.runInContext('character.lssImport.baseline.speed', context), vm.runInContext('getDerivedCharacter().speed', context));
+  assert.equal(vm.runInContext('"weapons" in character.lssImport.baseline', context), false);
+  // With recorded weapons the same failure keeps them.
+  vm.runInContext("character = {...character, lssImport: {...character.lssImport, baseline: {ac: 999, speed: 1, weapons: ['Безоружный удар']}}}; currentPageIndex = config.pages.length; renderPage();", context);
+  assert.equal(vm.runInContext('JSON.stringify(character.lssImport.baseline.weapons)', context), JSON.stringify(['Безоружный удар']));
+  assert.equal(vm.runInContext('character.lssImport.baseline.ac', context), derivedAc);
 });
 
 /* ---------- LSS import: restore gating, storage, race and merge notices (3.5.0 review) ---------- */

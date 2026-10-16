@@ -1612,8 +1612,15 @@ function syncLssBaseline() {
   const ledger = LevelUpRules.inspect(character, getAdvancementContext());
   if (ledger.errors.length || ledger.state.level !== lss.sourceLevel) return;
   const derived = getDerivedCharacter();
-  const baseline = {ac: derived.ac ?? derived.armorClass, speed: derived.speed};
-  if (lss.baseline && lss.baseline.ac === baseline.ac && lss.baseline.speed === baseline.speed) return;
+  // Weapon names are recorded once per import, from the export at the source level: choices made later (equipment, level-ups) must not
+  // change which rows the user is taken to have had. A new import has no lssImport yet, so it starts fresh.
+  let weapons = Array.isArray(lss.baseline?.weapons) ? lss.baseline.weapons : undefined;
+  if (!weapons) {
+    try { weapons = JSON.parse(LssExport.buildLssExport(character, {}, derived, getCreationExtras())[0].data).weaponsList.map(row => row.name.value); }
+    catch (error) { weapons = undefined; }
+  }
+  const baseline = {ac: derived.ac ?? derived.armorClass, speed: derived.speed, ...(weapons ? {weapons} : {})};
+  if (lss.baseline && lss.baseline.ac === baseline.ac && lss.baseline.speed === baseline.speed && JSON.stringify(lss.baseline.weapons) === JSON.stringify(baseline.weapons)) return;
   character = {...character, lssImport: {...lss, baseline}};
   saveDraft('result');
 }
